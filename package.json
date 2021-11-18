@@ -1,0 +1,36 @@
+{
+  "name": "osumudae",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@jimp/plugin-crop": "^0.16.1",
+    "axios": "^0.24.0",
+    "discord.io": "^2.5.3",
+    "discord.js": "^11.5.1",
+    "dotenv": "^10.0.0",
+    "fetch": "^1.1.0",
+    "firebase-admin": "^10.0.0",
+    "jimp": "^0.16.1",
+    "node-fetch": "^2.6.1",
+    "puppeteer": "^11.0.0",
+    "request": "^2.88.2",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js",
+    "scrape": "node ./scraper/scrape.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahloola/osuCards.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mahloola/osuCards/issues"
+  },
+  "homepage": "https://github.com/mahloola/osuCards#readme"
+}
