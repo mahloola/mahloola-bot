@@ -1,2 +1,8 @@
 /node_modules
+/auth.json
 .env
+.gcloudignore
+.vscode
+database.js
+api.js
+app.yaml
