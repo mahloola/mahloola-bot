@@ -9,6 +9,13 @@ let apiToken;
 initializeDatabase();
 apiToken = requestClientCredentialsToken();
 
+// debug
+// async function asdf() {
+//     let player = await getPlayerByRank(3192);
+//     await createImage(player);
+// }
+// asdf()
+
 client.on('message', async (message) => {
 
     // if the message either doesn't start with the prefix or was sent by a bot, exit early
@@ -19,30 +26,30 @@ client.on('message', async (message) => {
 
     // roll for a random player
     if (command === 'roll') {
-        const number = Math.floor(Math.random() * 10000) + 1;
-
-        let player = await getPlayerByRank(number);
-
-        if (player) {
-            await createImage(player);
-            message.channel.send({ file: "image/cache/osuCard-" + player.apiv2.username + ".png" })
-                .then((m) => {
-                    m.react('😄');
-                    // const filter = (reaction, user) => {
-                    //     return ['😄'].includes(reaction.emoji.name) && user.id === interaction.user.id;
-                    // };
-                    // m.awaitReactions()
-                    //     .then(collected => {
-                    //         const reaction = collected.first();
-                    //         if (reaction.emoji.name === '😄') {
-                    //             message.reply('pwned');
-                    //         }
-                    //     })
-                    //     .catch(collected => {
-                    //         message.reply('You reacted with neither a thumbs up, nor a thumbs down.');
-                    //     });
-                });
+        let player;
+        while (!player) {
+            const rank = Math.floor(Math.random() * 10000) + 1;
+            player = await getPlayerByRank(rank);
         }
+
+        await createImage(player);
+        message.channel.send({ file: "image/cache/osuCard-" + player.apiv2.username + ".png" })
+            .then((m) => {
+                m.react('😄');
+                // const filter = (reaction, user) => {
+                //     return ['😄'].includes(reaction.emoji.name) && user.id === interaction.user.id;
+                // };
+                // m.awaitReactions()
+                //     .then(collected => {
+                //         const reaction = collected.first();
+                //         if (reaction.emoji.name === '😄') {
+                //             message.reply('pwned');
+                //         }
+                //     })
+                //     .catch(collected => {
+                //         message.reply('You reacted with neither a thumbs up, nor a thumbs down.');
+                //     });
+            });
         // const result = await getUser(apiToken, 8759374);
         // console.log(result);
     }
