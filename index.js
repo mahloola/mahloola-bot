@@ -53,7 +53,7 @@ client.on('message', async (message) => {
                         }
                         setOwnedPlayer(message.guild.id, claimingUser.id, player.apiv2.id);
                         message.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
-                        
+
                         //     .then(message.reply(`Player ${player.apiv2.username} has been claimed!`));
                         //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
                     }).catch((err) => {
@@ -66,16 +66,26 @@ client.on('message', async (message) => {
     }
 
     if (command === 'cards') {
-        let playerIds = await getOwnedPlayers(message.guild.id, "198773384794996739");
+        let playerIds = await getOwnedPlayers(message.guild.id, message.author.id);
         let ownedPlayers = [];
         for (let i = 0; i < playerIds.length; i++) {
             let player = await getPlayer(playerIds[i]);
             ownedPlayers.push(player);
             console.log("You own: " + ownedPlayers[i].apiv2.username);
         }
+        ownedPlayers.sort((a, b) => {
+            return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
+        });
+        const msg = `
+            **${message.author.username}'s owned players**
+
+            `;
+
+        message.channel.send(msg);
         for (let i = 0; i < ownedPlayers.length; i++) {
-            message.channel.send(ownedPlayers[i].apiv2.username);
+            message.channel.send(`#${ownedPlayers[i].apiv2.statistics.global_rank} - ${ownedPlayers[i].apiv2.username}`);
         }
+
     }
 
     // using mentions
