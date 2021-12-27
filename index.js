@@ -34,21 +34,23 @@ client.on('message', async (message) => {
 
         await createImage(player);
         message.channel.send({ file: "image/cache/osuCard-" + player.apiv2.username + ".png" })
-            .then((m) => {
-                m.react('😄');
-                // const filter = (reaction, user) => {
-                //     return ['😄'].includes(reaction.emoji.name) && user.id === interaction.user.id;
-                // };
-                // m.awaitReactions()
-                //     .then(collected => {
-                //         const reaction = collected.first();
-                //         if (reaction.emoji.name === '😄') {
-                //             message.reply('pwned');
-                //         }
-                //     })
-                //     .catch(collected => {
-                //         message.reply('You reacted with neither a thumbs up, nor a thumbs down.');
-                //     });
+            .then((message) => {
+                message.react('👍').then(r => {
+                    message.react('👎');
+                });
+
+                // First argument is a filter function
+                message.awaitReactions((reaction, user) => user.id != message.author.id && (reaction.emoji.name == '👍' || reaction.emoji.name == '👎'),
+                    { max: 1, time: 30000 }).then(collected => {
+                        if (collected.first().emoji.name == '👍') {
+                            //message.reply(`Player ${player.apiv2.username} has been claimed by ${messauge.author.name}!`); 
+                            message.reply(`Player has been claimed!`);            
+                        }
+                        else
+                            message.reply('Operation canceled.');
+                    }).catch(() => {
+                        message.reply('No reaction after 30 seconds, operation canceled');
+                    });
             });
         // const result = await getUser(apiToken, 8759374);
         // console.log(result);
