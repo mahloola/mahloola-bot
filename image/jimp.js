@@ -14,7 +14,6 @@ async function createPlayerCard(player) {
     osuCard.print(font, 200, 330, { text: `#${player.apiv2.statistics.global_rank}`, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE }, 0, 0);
 
     // cover
-    console.log('cover url: ' + player.apiv2.cover_url)
     const cover = await Jimp.read(player.apiv2.cover_url)
     const aspectRatio = cover.bitmap.width / cover.bitmap.height
     if (aspectRatio < (400 / 220)) {
