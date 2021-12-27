@@ -1,9 +1,10 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
 const { prefix, token } = require('./auth.json');
-const { initializeDatabase, getPlayerByRank } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer } = require('./db/database');
 const { getUser, requestClientCredentialsToken } = require('./api.js');
 const { createImage } = require('./image/jimp.js');
+const { Console } = require('winston/lib/winston/transports');
 let apiToken;
 
 initializeDatabase();
@@ -35,25 +36,46 @@ client.on('message', async (message) => {
         await createImage(player);
         message.channel.send({ file: "image/cache/osuCard-" + player.apiv2.username + ".png" })
             .then((message) => {
-                message.react('👍').then(r => {
-                    message.react('👎');
-                });
+                message.react('👍');
 
                 // First argument is a filter function
-                message.awaitReactions((reaction, user) => user.id != message.author.id && (reaction.emoji.name == '👍' || reaction.emoji.name == '👎'),
-                    { max: 1, time: 30000 }).then(collected => {
-                        if (collected.first().emoji.name == '👍') {
-                            //message.reply(`Player ${player.apiv2.username} has been claimed by ${messauge.author.name}!`); 
-                            message.reply(`Player has been claimed!`);            
+                message.awaitReactions((reaction, user) => user.id != message.author.id && (reaction.emoji.name == '👍'),
+                    { max: 1, time: 30000 }).then((reactions) => {
+                        let claimingUser;
+                        for (const [key, user] of reactions.get('👍')?.users.entries()) {
+                            if (user.id !== message.author.id) {
+                                claimingUser = user;
+                            }
                         }
-                        else
-                            message.reply('Operation canceled.');
-                    }).catch(() => {
+                        if (!claimingUser) {
+                            message.reply('Operation cancelled.');
+                            return;
+                        }
+                        setOwnedPlayer(message.guild.id, claimingUser.id, player.apiv2.id);
+                        message.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+                        
+                        //     .then(message.reply(`Player ${player.apiv2.username} has been claimed!`));
+                        //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
+                    }).catch((err) => {
+                        console.log(err);
                         message.reply('No reaction after 30 seconds, operation canceled');
                     });
             });
         // const result = await getUser(apiToken, 8759374);
         // console.log(result);
+    }
+
+    if (command === 'cards') {
+        let playerIds = await getOwnedPlayers(message.guild.id, "198773384794996739");
+        let ownedPlayers = [];
+        for (let i = 0; i < playerIds.length; i++) {
+            let player = await getPlayer(playerIds[i]);
+            ownedPlayers.push(player);
+            console.log("You own: " + ownedPlayers[i].apiv2.username);
+        }
+        for (let i = 0; i < ownedPlayers.length; i++) {
+            message.channel.send(ownedPlayers[i].apiv2.username);
+        }
     }
 
     // using mentions
