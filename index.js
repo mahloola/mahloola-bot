@@ -1,16 +1,19 @@
 const Discord = require('discord.js');
+const { MessageEmbed } = require('discord.js');
 const client = new Discord.Client();
 const { prefix, token } = require('./auth.json');
 const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer } = require('./db/database');
 const { getUser, requestClientCredentialsToken } = require('./api.js');
 const { createImage } = require('./image/jimp.js');
 const { Console } = require('winston/lib/winston/transports');
+const { get } = require('request');
+const { HTTPResponse } = require('puppeteer');
 let apiToken;
 
 initializeDatabase();
 apiToken = requestClientCredentialsToken();
 
-// debug
+// debugF
 // async function asdf() {
 //     let player = await getPlayerByRank(3192);
 //     await createImage(player);
@@ -19,6 +22,14 @@ apiToken = requestClientCredentialsToken();
 
 client.on('message', async (message) => {
 
+    // let hpp;
+    // CollectionReference collectionRef = db.collection("collection");
+    // Query query = collectionRef.orderBy("amount", descending: true).limit(1);
+    // function getHighestPC() {
+    //     for (let i = 0; i < 10000; i++) {
+    //         hpp = getPlayer
+    //     }
+    // }
     // if the message either doesn't start with the prefix or was sent by a bot, exit early
     if (!message.content.startsWith(prefix) || message.author.bot) return;
 
@@ -27,6 +38,7 @@ client.on('message', async (message) => {
 
     // roll for a random player
     if (command === 'roll') {
+
         let player;
         while (!player) {
             const rank = Math.floor(Math.random() * 10000) + 1;
@@ -58,53 +70,65 @@ client.on('message', async (message) => {
                         //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
                     }).catch((err) => {
                         console.log(err);
-                        message.reply('No reaction after 30 seconds, operation canceled');
+                        console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
                     });
             });
-        // const result = await getUser(apiToken, 8759374);
-        // console.log(result);
+        const result = await getUser(apiToken, 8759374);
+        console.log(result);
     }
 
     if (command === 'cards') {
         let playerIds = await getOwnedPlayers(message.guild.id, message.author.id);
         let ownedPlayers = [];
+        let ownedPlayersNames = "";
+
         for (let i = 0; i < playerIds.length; i++) {
             let player = await getPlayer(playerIds[i]);
             ownedPlayers.push(player);
-            console.log("You own: " + ownedPlayers[i].apiv2.username);
+            //ownedPlayersNames.concat(" ", ownedPlayers[i].apiv2.username);
+            ownedPlayersNames += `${ownedPlayers[i].apiv2.username}\t#${ownedPlayers[i].apiv2.statistics.global_rank}\n`;
         }
+        message.channel.send(ownedPlayersNames);
         ownedPlayers.sort((a, b) => {
             return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
         });
-        const msg = `
-            **${message.author.username}'s owned players**
 
-            `;
 
-        message.channel.send(msg);
-        for (let i = 0; i < ownedPlayers.length; i++) {
-            message.channel.send(`#${ownedPlayers[i].apiv2.statistics.global_rank} - ${ownedPlayers[i].apiv2.username}`);
-        }
+        //message.channel.send({ embed: { title: `**${message.author.username}'s owned players**` } }.then(msg => ownedPlayers));
+        // const msg = `
+        // **${message.author.username}'s owned players**
 
-    }
+        // `;
+        // for (let i = 0; i < ownedPlayers.length; i++) {
+        //     finalmessage = msg.concat(`#${ownedPlayers[i].apiv2.statistics.global_rank} - ${ownedPlayers[i].apiv2.username}\n`);
+        // }
+        //message.channel.send({ embed: { title: `**${message.author.username}'s owned players**` } }.then(msg => ));
 
-    // using mentions
-    if (command === 'kick') {
-        // grab the "first" mentioned user from the message
-        // this will return a `User` object, just like `message.author`
-        const taggedUser = message.mentions.users.first();
-        message.channel.send(`You wanted to kick: ${taggedUser.username}`);
-    }
-
-    // PING PONG
-    if (message.content === `${prefix}ping`) {
-        message.channel.send('Pong.');
-    } else if (message.content === `${prefix}beep`) {
-        message.channel.send('Boop.');
+        // await lib.discord.channels['@0.2.0'].messages.create({
+        //     "channel_id": `${context.params.event.channel_id}`,
+        //     "content": "",
+        //     "tts": false,
+        //     "embeds": [
+        //         {
+        //             "type": "rich",
+        //             "title": `${message.author.username}'s owned players`,
+        //             "description": `${ownedPlayers[i].apiv2.statistics.global_rank} - ${ownedPlayers[i].apiv2.username}`,
+        //             "color": 0xff7aff,
+        //             "image": {
+        //                 "url": `${user.avatarURL}`,
+        //                 "height": 100,
+        //                 "width": 100
+        //             }
+        //         }
+        //     ]
+        // });
     }
 
     // SERVER DETAILS
     //if (message.content === `${prefix}`)
+    if (command === 'help') {
+        message.channel.send("Commands:\nhelp, roll, cards")
+    }
 })
 
 

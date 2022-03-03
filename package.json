@@ -16,6 +16,7 @@
     "node-fetch": "^2.6.1",
     "puppeteer": "^11.0.0",
     "request": "^2.88.2",
+    "text2png": "^2.3.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {},
