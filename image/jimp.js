@@ -1,17 +1,103 @@
 var Jimp = require('jimp');
+var fs = require('fs');
+var text2png = require('text2png');
 const { download } = require('../util/downloadImage');
+const { ClientRequest } = require('http');
+const { getEnvironmentData } = require('worker_threads');
 
 async function createPlayerCard(player) {
 
+    let osuCard = await Jimp.read('image/osuCard.png');
     // base image
-    const osuCard = await Jimp.read('image/osuCard.png');
+    if (player.apiv2.statistics.global_rank > 7500) {
+        osuCard = await Jimp.read('image/osuCard.png');
+    }
+    else if (player.apiv2.statistics.global_rank > 5000) {
+        osuCard = await Jimp.read('image/osuCard-blue.png');
+    }
+    else if (player.apiv2.statistics.global_rank > 2500) {
+        osuCard = await Jimp.read('image/osuCard-purple.png');
+    }
+    else if (player.apiv2.statistics.global_rank > 1000) {
+        osuCard = await Jimp.read('image/osuCard-red.png');
+    }
+    else {
+        osuCard = await Jimp.read('image/osuCard-yellow.png');
+    }
 
-    // username
-    let font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-    osuCard.print(font, 200, 280, { text: player.apiv2.username, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE }, 0, 0);
-    // rank
-    font = await Jimp.loadFont(Jimp.FONT_SANS_16_BLACK);
-    osuCard.print(font, 200, 330, { text: `#${player.apiv2.statistics.global_rank}`, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE }, 0, 0);
+    // create text images using text2png 
+    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {
+        font: '30px sans-serif',
+        localFontName: 'Lato',
+        localFontPath: 'fonts/Lato-Regular.ttf',
+        color: 'grey',
+        textAlign: 'center',
+        lineSpacing: 10,
+        padding: 20
+    }));
+    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`, text2png(`Global\nCountry\nPlaycount\npp`, {
+        font: '20px sans-serif',
+        // localFontName: 'Lato',
+        // localFontPath: 'fonts/Lato-Regular.ttf',
+        color: 'grey',
+        textAlign: 'left',
+        lineSpacing: 10,
+        padding: 20,
+        strokeColor: 'white'
+    }));
+    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`, text2png(`${player.apiv2.statistics.global_rank}\n${player.apiv2.statistics.country_rank}\n${player.apiv2.statistics.play_count}\n${player.apiv2.statistics.pp}`, {
+        font: '20px sans-serif',
+        // localFontName: 'Lato',
+        // localFontPath: 'fonts/Lato-Regular.ttf',
+        color: 'grey',
+        textAlign: 'right',
+        lineSpacing: 16,
+        padding: 20,
+        strokeColor: 'white'
+    }));
+    
+    // read text images
+    const textImage = await Jimp.read(`image/cache/text2png-${player.apiv2.username}.png`);
+    const textImageStatisticsLeft = await Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`);
+    const textImageStatisticsRight = await Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`);
+
+    // overlay text images onto the card
+    osuCard.composite(
+        textImage, // src
+        (400 - textImage.getWidth()) / 2, // x
+        280, // y
+        {
+            mode: Jimp.BLEND_SOURCE_OVER,
+            opacityDest: 1,
+            opacitySource: 1,
+            alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+        }
+    );
+    osuCard.composite(
+        textImageStatisticsLeft, // src
+        (200 - textImageStatisticsLeft.getWidth()) / 2, // x
+        315, // y
+        {
+            mode: Jimp.BLEND_SOURCE_OVER,
+            opacityDest: 1,
+            opacitySource: 1,
+            alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+        }
+    );
+    osuCard.composite(
+        textImageStatisticsRight, // src
+        (600 - textImageStatisticsRight.getWidth()) / 2, // x
+        315, // y
+        {
+            mode: Jimp.BLEND_SOURCE_OVER,
+            opacityDest: 1,
+            opacitySource: 1,
+            alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+        }
+    );
 
     // cover
     const cover = await Jimp.read(player.apiv2.cover_url)
@@ -67,7 +153,6 @@ async function createPlayerCard(player) {
 
     //img.mask(mask, 0, 0).write(`image/cache/osuCard-${user.username}.png`);
 
-
     // circle border
     const circle = await Jimp.read("image/osuCard-circle.png")
     osuCard.composite(
@@ -83,6 +168,7 @@ async function createPlayerCard(player) {
         }
     );
 
+    // write image
     console.log("Writing image...");
     osuCard.write(`image/cache/osuCard-${player.apiv2.username}.png`);
     console.log("Image saved!");
