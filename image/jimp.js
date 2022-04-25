@@ -27,35 +27,33 @@ async function createPlayerCard(player) {
 
     // create text images using text2png 
     fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {
-        font: '30px sans-serif',
-        localFontName: 'Lato',
-        localFontPath: 'fonts/Lato-Regular.ttf',
-        color: 'grey',
+        font: '30px Akshar',
+        localFontName: 'Akshar',
+        localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
+        color: 'black',
         textAlign: 'center',
         lineSpacing: 10,
         padding: 20
     }));
-    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`, text2png(`Global\nCountry\nPlaycount\npp`, {
-        font: '20px sans-serif',
-        // localFontName: 'Lato',
-        // localFontPath: 'fonts/Lato-Regular.ttf',
-        color: 'grey',
+    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`, text2png(`Global\nCountry\npp\nPlaycount`, {
+        font: '20px Akshar',
+        localFontName: 'Akshar',
+        localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
+        color: 'black',
         textAlign: 'left',
         lineSpacing: 10,
         padding: 20,
-        strokeColor: 'white'
     }));
-    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`, text2png(`${player.apiv2.statistics.global_rank}\n${player.apiv2.statistics.country_rank}\n${player.apiv2.statistics.play_count}\n${player.apiv2.statistics.pp}`, {
-        font: '20px sans-serif',
-        // localFontName: 'Lato',
-        // localFontPath: 'fonts/Lato-Regular.ttf',
-        color: 'grey',
+    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`, text2png(`${player.apiv2.statistics.global_rank}\n${player.apiv2.statistics.country_rank}\n${player.apiv2.statistics.pp}\n${player.apiv2.statistics.play_count}`, {
+        font: '20px Akshar',
+        localFontName: 'Akshar',
+        localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
+        color: 'black',
         textAlign: 'right',
         lineSpacing: 16,
         padding: 20,
-        strokeColor: 'white'
     }));
-    
+
     // read text images
     const textImage = await Jimp.read(`image/cache/text2png-${player.apiv2.username}.png`);
     const textImageStatisticsLeft = await Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`);
@@ -139,6 +137,9 @@ async function createPlayerCard(player) {
     //     var avatar = images[0];
     //     var mask = images[1];
     // });
+
+    const mask2 = await Jimp.read("image/card-mask.png");
+    osuCard.mask(mask2, 0, 0);
 
     avatar.scaleToFit(200, 200);
 
