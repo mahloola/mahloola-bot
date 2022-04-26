@@ -1,4 +1,4 @@
-<a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2112&scope=applications.commands%20bot">
+<a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2147609664&scope=applications.commands%20bot">
   <p align="center">
   <img src="https://i.imgur.com/RZHlVph.png" alt="invite-link" width="200"/>
   </p>
@@ -7,7 +7,7 @@
 
 # mahloola bot
 
-To get started, <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2112&scope=applications.commands%20bot">invite the bot</a> to your Discord server. Once joined, type **!commands** to discover features.
+To get started, <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2147609664&scope=applications.commands%20bot">invite the bot</a> to your Discord server. Once joined, type **!commands** to discover features.
 
 This is a **work in progress**; as such, many intended features have not been implemented yet: roll cooldowns, trading cards, server ranking, etc.
 
