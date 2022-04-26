@@ -7,27 +7,28 @@ const { getEnvironmentData } = require('worker_threads');
 
 async function createPlayerCard(player) {
 
-    let osuCard = await Jimp.read('image/osuCard.png');
     // base image
-    if (player.apiv2.statistics.global_rank > 7500) {
-        osuCard = await Jimp.read('image/osuCard.png');
-    }
-    else if (player.apiv2.statistics.global_rank > 5000) {
-        osuCard = await Jimp.read('image/osuCard-blue.png');
-    }
-    else if (player.apiv2.statistics.global_rank > 2500) {
-        osuCard = await Jimp.read('image/osuCard-purple.png');
-    }
-    else if (player.apiv2.statistics.global_rank > 1000) {
-        osuCard = await Jimp.read('image/osuCard-red.png');
-    }
-    else {
-        osuCard = await Jimp.read('image/osuCard-yellow.png');
-    }
+    let osuCard = await Jimp.read('image/osuCard.png');
+
+    // if (player.apiv2.statistics.global_rank > 7500) {
+    //     osuCard = await Jimp.read('image/osuCard.png');
+    // }
+    // else if (player.apiv2.statistics.global_rank > 5000) {
+    //     osuCard = await Jimp.read('image/osuCard-blue.png');
+    // }
+    // else if (player.apiv2.statistics.global_rank > 2500) {
+    //     osuCard = await Jimp.read('image/osuCard-purple.png');
+    // }
+    // else if (player.apiv2.statistics.global_rank > 1000) {
+    //     osuCard = await Jimp.read('image/osuCard-red.png');
+    // }
+    // else {
+    //     osuCard = await Jimp.read('image/osuCard-yellow.png');
+    // }
 
     // create text images using text2png 
     fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {
-        font: '30px Akshar',
+        font: '36px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
         color: 'black',
@@ -36,7 +37,7 @@ async function createPlayerCard(player) {
         padding: 20
     }));
     fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`, text2png(`Global\nCountry\npp\nPlaycount`, {
-        font: '20px Akshar',
+        font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
         color: 'black',
@@ -45,7 +46,7 @@ async function createPlayerCard(player) {
         padding: 20,
     }));
     fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`, text2png(`${player.apiv2.statistics.global_rank}\n${player.apiv2.statistics.country_rank}\n${player.apiv2.statistics.pp}\n${player.apiv2.statistics.play_count}`, {
-        font: '20px Akshar',
+        font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
         color: 'black',
@@ -63,7 +64,7 @@ async function createPlayerCard(player) {
     osuCard.composite(
         textImage, // src
         (400 - textImage.getWidth()) / 2, // x
-        280, // y
+        285, // y
         {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacityDest: 1,
@@ -75,7 +76,7 @@ async function createPlayerCard(player) {
     osuCard.composite(
         textImageStatisticsLeft, // src
         (200 - textImageStatisticsLeft.getWidth()) / 2, // x
-        315, // y
+        325, // y
         {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacityDest: 1,
@@ -87,7 +88,7 @@ async function createPlayerCard(player) {
     osuCard.composite(
         textImageStatisticsRight, // src
         (600 - textImageStatisticsRight.getWidth()) / 2, // x
-        315, // y
+        325, // y
         {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacityDest: 1,
