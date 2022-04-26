@@ -6,7 +6,6 @@
 
 
 # mahloola bot
-Introducing my latest project, a Discord bot that allows you to roll and claim cards for your favorite osu! players!
 
 To get started, <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2112&scope=applications.commands%20bot">invite the bot</a> to your Discord server. Once joined, type **!commands** to discover features.
 
