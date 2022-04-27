@@ -4,6 +4,5 @@
 .env
 .gcloudignore
 .vscode
-database.js
 api.js
 app.yaml
