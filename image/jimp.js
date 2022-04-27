@@ -1,5 +1,5 @@
 var Jimp = require('jimp');
-var fs = require('fs');
+var fs = require('fs').promises;
 var text2png = require('text2png');
 // const { download } = require('../util/downloadImage');
 // const { ClientRequest } = require('http');
@@ -7,27 +7,9 @@ var text2png = require('text2png');
 
 async function createPlayerCard(player) {
 
-    // base image
-    let osuCard = await Jimp.read('image/osuCard.png');
-
-    if (player.apiv2.statistics.global_rank > 7500) {
-        osuCard = await Jimp.read('image/osuCard.png');
-    }
-    else if (player.apiv2.statistics.global_rank > 5000) {
-        osuCard = await Jimp.read('image/osuCard-blue.png');
-    }
-    else if (player.apiv2.statistics.global_rank > 2500) {
-        osuCard = await Jimp.read('image/osuCard-purple.png');
-    }
-    else if (player.apiv2.statistics.global_rank > 1000) {
-        osuCard = await Jimp.read('image/osuCard-red.png');
-    }
-    else {
-        osuCard = await Jimp.read('image/osuCard-yellow.png');
-    }
-
-    // create text images using text2png 
-    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {
+    // create all text images in parallel using text2png 
+    const writePromises = [];
+    writePromises.push(fs.writeFile(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {
         font: '36px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -35,8 +17,8 @@ async function createPlayerCard(player) {
         textAlign: 'center',
         lineSpacing: 10,
         padding: 20
-    }));
-    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`, text2png(`Global\nCountry\npp\nPlaycount`, {
+    })));
+    writePromises.push(fs.writeFile(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`, text2png(`Global\nCountry\npp\nPlaycount`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -44,8 +26,8 @@ async function createPlayerCard(player) {
         textAlign: 'left',
         lineSpacing: 10,
         padding: 20,
-    }));
-    fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`, text2png(`${player.apiv2.statistics.global_rank}\n${player.apiv2.statistics.country_rank}\n${player.apiv2.statistics.pp}\n${player.apiv2.statistics.play_count}`, {
+    })));
+    writePromises.push(fs.writeFile(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`, text2png(`${player.apiv2.statistics.global_rank}\n${player.apiv2.statistics.country_rank}\n${player.apiv2.statistics.pp}\n${player.apiv2.statistics.play_count}`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -53,13 +35,45 @@ async function createPlayerCard(player) {
         textAlign: 'right',
         lineSpacing: 16,
         padding: 20,
-    }));
+    })));
+    await Promise.all(writePromises);
 
-    // read text images
-    const textImage = await Jimp.read(`image/cache/text2png-${player.apiv2.username}.png`);
-    const textImageStatisticsLeft = await Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`);
-    const textImageStatisticsRight = await Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`);
+    // base image
+    const readPromises = [];
+    if (player.apiv2.statistics.global_rank > 7500) {
+        readPromises.push(Jimp.read('image/osuCard.png')); // const osuCard
+    }
+    else if (player.apiv2.statistics.global_rank > 5000) {
+        readPromises.push(Jimp.read('image/osuCard-blue.png'));
+    }
+    else if (player.apiv2.statistics.global_rank > 2500) {
+        readPromises.push(Jimp.read('image/osuCard-purple.png'));
+    }
+    else if (player.apiv2.statistics.global_rank > 1000) {
+        readPromises.push(Jimp.read('image/osuCard-red.png'));
+    }
+    else {
+        readPromises.push(Jimp.read('image/osuCard-yellow.png'));
+    }
+    readPromises.push(Jimp.read(`image/cache/text2png-${player.apiv2.username}.png`));
+    readPromises.push(Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`));
+    readPromises.push(Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`));
+    readPromises.push(Jimp.read(`https://a.ppy.sh/${player.apiv2.id}`));
+    readPromises.push(Jimp.read("image/mask.png"));
+    readPromises.push(Jimp.read("image/card-mask.png"));
+    readPromises.push(Jimp.read("image/osuCard-circle.png"));
 
+    // perform all reads in parallel
+    const [
+        osuCard,
+        textImage,
+        textImageStatisticsLeft,
+        textImageStatisticsRight,
+        avatar,
+        mask,
+        mask2,
+        circle,
+    ] = await Promise.all(readPromises);
     // overlay text images onto the card
     osuCard.composite(
         textImage, // src
@@ -133,20 +147,17 @@ async function createPlayerCard(player) {
 
 
     // avatar
-    const avatar = await Jimp.read(`https://a.ppy.sh/${player.apiv2.id}`)
 
     // resize the avatar
     avatar.scaleToFit(256, 256);
 
     // smooth the edges using a circle mask
-    const mask = await Jimp.read("image/mask.png");
     avatar.mask(mask, 0, 0);
     // await Promise.all([avatar, mask]).then((images) => {
     //     var avatar = images[0];
     //     var mask = images[1];
     // });
 
-    const mask2 = await Jimp.read("image/card-mask.png");
     osuCard.mask(mask2, 0, 0);
 
     avatar.scaleToFit(200, 200);
@@ -163,7 +174,6 @@ async function createPlayerCard(player) {
     //img.mask(mask, 0, 0).write(`image/cache/osuCard-${user.username}.png`);
 
     // circle border
-    const circle = await Jimp.read("image/osuCard-circle.png")
     osuCard.composite(
         circle, // src
         (400 - circle.getWidth()) / 2, // x
