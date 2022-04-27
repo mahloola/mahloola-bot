@@ -57,28 +57,41 @@ client.on("ready", async function () {
                     outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
                 } catch (error) {
                     console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
+                    outboundMessage.reactions.removeAll()
+                        .catch(error => console.error('Failed to clear reactions:', error));
                 }
             }
 
         }
 
         if (command === 'cards') {
-            let playerIds = await getOwnedPlayers(message.guild.id, message.author.id);
+            let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id);
             let ownedPlayers = [];
             let ownedPlayersNames = "";
+            if (playerIds) {
+                try {
+                    for (let i = 0; i < playerIds.length; i++) {
+                        let player = await getPlayer(playerIds[i]);
+                        ownedPlayers.push(player);
+                        //ownedPlayersNames.concat(" ", ownedPlayers[i].apiv2.username);
 
-            for (let i = 0; i < playerIds.length; i++) {
-                let player = await getPlayer(playerIds[i]);
-                ownedPlayers.push(player);
-                //ownedPlayersNames.concat(" ", ownedPlayers[i].apiv2.username);
-                ownedPlayersNames += `${ownedPlayers[i].apiv2.username}\t#${ownedPlayers[i].apiv2.statistics.global_rank}\n`;
+                    }
+
+                    ownedPlayers.sort((a, b) => {
+                        return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
+                    });
+                    for (let i = 0; i < playerIds.length; i++) {
+                        ownedPlayersNames += `${ownedPlayers[i].apiv2.username}\t#${ownedPlayers[i].apiv2.statistics.global_rank}\n`;
+                    }
+                    inboundMessage.channel.send(ownedPlayersNames);
+                }
+                catch (err) {
+                    console.log(err);
+                }
             }
-            message.channel.send(ownedPlayersNames);
-            ownedPlayers.sort((a, b) => {
-                return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
-            });
-
-
+            else {
+                inboundMessage.channel.send("You don't own any players.");
+            }
             //message.channel.send({ embed: { title: `**${message.author.username}'s owned players**` } }.then(msg => ownedPlayers));
             // const msg = `
             // **${message.author.username}'s owned players**
@@ -112,12 +125,12 @@ client.on("ready", async function () {
         // SERVER DETAILS
         //if (message.content === `${prefix}`)
         if (command === 'help') {
-            message.channel.send("Commands:\nhelp, roll, cards, metadata")
+            inboundMessage.channel.send("Commands:\nhelp, roll, cards, metadata")
         }
         if (command === 'metadata') {
             //updateMetadata();
             const metadata = await getDatabaseMetadata();
-            message.channel.send(`Total Users: ${metadata.users}\nTotal Servers: ${metadata.servers}\nTotal Rolls: ${metadata.rolls}`)
+            inboundMessage.channel.send(`Total Users: ${metadata.users}\nTotal Servers: ${metadata.servers}\nTotal Rolls: ${metadata.rolls}`)
         }
     })
 })
