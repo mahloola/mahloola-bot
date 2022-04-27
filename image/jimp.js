@@ -99,31 +99,38 @@ async function createPlayerCard(player) {
     );
 
     // cover
-    const cover = await Jimp.read(player.apiv2.cover_url)
-    const aspectRatio = cover.bitmap.width / cover.bitmap.height
-    if (aspectRatio < (400 / 220)) {
-        // scale so that width = 400
-        const scaleFactor = 400 / cover.bitmap.width
-        cover.scale(scaleFactor);
-        cover.blur(5);
-        // overlay the cover
-        osuCard.composite(cover, 0, 220 - cover.bitmap.height, {
-            mode: Jimp.BLEND_SOURCE_OVER,
-            opacityDest: 1,
-            opacitySource: 1,
-        })
-    } else {
-        // scale so that height = 220
-        const scaleFactor = 220 / cover.bitmap.height
-        cover.scale(scaleFactor);
-        cover.blur(5);
-        // overlay the cover
-        osuCard.composite(cover, 0, 0, {
-            mode: Jimp.BLEND_SOURCE_OVER,
-            opacityDest: 1,
-            opacitySource: 1,
-        })
+    try {
+        const cover = await Jimp.read(player.apiv2.cover_url)
+        const aspectRatio = cover.bitmap.width / cover.bitmap.height
+        if (aspectRatio < (400 / 220)) {
+            // scale so that width = 400
+            const scaleFactor = 400 / cover.bitmap.width
+            cover.scale(scaleFactor);
+            cover.blur(5);
+            // overlay the cover
+            osuCard.composite(cover, 0, 220 - cover.bitmap.height, {
+                mode: Jimp.BLEND_SOURCE_OVER,
+                opacityDest: 1,
+                opacitySource: 1,
+            })
+        } else {
+            // scale so that height = 220
+            const scaleFactor = 220 / cover.bitmap.height
+            cover.scale(scaleFactor);
+            cover.blur(5);
+            // overlay the cover
+            osuCard.composite(cover, 0, 0, {
+                mode: Jimp.BLEND_SOURCE_OVER,
+                opacityDest: 1,
+                opacitySource: 1,
+            })
+        }
     }
+    catch (err) {
+        console.log(`Failed to read cover image: ${player.apiv2.cover_url}\n`);
+        console.log(err);
+    }
+
 
     // avatar
     const avatar = await Jimp.read(`https://a.ppy.sh/${player.apiv2.id}`)
@@ -172,7 +179,13 @@ async function createPlayerCard(player) {
 
     // write image
     console.log("Writing image...");
-    osuCard.write(`image/cache/osuCard-${player.apiv2.username}.png`);
+    try {
+        await osuCard.writeAsync(`image/cache/osuCard-${player.apiv2.username}.png`);
+    }
+    catch (err) {
+        console.log(err);
+    }
+
     console.log("Image saved!");
 }
 
