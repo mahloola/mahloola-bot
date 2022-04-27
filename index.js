@@ -11,12 +11,12 @@ client.on("ready", async function () {
     initializeDatabase();
     let metadata = await getDatabaseMetadata();
 
-    client.on('messageCreate', async (message) => {
+    client.on('messageCreate', async (inboundMessage) => {
 
         // if the message either doesn't start with the prefix or was sent by a bot, exit early
-        if (!message.content.startsWith(prefix) || message.author.bot) return;
+        if (!inboundMessage.content.startsWith(prefix) || inboundMessage.author.bot) return;
 
-        const args = message.content.slice(prefix.length).trim().split(/ +/);
+        const args = inboundMessage.content.slice(prefix.length).trim().split(/ +/);
         const command = args.shift().toLowerCase(); // make lowercase work too
 
         // roll for a random player
@@ -31,34 +31,33 @@ client.on("ready", async function () {
             await createImage(player);
             if (player) {
                 const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
-                message.channel.send({ files: [file] })
-                    .then((message) => {
-                        message.react('👍');
+                const outboundMessage = await inboundMessage.channel.send({ files: [file] })
+                outboundMessage.react('👍');
 
-                        // First argument is a filter function
-                        message.awaitReactions((reaction, user) => { console.log("filter"); return user.id != message.author.id && reaction.emoji.name == '👍' },
-                            { max: 1, time: 30000 }).then((reactions) => {
+                const reactions = await outboundMessage.awaitReactions({
+                    filter: (reaction, user) => user.id != outboundMessage.author.id && reaction.emoji.name == '👍',
+                    max: 1,
+                    time: 30000
+                });
 
-                                let claimingUser;
-                                for (const [key, user] of reactions.get('👍')?.users?.entries() ?? []) {
-                                    if (user.id !== message.author.id) {
-                                        claimingUser = user;
-                                    }
-                                }
-                                if (!claimingUser) {
-                                    message.reply('Operation cancelled.');
-                                    return;
-                                }
-
-                                setOwnedPlayer(message.guild.id, claimingUser.id, player.apiv2.id);
-                                message.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
-
-                                //     .then(message.reply(`Player ${player.apiv2.username} has been claimed!`));
-                                //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
-                            }).catch(() => {
-                                console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
-                            });
-                    });
+                const reaction = reactions.get('👍');
+                try {
+                    const reactionUsers = await reaction.users.fetch();
+                    let claimingUser;
+                    for (const [userId, user] of reactionUsers) {
+                        if (userId !== outboundMessage.author.id) {
+                            claimingUser = user;
+                        }
+                    }
+                    if (!claimingUser) {
+                        outboundMessage.reply('Operation cancelled.');
+                        return;
+                    }
+                    setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
+                    outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+                } catch (error) {
+                    console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
+                }
             }
 
         }
