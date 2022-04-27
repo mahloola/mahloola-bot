@@ -19,7 +19,6 @@
     "text2png": "^2.3.0",
     "winston": "^3.2.1"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
@@ -34,5 +33,8 @@
   "bugs": {
     "url": "https://github.com/mahloola/osuCards/issues"
   },
-  "homepage": "https://github.com/mahloola/osuCards#readme"
+  "homepage": "https://github.com/mahloola/osuCards#readme",
+  "devDependencies": {
+    "eslint": "^8.14.0"
+  }
 }
