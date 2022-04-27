@@ -1,22 +1,23 @@
 const Discord = require('discord.js');
-const { MessageEmbed } = require('discord.js');
-const client = new Discord.Client();
+const { MessageAttachment, MessageEmbed } = require("discord.js");
+const { Client, Intents } = require('discord.js');
+const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const { prefix, token } = require('./auth.json');
-const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseMetadata, setDatabaseMetadata, getServerMetadata, setServerMetadata, updateMetadata } = require('./db/database');
-const { getUser, requestClientCredentialsToken } = require('./api.js');
+const { initializeDatabase } = require('./db/database');
+const { getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseMetadata, setDatabaseMetadata, getServerMetadata, setServerMetadata, updateMetadata } = require('./db/database');
+const { requestClientCredentialsToken, getUser } = require('./api.js');
 const { createImage } = require('./image/jimp.js');
 const { Console } = require('winston/lib/winston/transports');
 const { get } = require('request');
 const { HTTPResponse } = require('puppeteer');
 let apiToken;
 
-initializeDatabase();
-apiToken = requestClientCredentialsToken();
-
 client.on("ready", async function () {
+    initializeDatabase();
+    apiToken = await requestClientCredentialsToken();
     let metadata = await getDatabaseMetadata();
 
-    client.on('message', async (message) => {
+    client.on('messageCreate', async (message) => {
 
         // if the message either doesn't start with the prefix or was sent by a bot, exit early
         if (!message.content.startsWith(prefix) || message.author.bot) return;
@@ -26,46 +27,48 @@ client.on("ready", async function () {
 
         // roll for a random player
         if (command === 'roll') {
+            const user = await getUser();
+            user.rolls--;
             metadata.rolls++;
-            console.log(metadata);
             setDatabaseMetadata(metadata);
-            console.log(metadata.rolls);
             let player;
             while (!player) {
                 const rank = Math.floor(Math.random() * 10000) + 1;
                 player = await getPlayerByRank(rank);
             }
-
+            message.channel.send(`${player.apiv2.username}`);
             await createImage(player);
-            message.channel.send({ file: "image/cache/osuCard-" + player.apiv2.username + ".png" })
-                .then((message) => {
-                    message.react('👍');
+            if (player) {
+                const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
+                message.channel.send({ files: [file] })
+                    .then((message) => {
+                        message.react('👍');
 
-                    // First argument is a filter function
-                    message.awaitReactions((reaction, user) => user.id != message.author.id && (reaction.emoji.name == '👍'),
-                        { max: 1, time: 30000 }).then((reactions) => {
-                            let claimingUser;
-                            for (const [key, user] of reactions.get('👍')?.users.entries()) {
-                                if (user.id !== message.author.id) {
-                                    claimingUser = user;
+                        // First argument is a filter function
+                        message.awaitReactions((reaction, user) => user.id != message.author.id && (reaction.emoji.name == '👍'),
+                            { max: 1, time: 30000 }).then((reactions) => {
+                                let claimingUser;
+                                for (const [key, user] of reactions.get('👍')?.users.entries()) {
+                                    if (user.id !== message.author.id) {
+                                        claimingUser = user;
+                                    }
                                 }
-                            }
-                            if (!claimingUser) {
-                                message.reply('Operation cancelled.');
-                                return;
-                            }
-                            setOwnedPlayer(message.guild.id, claimingUser.id, player.apiv2.id);
-                            message.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+                                if (!claimingUser) {
+                                    message.reply('Operation cancelled.');
+                                    return;
+                                }
+                                setOwnedPlayer(message.guild.id, claimingUser.id, player.apiv2.id);
+                                message.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
 
-                            //     .then(message.reply(`Player ${player.apiv2.username} has been claimed!`));
-                            //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
-                        }).catch((err) => {
-                            //console.log(err);
-                            console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
-                        });
-                });
-            const result = await getUser(apiToken, 8759374);
-            console.log(result.apiv2.username);
+                                //     .then(message.reply(`Player ${player.apiv2.username} has been claimed!`));
+                                //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
+                            }).catch((err) => {
+                                //console.log(err);
+                                console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
+                            });
+                    });
+            }
+
         }
 
         if (command === 'cards') {
