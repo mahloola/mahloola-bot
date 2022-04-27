@@ -58,7 +58,6 @@ async function createPlayerCard(player) {
     readPromises.push(Jimp.read(`image/cache/text2png-${player.apiv2.username}.png`));
     readPromises.push(Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-left.png`));
     readPromises.push(Jimp.read(`image/cache/text2png-${player.apiv2.username}-statistics-right.png`));
-    readPromises.push(Jimp.read(player.apiv2.cover_url));
     readPromises.push(Jimp.read(`https://a.ppy.sh/${player.apiv2.id}`));
     readPromises.push(Jimp.read("image/mask.png"));
     readPromises.push(Jimp.read("image/card-mask.png"));
@@ -70,7 +69,6 @@ async function createPlayerCard(player) {
         textImage,
         textImageStatisticsLeft,
         textImageStatisticsRight,
-        cover,
         avatar,
         mask,
         mask2,
@@ -116,6 +114,7 @@ async function createPlayerCard(player) {
 
     // cover
     try {
+        const cover = await Jimp.read(player.apiv2.cover_url)
         const aspectRatio = cover.bitmap.width / cover.bitmap.height
         if (aspectRatio < (400 / 220)) {
             // scale so that width = 400
