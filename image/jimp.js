@@ -1,30 +1,30 @@
 var Jimp = require('jimp');
 var fs = require('fs');
 var text2png = require('text2png');
-const { download } = require('../util/downloadImage');
-const { ClientRequest } = require('http');
-const { getEnvironmentData } = require('worker_threads');
+// const { download } = require('../util/downloadImage');
+// const { ClientRequest } = require('http');
+// const { getEnvironmentData } = require('worker_threads');
 
 async function createPlayerCard(player) {
 
     // base image
     let osuCard = await Jimp.read('image/osuCard.png');
 
-    // if (player.apiv2.statistics.global_rank > 7500) {
-    //     osuCard = await Jimp.read('image/osuCard.png');
-    // }
-    // else if (player.apiv2.statistics.global_rank > 5000) {
-    //     osuCard = await Jimp.read('image/osuCard-blue.png');
-    // }
-    // else if (player.apiv2.statistics.global_rank > 2500) {
-    //     osuCard = await Jimp.read('image/osuCard-purple.png');
-    // }
-    // else if (player.apiv2.statistics.global_rank > 1000) {
-    //     osuCard = await Jimp.read('image/osuCard-red.png');
-    // }
-    // else {
-    //     osuCard = await Jimp.read('image/osuCard-yellow.png');
-    // }
+    if (player.apiv2.statistics.global_rank > 7500) {
+        osuCard = await Jimp.read('image/osuCard.png');
+    }
+    else if (player.apiv2.statistics.global_rank > 5000) {
+        osuCard = await Jimp.read('image/osuCard-blue.png');
+    }
+    else if (player.apiv2.statistics.global_rank > 2500) {
+        osuCard = await Jimp.read('image/osuCard-purple.png');
+    }
+    else if (player.apiv2.statistics.global_rank > 1000) {
+        osuCard = await Jimp.read('image/osuCard-red.png');
+    }
+    else {
+        osuCard = await Jimp.read('image/osuCard-yellow.png');
+    }
 
     // create text images using text2png 
     fs.writeFileSync(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {

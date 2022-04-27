@@ -1,20 +1,14 @@
 const Discord = require('discord.js');
-const { MessageAttachment, MessageEmbed } = require("discord.js");
-const { Client, Intents } = require('discord.js');
-const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+const { MessageAttachment } = require("discord.js");
+const { Intents } = require('discord.js');
+const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const { prefix, token } = require('./auth.json');
 const { initializeDatabase } = require('./db/database');
-const { getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseMetadata, setDatabaseMetadata, getServerMetadata, setServerMetadata, updateMetadata } = require('./db/database');
-const { requestClientCredentialsToken, getUser } = require('./api.js');
+const { getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseMetadata, setDatabaseMetadata, updateMetadata } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
-const { Console } = require('winston/lib/winston/transports');
-const { get } = require('request');
-const { HTTPResponse } = require('puppeteer');
-let apiToken;
 
 client.on("ready", async function () {
     initializeDatabase();
-    apiToken = await requestClientCredentialsToken();
     let metadata = await getDatabaseMetadata();
 
     client.on('messageCreate', async (message) => {
@@ -27,8 +21,6 @@ client.on("ready", async function () {
 
         // roll for a random player
         if (command === 'roll') {
-            const user = await getUser();
-            user.rolls--;
             metadata.rolls++;
             setDatabaseMetadata(metadata);
             let player;
@@ -36,7 +28,6 @@ client.on("ready", async function () {
                 const rank = Math.floor(Math.random() * 10000) + 1;
                 player = await getPlayerByRank(rank);
             }
-            message.channel.send(`${player.apiv2.username}`);
             await createImage(player);
             if (player) {
                 const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -45,10 +36,11 @@ client.on("ready", async function () {
                         message.react('👍');
 
                         // First argument is a filter function
-                        message.awaitReactions((reaction, user) => user.id != message.author.id && (reaction.emoji.name == '👍'),
+                        message.awaitReactions((reaction, user) => { console.log("filter"); return user.id != message.author.id && reaction.emoji.name == '👍' },
                             { max: 1, time: 30000 }).then((reactions) => {
+
                                 let claimingUser;
-                                for (const [key, user] of reactions.get('👍')?.users.entries()) {
+                                for (const [key, user] of reactions.get('👍')?.users?.entries() ?? []) {
                                     if (user.id !== message.author.id) {
                                         claimingUser = user;
                                     }
@@ -57,13 +49,13 @@ client.on("ready", async function () {
                                     message.reply('Operation cancelled.');
                                     return;
                                 }
+
                                 setOwnedPlayer(message.guild.id, claimingUser.id, player.apiv2.id);
                                 message.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
 
                                 //     .then(message.reply(`Player ${player.apiv2.username} has been claimed!`));
                                 //message.channel.send(`**${player.apiv2.username}** has been claimed by **${reactions.first().users.}**!`)
-                            }).catch((err) => {
-                                //console.log(err);
+                            }).catch(() => {
                                 console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
                             });
                     });
@@ -124,7 +116,7 @@ client.on("ready", async function () {
             message.channel.send("Commands:\nhelp, roll, cards, metadata")
         }
         if (command === 'metadata') {
-            updateMetadata();
+            //updateMetadata();
             const metadata = await getDatabaseMetadata();
             message.channel.send(`Total Users: ${metadata.users}\nTotal Servers: ${metadata.servers}\nTotal Rolls: ${metadata.rolls}`)
         }
