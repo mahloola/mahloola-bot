@@ -76,7 +76,20 @@ async function getOwnedPlayers(serverId, userId) {
   } else {
     console.log("Document data:", doc.data());
   }
-  return doc.data().ownedPlayers;
+
+  return doc.data() ? doc.data().ownedPlayers : null;
+
+
+  // const serversSnapshot = serverId ? await db.collection('servers').doc(serverId.toString()).get() : null
+  // let query = db
+  //   .collection('servers')
+  //   // .orderBy('dateUploaded', 'desc')
+  //   .limit(perPage + 1)
+  // if (serversSnapshot?.exists) {
+  //   query = query.startAt(serversSnapshot)
+  // }
+  // const querySnapshot = await query.get()
+  // return !querySnapshot.empty ? querySnapshot.docs.map((doc) => doc.data()) : []
 }
 
 async function setDatabaseMetadata(meta) {
@@ -94,7 +107,7 @@ async function setServerMetadata(metadata) {
   await metadataDoc.set({ metadata }, { merge: true });
 }
 
-async function getServerMetadata(serverId, userId) {
+async function getServerMetadata() {
   const doc = await db.collection("metadata").doc("metadata").get();
   return doc.data();
 }
