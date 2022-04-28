@@ -4,12 +4,12 @@ const { Intents } = require('discord.js');
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const { prefix, token } = require('./auth.json');
 const { initializeDatabase } = require('./db/database');
-const { getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseMetadata, setDatabaseMetadata, updateMetadata } = require('./db/database');
+const { getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, getServers, updateStatistics } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 
 client.on("ready", async function () {
     initializeDatabase();
-    let metadata = await getDatabaseMetadata();
+    let statistics = await getDatabaseStatistics();
 
     client.on('messageCreate', async (inboundMessage) => {
 
@@ -21,12 +21,24 @@ client.on("ready", async function () {
 
         // roll for a random player
         if (command === 'roll') {
-            metadata.rolls++;
-            setDatabaseMetadata(metadata);
+            statistics.rolls++;
+            setDatabaseStatistics(statistics);
             let player;
             while (!player) {
                 const rank = Math.floor(Math.random() * 10000) + 1;
                 player = await getPlayerByRank(rank);
+                // if (player.exists()) {
+                //     player = await getPlayerByRank(rank);
+                // } 
+                let serverId = inboundMessage.guild.id
+                // let userId = inboundMessage.author.id;
+                let serversCollection = await getServers();
+                console.log(serverId.toString());
+                const serverDoc = await serversCollection.doc(serverId.toString());
+                const serverOwnedPlayers = await serverDoc.get().ownedPlayers;
+                console.log(serverOwnedPlayers);
+                // const user = await userDoc.get();
+                // while player 
             }
             await createImage(player);
             if (player) {
@@ -65,7 +77,7 @@ client.on("ready", async function () {
         }
 
         if (command === 'cards') {
-            let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id);
+            let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
             let ownedPlayers = [];
             let ownedPlayersNames = "";
             if (playerIds) {
@@ -124,13 +136,26 @@ client.on("ready", async function () {
 
         // SERVER DETAILS
         //if (message.content === `${prefix}`)
-        if (command === 'help') {
-            inboundMessage.channel.send("Commands:\nhelp, roll, cards, metadata")
+        if (command === 'help' || command === 'commands') {
+            inboundMessage.channel.send("Commands:\nhelp, roll, cards, trade, stats");
         }
-        if (command === 'metadata') {
-            //updateMetadata();
-            const metadata = await getDatabaseMetadata();
-            inboundMessage.channel.send(`Total Users: ${metadata.users}\nTotal Servers: ${metadata.servers}\nTotal Rolls: ${metadata.rolls}`)
+        if (command === 'stats') {
+            //updateStatistics();
+            const statistics = await getDatabaseStatistics();
+            inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
+        }
+        if (command === 'trade') {
+            let user = inboundMessage.author;
+            let serverId = inboundMessage.guild.id
+            inboundMessage.channel.send(`${user}, who would you like to trade with?`);
+            const userResponse = await inboundMessage.channel.awaitMessages({
+                filter: (sender) => { return sender.author.id == user.id },
+                max: 1,
+                time: 30000,
+                errors: ['time']
+            });
+
+            let user2 = await serverDoc.where(userResponse.first().content);
         }
     })
 })
