@@ -64,76 +64,84 @@ async function setOwnedPlayer(serverId, userId, playerId) {
   );
 }
 
-async function getOwnedPlayers(serverId, userId) {
-  const serversRef = db.collection("servers");
-  const serverDoc = serversRef.doc(serverId.toString());
-  const serverUsersRef = serverDoc.collection("users");
-  const userRef = serverUsersRef.doc(userId.toString());
-
-  const doc = await userRef.get();
-  if (!doc.exists) {
+async function getOwnedPlayers(serverId, userId, perPage) {
+  const serversCollection = db.collection("servers");
+  const serverDoc = serversCollection.doc(serverId.toString());
+  const serverUsersCollection = serverDoc.collection("users");
+  const userDoc = serverUsersCollection.doc(userId.toString());
+  const user = await userDoc.get();
+  if (!user.exists) {
     console.log("No such document!");
   } else {
-    console.log("Document data:", doc.data());
+    console.log("Document data:", user.data());
   }
 
-  return doc.data() ? doc.data().ownedPlayers : null;
 
+  // return user.data() ? user.data().ownedPlayers : null;
 
-  // const serversSnapshot = serverId ? await db.collection('servers').doc(serverId.toString()).get() : null
-  // let query = db
-  //   .collection('servers')
-  //   // .orderBy('dateUploaded', 'desc')
-  //   .limit(perPage + 1)
-  // if (serversSnapshot?.exists) {
+  let query = user.data().ownedPlayers
+    // .orderBy('dateUploaded', 'desc')
+    .limit(perPage + 1);
+
+  console.log(query.get());
+
   //   query = query.startAt(serversSnapshot)
-  // }
+
   // const querySnapshot = await query.get()
   // return !querySnapshot.empty ? querySnapshot.docs.map((doc) => doc.data()) : []
 }
 
-async function setDatabaseMetadata(meta) {
+async function setDatabaseStatistics(meta) {
   const metadataDoc = await db.collection("metadata").doc("metadata");
   await metadataDoc.set({ metadata: meta }, { merge: true });
 }
 
-async function getDatabaseMetadata() {
-  const doc = await db.collection("metadata").doc("metadata").get();
-  return doc.data().metadata;
-}
-
-async function setServerMetadata(metadata) {
-  const metadataDoc = await db.collection("metadata").doc("metadata");
-  await metadataDoc.set({ metadata }, { merge: true });
-}
-
-async function getServerMetadata() {
-  const doc = await db.collection("metadata").doc("metadata").get();
+async function getDatabaseStatistics() {
+  const doc = await db.collection("statistics").doc("global").get();
   return doc.data();
 }
 
-async function updateMetadata() {
-  let metadata = getDatabaseMetadata();
-  db.collection("servers")
-    .get()
-    .then((snap) => {
-      metadata.servers = snap.size; // will return the collection size
+async function getServers() {
+  const serversCollection = await db.collection("servers");
+  return serversCollection;
+}
+async function getServerUsers(serverId) {
+  const serversCollection = await db.collection("servers");
+  const serverDoc = await serversCollection.doc(serverId.toString()).get();
+  const usersCollection = await serverDoc.collection('users');
+  return usersCollection;
+}
 
-      let totalUsers;
-      db.collection("servers").forEach((doc) => {
-        doc
-          .collection("users")
-          .get()
-          .then((snap) => {
-            const numUsers = snap.size; // will return the collection size
-            console.log(numUsers);
-            totalUsers += numUsers;
-          });
-      });
-      console.log(totalUsers);
-      metadata.users = totalUsers;
-    });
-  setDatabaseMetadata(metadata);
+async function getServerUser(serverId, userId) {
+  const serversCollection = await db.collection("servers");
+  const serverDoc = await serversCollection.doc(serverId.toString()).get();
+  const usersCollection = await serverDoc.collection('users');
+  const userDoc = await usersCollection.collection(userId.toString());
+  return userDoc;
+}
+
+async function updateStatistics() {
+  let metadata = getDatabaseStatistics();
+  // db.collection("servers")
+  //   .get()
+  //   .then((snap) => {
+  //     metadata.servers = snap.size; // will return the collection size
+
+  //     let totalUsers;
+  //     db.collection("servers").forEach((doc) => {
+  //       doc
+  //         .collection("users")
+  //         .get()
+  //         .then((snap) => {
+  //           const numUsers = snap.size; // will return the collection size
+  //           console.log(numUsers);
+  //           totalUsers += numUsers;
+  //         });
+  //     });
+  //     console.log(totalUsers);
+  //     metadata.users = totalUsers;
+  //   });
+  //   setDatabaseStatistics(metadata);
 }
 
 module.exports = {
@@ -143,9 +151,10 @@ module.exports = {
   getPlayerByRank,
   setOwnedPlayer,
   getOwnedPlayers,
-  setDatabaseMetadata,
-  getDatabaseMetadata,
-  setServerMetadata,
-  getServerMetadata,
-  updateMetadata,
+  setDatabaseStatistics,
+  getDatabaseStatistics,
+  updateStatistics,
+  getServers,
+  getServerUsers,
+  getServerUser
 };
