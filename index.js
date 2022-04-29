@@ -85,7 +85,7 @@ client.on("ready", async function () {
             let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
             let ownedPlayers = [];
             let ownedPlayersNames = [];
-            let ownedPlayerRanks = [];
+            let ownedPlayersRanks = [];
             if (playerIds) {
                 try {
                     for (let i = 0; i < playerIds.length; i++) {
@@ -95,46 +95,25 @@ client.on("ready", async function () {
                     ownedPlayers.sort((a, b) => {
                         return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
                     });
-                    // for (let i = 0; i < playerIds.length; i++) {
-                    let isLongList = 1;
-                    if (playerIds.length < 10) {
-                        isLongList = 0
+
+                    for (let i = 0; i < playerIds.length; i++) {
+                        ownedPlayersNames.push(ownedPlayers[i].apiv2.username);
+                        ownedPlayersRanks.push(ownedPlayers[i].apiv2.statistics.global_rank);
                     }
-                    if (isLongList == 1) {
-                        for (let i = 0; i < 10; i++) {
-                            if (playerIds[i] != undefined) {
-                                ownedPlayersNames.push(ownedPlayers[i].apiv2.username);
-                                ownedPlayerRanks.push(ownedPlayers[i].apiv2.statistics.global_rank);
-                            }
-                            else {
-                                ownedPlayersNames.push("");
-                                ownedPlayerRanks.push("");
-                            }
-                        }
-                    }
-                    else {
-                        for (let i = 0; i < playerIds.length; i++) {
-                            if (playerIds[i] != undefined) {
-                                ownedPlayersNames.push(ownedPlayers[i].apiv2.username);
-                                ownedPlayerRanks.push(ownedPlayers[i].apiv2.statistics.global_rank);
-                            }
-                            else {
-                                ownedPlayersNames.push("");
-                                ownedPlayerRanks.push("");
-                            }
-                        }
-                    }
+                    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
+                    let eloDisplay;
+                    eloDisplay = elo == null ? "N/A" : elo;
+
                     console.log('avatar url:' + inboundMessage.author.avatarURL);
                     let embed = new Discord.MessageEmbed()
-                        .setTitle(`${inboundMessage.author.username}'s top 10 cards`)
+                        .setTitle(`${inboundMessage.author.username}'s cards`)
                         .setColor('#D9A6BD')
                         .setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
                         .setThumbnail(inboundMessage.author.avatarURL())
-                        .setDescription(`Average: **${await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id)}**`)
+                        .setDescription(`Top 10 Avg: **${eloDisplay}**`)
                         .setTimestamp(Date.now())
-                        .addField('**Player**', `${ownedPlayersNames[0]}\n${ownedPlayersNames[1]}\n${ownedPlayersNames[2]}\n${ownedPlayersNames[3]}\n${ownedPlayersNames[4]}\n${ownedPlayersNames[5]}\n${ownedPlayersNames[6]}\n${ownedPlayersNames[7]}\n${ownedPlayersNames[8]}\n${ownedPlayersNames[9]}`, true)
-                        .addField('**Rank**', `${ownedPlayerRanks[0]}\n${ownedPlayerRanks[1]}\n${ownedPlayerRanks[2]}\n${ownedPlayerRanks[3]}\n${ownedPlayerRanks[4]}\n${ownedPlayerRanks[5]}\n${ownedPlayerRanks[6]}\n${ownedPlayerRanks[7]}\n${ownedPlayerRanks[8]}\n${ownedPlayerRanks[9]}`.toString(), true)
-                    // ^ THIS IS RETARDED
+                        .addField('**Player**', ownedPlayersNames.map(name => name || '---').slice(0, 10).join('\n'), true)
+                        .addField('**Rank**', ownedPlayersRanks.map(name => name || '---').slice(0, 10).join('\n').toString(), true)
                     // if (isLongList) {
                     //     for (let i = 0; i < 10; i++) {
                     //         embed.addField(ownedPlayersNames[i], ownedPlayerRanks[i].toString(),);
