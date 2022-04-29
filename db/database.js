@@ -75,15 +75,13 @@ async function getOwnedPlayers(serverId, userId, perPage) {
   } else {
     console.log("Document data:", user.data());
   }
+  return user.data() ? user.data().ownedPlayers : null;
 
+  // let query = user.data().ownedPlayers
+  //   // .orderBy('dateUploaded', 'desc')
+  //   .limit(perPage + 1);
 
-  // return user.data() ? user.data().ownedPlayers : null;
-
-  let query = user.data().ownedPlayers
-    // .orderBy('dateUploaded', 'desc')
-    .limit(perPage + 1);
-
-  console.log(query.get());
+  // console.log(query.get());
 
   //   query = query.startAt(serversSnapshot)
 
@@ -92,8 +90,7 @@ async function getOwnedPlayers(serverId, userId, perPage) {
 }
 
 async function setDatabaseStatistics(meta) {
-  const metadataDoc = await db.collection("metadata").doc("metadata");
-  await metadataDoc.set({ metadata: meta }, { merge: true });
+  await db.collection("statistics").doc("global").set(meta);
 }
 
 async function getDatabaseStatistics() {
@@ -107,21 +104,47 @@ async function getServers() {
 }
 async function getServerUsers(serverId) {
   const serversCollection = await db.collection("servers");
-  const serverDoc = await serversCollection.doc(serverId.toString()).get();
+  const serverDoc = await serversCollection.doc(serverId.toString());
   const usersCollection = await serverDoc.collection('users');
   return usersCollection;
 }
 
 async function getServerUser(serverId, userId) {
   const serversCollection = await db.collection("servers");
-  const serverDoc = await serversCollection.doc(serverId.toString()).get();
+  const serverDoc = await serversCollection.doc(serverId.toString());
   const usersCollection = await serverDoc.collection('users');
-  const userDoc = await usersCollection.collection(userId.toString());
-  return userDoc;
+  console.log(serverId, userId);
+  const userDoc = await usersCollection.doc(userId.toString()).get();
+  console.log(userDoc.data());
+  return userDoc.exists ? userDoc.data() : null;
 }
 
+async function updateUserElo(serverId, userId) {
+  let user = await getServerUser(serverId, userId);
+  // if user owns less than 10 players, they are unranked
+  if (user.ownedPlayers == undefined || user.ownedPlayers.length < 10) {
+    return null;
+  }
+  let playerIds = user.ownedPlayers;
+  let ownedPlayers = [];
+  for (let i = 0; i < playerIds.length; i++) {
+    let player = await getPlayer(playerIds[i]);
+    ownedPlayers.push(player);
+  }
+  ownedPlayers.sort((a, b) => {
+    return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
+  });
+  let totalRanks = 0;
+  for (let i = 0; i < 10; i++) {
+    totalRanks += ownedPlayers[i].apiv2.statistics.global_rank;
+  }
+  const avgRanks = totalRanks / 10;
+  // update elo in the db
+  await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
+  return avgRanks;
+}
 async function updateStatistics() {
-  let metadata = getDatabaseStatistics();
+  let statistics = getDatabaseStatistics();
   // db.collection("servers")
   //   .get()
   //   .then((snap) => {
@@ -156,5 +179,6 @@ module.exports = {
   updateStatistics,
   getServers,
   getServerUsers,
-  getServerUser
+  getServerUser,
+  updateUserElo
 };
