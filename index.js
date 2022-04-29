@@ -1,11 +1,9 @@
 const Discord = require('discord.js');
-const { MessageAttachment } = require("discord.js");
-const { Intents } = require('discord.js');
+const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { prefix, token } = require('./auth.json');
-const { initializeDatabase } = require('./db/database');
-const { getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, getServers, updateStatistics } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, getServers, getServerUsers, getServerUser, updateStatistics, updateUserElo } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
+const { prefix, token } = require('./auth.json');
 
 client.on("ready", async function () {
     initializeDatabase();
@@ -33,10 +31,9 @@ client.on("ready", async function () {
                 let serverId = inboundMessage.guild.id
                 // let userId = inboundMessage.author.id;
                 let serversCollection = await getServers();
-                console.log(serverId.toString());
                 const serverDoc = await serversCollection.doc(serverId.toString());
-                const serverOwnedPlayers = await serverDoc.get().ownedPlayers;
-                console.log(serverOwnedPlayers);
+                // const serverOwnedPlayers = await serverDoc.get().ownedPlayers;
+                // console.log(serverOwnedPlayers);
                 // const user = await userDoc.get();
                 // while player 
             }
@@ -65,7 +62,15 @@ client.on("ready", async function () {
                         outboundMessage.reply('Operation cancelled.');
                         return;
                     }
+                    // let test = getServerUser(outboundMessage.guild.id, claimingUser.id);
+                    // if (test == null) {
+                    //     console.log("User doesn't exist yet");
+                    // }
+                    // else {
+                    //     console.log(`User exists and owns ${test.ownedPlayers}`);
+                    // }
                     setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
+                    updateUserElo(inboundMessage.guild.id, claimingUser.id);
                     outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
                 } catch (error) {
                     console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
@@ -85,10 +90,7 @@ client.on("ready", async function () {
                     for (let i = 0; i < playerIds.length; i++) {
                         let player = await getPlayer(playerIds[i]);
                         ownedPlayers.push(player);
-                        //ownedPlayersNames.concat(" ", ownedPlayers[i].apiv2.username);
-
                     }
-
                     ownedPlayers.sort((a, b) => {
                         return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
                     });
@@ -137,7 +139,7 @@ client.on("ready", async function () {
         // SERVER DETAILS
         //if (message.content === `${prefix}`)
         if (command === 'help' || command === 'commands') {
-            inboundMessage.channel.send("Commands:\nhelp, roll, cards, trade, stats");
+            inboundMessage.channel.send("**Commands**\nhelp, roll, cards, trade, stats\n\n**Discord**\nhttps://discord.gg/DGdzyapHkW");
         }
         if (command === 'stats') {
             //updateStatistics();
@@ -155,7 +157,20 @@ client.on("ready", async function () {
                 errors: ['time']
             });
 
-            let user2 = await serverDoc.where(userResponse.first().content);
+            inboundMessage.channel.send(userResponse.first().user);
+            //inboundMessage.channel.send(await getServerUser(serverId, user.id).ownedPlayers[0]);
+            let user2 = await getServerUser(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
+            //inboundMessage.channel.send(`${user}, who would you like to trade with?`);
+            //let user2 = await getServerUsers(serverId).where(userResponse.first().content, '==', getServerUser(serverId, user.id).apiv2.username);
+        }
+        if (command === 'elo') {
+            const elo = await updateUserElo(inboundMessage.channel.guildId, inboundMessage.author.id);
+            if (elo == null) {
+                inboundMessage.channel.send("You are unranked; you need to own at least 10 players.");
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} Your elo is **${elo.toString()}** (lower is better). Keep it up 👍`);
+            }
         }
     })
 })
