@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, getServers, getServerUsers, getServerUser, updateStatistics, updateUserElo } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer, getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers, getServerUser, updateStatistics, updateUserElo } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const { prefix, token } = require('./auth.json');
 
@@ -25,17 +25,9 @@ client.on("ready", async function () {
             while (!player) {
                 const rank = Math.floor(Math.random() * 10000) + 1;
                 player = await getPlayerByRank(rank);
-                // if (player.exists()) {
-                //     player = await getPlayerByRank(rank);
-                // } 
                 let serverId = inboundMessage.guild.id
-                // let userId = inboundMessage.author.id;
                 let serversCollection = await getServers();
                 const serverDoc = await serversCollection.doc(serverId.toString());
-                // const serverOwnedPlayers = await serverDoc.get().ownedPlayers;
-                // console.log(serverOwnedPlayers);
-                // const user = await userDoc.get();
-                // while player 
             }
             await createImage(player);
             if (player) {
@@ -70,10 +62,9 @@ client.on("ready", async function () {
                     //     console.log(`User exists and owns ${test.ownedPlayers}`);
                     // }
                     await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
-                    await updateUserElo(inboundMessage.guild.id, claimingUser.id);
+                    //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
                     outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
                 } catch (error) {
-                    console.log(`Nobody reacted to ${player.apiv2.username} after 30 seconds, operation canceled`);
                     outboundMessage.reactions.removeAll()
                         .catch(error => console.error('Failed to clear reactions:', error));
                 }
@@ -82,48 +73,86 @@ client.on("ready", async function () {
         }
 
         if (command === 'cards') {
+
+            // let mentionedUser = inboundMessage.mentions.users.first();
+
+            // check if user owns anybody first
             let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
-            let ownedPlayers = [];
-            let ownedPlayersNames = [];
-            let ownedPlayersRanks = [];
             if (playerIds) {
                 try {
+
+                    // get full list of players
+                    let ownedPlayers = [];
+                    let ownedPlayersNames = [];
+                    let ownedPlayersRanks = [];
                     for (let i = 0; i < playerIds.length; i++) {
                         let player = await getPlayer(playerIds[i]);
                         ownedPlayers.push(player);
                     }
+
+                    // sort players by rank
                     ownedPlayers.sort((a, b) => {
                         return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
                     });
 
+                    // store names and ranks into arrays for easier use
                     for (let i = 0; i < playerIds.length; i++) {
                         ownedPlayersNames.push(ownedPlayers[i].apiv2.username);
                         ownedPlayersRanks.push(ownedPlayers[i].apiv2.statistics.global_rank);
                     }
-                    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
-                    let eloDisplay;
-                    eloDisplay = elo == null ? "N/A" : elo;
 
-                    console.log('avatar url:' + inboundMessage.author.avatarURL);
-                    let embed = new Discord.MessageEmbed()
-                        .setTitle(`${inboundMessage.author.username}'s cards`)
-                        .setColor('#D9A6BD')
-                        .setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
-                        .setThumbnail(inboundMessage.author.avatarURL())
-                        .setDescription(`Top 10 Avg: **${eloDisplay}**`)
-                        .setTimestamp(Date.now())
-                        .addField('**Player**', ownedPlayersNames.map(name => name || '---').slice(0, 10).join('\n'), true)
-                        .addField('**Rank**', ownedPlayersRanks.map(name => name || '---').slice(0, 10).join('\n').toString(), true)
-                    // if (isLongList) {
-                    //     for (let i = 0; i < 10; i++) {
-                    //         embed.addField(ownedPlayersNames[i], ownedPlayerRanks[i].toString(),);
-                    //     }
-                    // }
-                    // else {
-                    //     for (let i = 0; i < playerIds.length; i++) {
-                    //         embed.addField(ownedPlayersNames[i], ownedPlayerRanks[i].toString(), true);
-                    //     }
-                    // }
+                    // get pinned players
+                    let pinnedPlayerIds = await getPinnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
+                    let pinnedPlayers = [];
+                    if (pinnedPlayerIds) {
+                        for (let i = 0; i < pinnedPlayerIds.length; i++) {
+                            let pinnedPlayer = await getPlayer(pinnedPlayerIds[i]);
+                            pinnedPlayers.push(pinnedPlayer);
+                        }
+                    }
+
+                    // get the top 10 average
+                    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
+                    let eloDisplay = elo == null ? "N/A" : elo;
+
+                    // create embed body
+                    let pinnedDescription = "";
+
+                    // add pinned players to embed if the user has any
+                    if (pinnedPlayers) {
+                        pinnedPlayers.forEach(player => (pinnedDescription += `**${player.apiv2.statistics.global_rank}** • ${player.apiv2.username}\n`));
+                    }
+
+                    // add all players to embed
+                    let embedDescription = "";
+                    ownedPlayers.forEach(player => {
+                        embedDescription += `**${player.apiv2.statistics.global_rank}** • ${player.apiv2.username}\n`;
+                    });
+
+                    // create the embed message
+                    let embed = new Discord.MessageEmbed();
+
+                    // add the rest of the information
+                    embed.setTitle(`${inboundMessage.author.username}'s cards`)
+                    embed.setColor('#D9A6BD')
+                    embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
+                    embed.setThumbnail(inboundMessage.author.avatarURL())
+                    embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`)
+                    if (pinnedPlayerIds.length > 0) {
+                        embed.addField(`Pinned`, pinnedDescription)
+                        embed.addField(`All`, embedDescription)
+                    }
+                    else {
+                        embed.addField(`Players`, embedDescription)
+                    }
+                    embed.setTimestamp(Date.now())
+                    // .addField('**Player**', ownedPlayersNames.map(name => name || '---').slice(0, 10).join('\n'), true)
+                    // .addField('**Rank**', ownedPlayersRanks.map(name => name || '---').slice(0, 10).join('\n').toString(), true)
+
+
+
+
+                    // send the message
                     inboundMessage.channel.send({ embeds: [embed] });
                 }
                 catch (err) {
@@ -185,7 +214,7 @@ client.on("ready", async function () {
                 errors: ['time']
             });
 
-            inboundMessage.channel.send(userResponse.first().user);
+            //inboundMessage.channel.send(userResponse.first().user);
             //inboundMessage.channel.send(await getServerUser(serverId, user.id).ownedPlayers[0]);
             let user2 = await getServerUser(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
             //inboundMessage.channel.send(`${user}, who would you like to trade with?`);
@@ -200,6 +229,32 @@ client.on("ready", async function () {
                 inboundMessage.channel.send(`${inboundMessage.author} Your top 10 average is **${elo.toString()}**.`);
             }
         }
+        if (command === 'pin') {
+            let pinnedId = parseInt(inboundMessage.content.substring(5));
+            const user = await getServerUser(inboundMessage.channel.guildId, inboundMessage.author.id);
+            const validFlag = user?.ownedPlayers?.includes(pinnedId);
+            if (validFlag) {
+                await setPinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, pinnedId).catch(err => console.error(err));
+                inboundMessage.channel.send(`${inboundMessage.author} pin successful.`)
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with ID ${pinnedId}.`);
+            }
+        }
+        if (command === 'unpin') {
+            let pinnedId = parseInt(inboundMessage.content.substring(7));
+            const user = await getServerUser(inboundMessage.channel.guildId, inboundMessage.author.id);
+            const validFlag = user?.pinnedPlayers?.includes(pinnedId);
+            if (validFlag) {
+                await deletePinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, pinnedId).catch(err => console.error(err));
+                inboundMessage.channel.send(`${inboundMessage.author} User ${pinnedId} has been unpinned.`)
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with ID ${pinnedId}.`);
+            }
+        }
+
+
     })
 })
 

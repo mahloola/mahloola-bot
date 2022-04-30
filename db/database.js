@@ -21,7 +21,7 @@ async function setPlayer(player) {
       { merge: true }
     );
   } else {
-    console.log("Player is N/A");
+    console.log(`Failed to set player ${player.id}`);
   }
 }
 
@@ -44,7 +44,6 @@ async function getPlayerByRank(rank) {
       player = doc.data();
     }
   });
-  //console.log('User rolled =>', player.apiv2.username);
   return player;
 }
 
@@ -53,7 +52,6 @@ async function setOwnedPlayer(serverId, userId, playerId) {
   const serverRef = serversRef.doc(serverId.toString());
   const serverUsersRef = serverRef.collection("users");
   const userRef = serverUsersRef.doc(userId.toString());
-
   await serverRef.set(
     { ownedPlayers: admin.firestore.FieldValue.arrayUnion(playerId) },
     { merge: true }
@@ -70,23 +68,15 @@ async function getOwnedPlayers(serverId, userId, perPage) {
   const serverUsersCollection = serverDoc.collection("users");
   const userDoc = serverUsersCollection.doc(userId.toString());
   const user = await userDoc.get();
-  if (!user.exists) {
-    console.log("No such document!");
-  } else {
-    console.log("Document data:", user.data());
-  }
   return user.data() ? user.data().ownedPlayers : null;
-
-  // let query = user.data().ownedPlayers
-  //   // .orderBy('dateUploaded', 'desc')
-  //   .limit(perPage + 1);
-
-  // console.log(query.get());
-
-  //   query = query.startAt(serversSnapshot)
-
-  // const querySnapshot = await query.get()
-  // return !querySnapshot.empty ? querySnapshot.docs.map((doc) => doc.data()) : []
+}
+async function getPinnedPlayers(serverId, userId, perPage) {
+  const serversCollection = await db.collection("servers");
+  const serverDoc = await serversCollection.doc(serverId.toString());
+  const serverUsersCollection = await serverDoc.collection("users");
+  const userDoc = await serverUsersCollection.doc(userId.toString());
+  const user = await userDoc.get();
+  return user.data() ? user.data().pinnedPlayers : null;
 }
 
 async function setDatabaseStatistics(meta) {
@@ -98,25 +88,28 @@ async function getDatabaseStatistics() {
   return doc.data();
 }
 
-async function getServers() {
-  const serversCollection = await db.collection("servers");
-  return serversCollection;
-}
-async function getServerUsers(serverId) {
-  const serversCollection = await db.collection("servers");
-  const serverDoc = await serversCollection.doc(serverId.toString());
-  const usersCollection = await serverDoc.collection('users');
-  return usersCollection;
-}
+async function updateStatistics() {
+  let statistics = getDatabaseStatistics();
+  // db.collection("servers")
+  //   .get()
+  //   .then((snap) => {
+  //     metadata.servers = snap.size; // will return the collection size
 
-async function getServerUser(serverId, userId) {
-  const serversCollection = await db.collection("servers");
-  const serverDoc = await serversCollection.doc(serverId.toString());
-  const usersCollection = await serverDoc.collection('users');
-  console.log(serverId, userId);
-  const userDoc = await usersCollection.doc(userId.toString()).get();
-  console.log(userDoc.data());
-  return userDoc.exists ? userDoc.data() : null;
+  //     let totalUsers;
+  //     db.collection("servers").forEach((doc) => {
+  //       doc
+  //         .collection("users")
+  //         .get()
+  //         .then((snap) => {
+  //           const numUsers = snap.size; // will return the collection size
+  //           console.log(numUsers);
+  //           totalUsers += numUsers;
+  //         });
+  //     });
+  //     console.log(totalUsers);
+  //     metadata.users = totalUsers;
+  //   });
+  //   setDatabaseStatistics(metadata);
 }
 
 async function updateUserElo(serverId, userId) {
@@ -143,28 +136,47 @@ async function updateUserElo(serverId, userId) {
   await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
-async function updateStatistics() {
-  let statistics = getDatabaseStatistics();
-  // db.collection("servers")
-  //   .get()
-  //   .then((snap) => {
-  //     metadata.servers = snap.size; // will return the collection size
 
-  //     let totalUsers;
-  //     db.collection("servers").forEach((doc) => {
-  //       doc
-  //         .collection("users")
-  //         .get()
-  //         .then((snap) => {
-  //           const numUsers = snap.size; // will return the collection size
-  //           console.log(numUsers);
-  //           totalUsers += numUsers;
-  //         });
-  //     });
-  //     console.log(totalUsers);
-  //     metadata.users = totalUsers;
-  //   });
-  //   setDatabaseStatistics(metadata);
+async function setPinnedPlayer(serverId, userId, pinnedUserId) {
+
+  const serversRef = db.collection("servers");
+  const serverRef = serversRef.doc(serverId.toString());
+  const serverUsersRef = serverRef.collection("users");
+  const userRef = serverUsersRef.doc(userId.toString());
+
+  await userRef.set(
+    { pinnedPlayers: admin.firestore.FieldValue.arrayUnion(pinnedUserId) },
+    { merge: true }
+  );
+}
+async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
+  const serversRef = db.collection("servers");
+  const serverRef = serversRef.doc(serverId.toString());
+  const serverUsersRef = serverRef.collection("users");
+  const userRef = serverUsersRef.doc(userId.toString());
+  const userSnapshot = await userRef.get();
+  const user = userSnapshot.data()
+
+  const updatedOwnedUsers = user.pinnedPlayers.filter(id => id !== pinnedUserId)
+  await userRef.update({ pinnedPlayers: updatedOwnedUsers }, { merge: true })
+}
+async function getServers() {
+  const serversCollection = await db.collection("servers");
+  return serversCollection;
+}
+async function getServerUsers(serverId) {
+  const serversCollection = await db.collection("servers");
+  const serverDoc = await serversCollection.doc(serverId.toString());
+  const usersCollection = await serverDoc.collection('users');
+  return usersCollection;
+}
+
+async function getServerUser(serverId, userId) {
+  const serversCollection = await db.collection("servers");
+  const serverDoc = await serversCollection.doc(serverId.toString());
+  const usersCollection = await serverDoc.collection('users');
+  const userDoc = await usersCollection.doc(userId.toString()).get();
+  return userDoc.exists ? userDoc.data() : null;
 }
 
 module.exports = {
@@ -177,8 +189,11 @@ module.exports = {
   setDatabaseStatistics,
   getDatabaseStatistics,
   updateStatistics,
+  updateUserElo,
+  setPinnedPlayer,
+  getPinnedPlayers,
+  deletePinnedPlayer,
   getServers,
   getServerUsers,
   getServerUser,
-  updateUserElo
 };
