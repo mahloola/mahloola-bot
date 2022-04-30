@@ -119,11 +119,27 @@ async function updateUserElo(serverId, userId) {
     return null;
   }
   let playerIds = user.ownedPlayers;
-  let ownedPlayers = [];
-  for (let i = 0; i < playerIds.length; i++) {
-    let player = await getPlayer(playerIds[i]);
-    ownedPlayers.push(player);
+  const ownedPlayerPromises = [];
+  for (const id of playerIds) {
+    ownedPlayerPromises.push(getPlayer(id));
   }
+  const ownedPlayers = await Promise.all(ownedPlayerPromises);
+
+  ownedPlayers.sort((a, b) => {
+    return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
+  });
+  let totalRanks = 0;
+  for (let i = 0; i < 10; i++) {
+    totalRanks += ownedPlayers[i].apiv2.statistics.global_rank;
+  }
+  const avgRanks = totalRanks / 10;
+  // update elo in the db
+  await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
+  return avgRanks;
+}
+
+async function updateUserEloByPlayers(serverId, userId, ownedPlayers) {
+
   ownedPlayers.sort((a, b) => {
     return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
   });
@@ -190,6 +206,7 @@ module.exports = {
   getDatabaseStatistics,
   updateStatistics,
   updateUserElo,
+  updateUserEloByPlayers,
   setPinnedPlayer,
   getPinnedPlayers,
   deletePinnedPlayer,
