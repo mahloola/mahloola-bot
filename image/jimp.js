@@ -141,8 +141,7 @@ async function createPlayerCard(player) {
         }
     }
     catch (err) {
-        console.log(`Failed to read cover image: ${player.apiv2.cover_url}\n`);
-        console.log(err);
+        console.log(`Failed to read cover URL for user ${player.apiv2.username}: ${player.apiv2.cover_url}\n`);
     }
 
 
@@ -188,15 +187,12 @@ async function createPlayerCard(player) {
     );
 
     // write image
-    console.log("Writing image...");
     try {
         await osuCard.writeAsync(`image/cache/osuCard-${player.apiv2.username}.png`);
     }
     catch (err) {
         console.log(err);
     }
-
-    console.log("Image saved!");
 }
 
 module.exports = {
