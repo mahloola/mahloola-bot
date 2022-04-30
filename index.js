@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer, getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers, getServerUser, updateStatistics, updateUserElo } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer, getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers, getServerUser, updateStatistics, updateUserElo, updateUserEloByPlayers } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const { prefix, token } = require('./auth.json');
 
@@ -54,13 +54,7 @@ client.on("ready", async function () {
                         outboundMessage.reply('Operation cancelled.');
                         return;
                     }
-                    // let test = getServerUser(outboundMessage.guild.id, claimingUser.id);
-                    // if (test == null) {
-                    //     console.log("User doesn't exist yet");
-                    // }
-                    // else {
-                    //     console.log(`User exists and owns ${test.ownedPlayers}`);
-                    // }
+
                     await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
                     //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
                     outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
@@ -74,21 +68,21 @@ client.on("ready", async function () {
 
         if (command === 'cards') {
 
-            // let mentionedUser = inboundMessage.mentions.users.first();
+            let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
 
             // check if user owns anybody first
-            let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
             if (playerIds) {
                 try {
 
                     // get full list of players
-                    let ownedPlayers = [];
                     let ownedPlayersNames = [];
                     let ownedPlayersRanks = [];
-                    for (let i = 0; i < playerIds.length; i++) {
-                        let player = await getPlayer(playerIds[i]);
-                        ownedPlayers.push(player);
+
+                    const ownedPlayerPromises = [];
+                    for (const id of playerIds) {
+                        ownedPlayerPromises.push(getPlayer(id));
                     }
+                    const ownedPlayers = await Promise.all(ownedPlayerPromises);
 
                     // sort players by rank
                     ownedPlayers.sort((a, b) => {
@@ -103,16 +97,19 @@ client.on("ready", async function () {
 
                     // get pinned players
                     let pinnedPlayerIds = await getPinnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
-                    let pinnedPlayers = [];
+
+                    const pinnedPlayerPromises = [];
+
                     if (pinnedPlayerIds) {
-                        for (let i = 0; i < pinnedPlayerIds.length; i++) {
-                            let pinnedPlayer = await getPlayer(pinnedPlayerIds[i]);
-                            pinnedPlayers.push(pinnedPlayer);
+                        for (const id of pinnedPlayerIds) {
+                            pinnedPlayerPromises.push(getPlayer(id));
                         }
                     }
+                    const pinnedPlayers = await Promise.all(pinnedPlayerPromises);
+
 
                     // get the top 10 average
-                    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
+                    const elo = await updateUserEloByPlayers(inboundMessage.guild.id, inboundMessage.author.id, ownedPlayers);
                     let eloDisplay = elo == null ? "N/A" : elo;
 
                     // create embed body
@@ -125,7 +122,7 @@ client.on("ready", async function () {
 
                     // add all players to embed
                     let embedDescription = "";
-                    ownedPlayers.forEach(player => {
+                    ownedPlayers.slice(0, 10).forEach(player => {
                         embedDescription += `**${player.apiv2.statistics.global_rank}** • ${player.apiv2.username}\n`;
                     });
 
@@ -138,7 +135,7 @@ client.on("ready", async function () {
                     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
                     embed.setThumbnail(inboundMessage.author.avatarURL())
                     embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`)
-                    if (pinnedPlayerIds.length > 0) {
+                    if (pinnedPlayerIds?.length > 0) {
                         embed.addField(`Pinned`, pinnedDescription)
                         embed.addField(`All`, embedDescription)
                     }
@@ -146,11 +143,6 @@ client.on("ready", async function () {
                         embed.addField(`Players`, embedDescription)
                     }
                     embed.setTimestamp(Date.now())
-                    // .addField('**Player**', ownedPlayersNames.map(name => name || '---').slice(0, 10).join('\n'), true)
-                    // .addField('**Rank**', ownedPlayersRanks.map(name => name || '---').slice(0, 10).join('\n').toString(), true)
-
-
-
 
                     // send the message
                     inboundMessage.channel.send({ embeds: [embed] });
@@ -163,41 +155,8 @@ client.on("ready", async function () {
             else {
                 inboundMessage.channel.send("You don't own any players.");
             }
-            //message.channel.send({ embed: { title: `**${message.author.username}'s owned players**` } }.then(msg => ownedPlayers));
-            // const msg = `
-            // **${message.author.username}'s owned players**
-
-            // `;
-            // for (let i = 0; i < ownedPlayers.length; i++) {
-            //     finalmessage = msg.concat(`#${ownedPlayers[i].apiv2.statistics.global_rank} - ${ownedPlayers[i].apiv2.username}\n`);
-            // }
-            //message.channel.send({ embed: { title: `**${message.author.username}'s owned players**` } }.then(msg => ));
-
-            // await lib.discord.channels['@0.2.0'].messages.create({
-            //     "channel_id": `${context.params.event.channel_id}`,
-            //     "content": "",
-            //     "tts": false,
-            //     "embeds": [
-            //         {
-            //             "type": "rich",
-            //             "title": `${message.author.username}'s owned players`,
-            //             "description": `${ownedPlayers[i].apiv2.statistics.global_rank} - ${ownedPlayers[i].apiv2.username}`,
-            //             "color": 0xff7aff,
-            //             "image": {
-            //                 "url": `${user.avatarURL}`,
-            //                 "height": 100,
-            //                 "width": 100
-            //             }
-            //         }
-            //     ]
-            // });
         }
 
-        // SERVER DETAILS
-        //if (message.content === `${prefix}`)
-        if (command === 'help' || command === 'commands') {
-            inboundMessage.channel.send("**Commands**\nhelp, roll, cards, trade, stats\n\n**Discord**\nhttps://discord.gg/DGdzyapHkW");
-        }
         if (command === 'stats') {
             //updateStatistics();
             const statistics = await getDatabaseStatistics();
@@ -214,7 +173,7 @@ client.on("ready", async function () {
                 errors: ['time']
             });
 
-            //inboundMessage.channel.send(userResponse.first().user);
+            inboundMessage.channel.send("lol this command doesn't work yet");
             //inboundMessage.channel.send(await getServerUser(serverId, user.id).ownedPlayers[0]);
             let user2 = await getServerUser(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
             //inboundMessage.channel.send(`${user}, who would you like to trade with?`);
@@ -250,11 +209,12 @@ client.on("ready", async function () {
                 inboundMessage.channel.send(`${inboundMessage.author} User ${pinnedId} has been unpinned.`)
             }
             else {
-                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with ID ${pinnedId}.`);
+                inboundMessage.channel.send(`${inboundMessage.author} You do not have a player with ID ${pinnedId} pinned.`);
             }
         }
-
-
+        if (command === 'help' || command === 'commands') {
+            inboundMessage.channel.send("**Commands**\n- Card collecting: roll, cards, pin(userId), trade\n- General: help, stats\n\n**Discord**\nhttps://discord.gg/DGdzyapHkW");
+        }
     })
 })
 
