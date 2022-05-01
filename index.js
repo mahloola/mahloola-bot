@@ -26,65 +26,74 @@ client.on("ready", async function () {
         // roll for a random player
         if (command === 'roll') {
 
-            // update statistics
-            statistics.rolls++;
-            setDatabaseStatistics(statistics);
+            const currentRolls = getRolls(inboundMessage.guild.id, inboundMessage.author.id);
+            if (currentRolls > 0) {
+                // update statistics
+                statistics.rolls++;
+                setDatabaseStatistics(statistics);
 
-            console.log(inboundMessage.author.id.toString());
-            // update user available rolls
-            const currentTime = new Date();
-            console.log(`Current time: ${currentTime}`)
-            console.log(`Current rolls: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
-            await getResetTime(inboundMessage.guild.id, inboundMessage.author.id) > currentTime ?
-                await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4) :
-                await setRolls(await getRolls(inboundMessage.guild.id, inboundMessage.author.id) - 1)
-            console.log(`Rolls now: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
+                // update user available rolls
+                const currentTime = new Date().getTime();
+                console.log(`Rolls before: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
+                if (currentTime > await getResetTime(inboundMessage.guild.id, inboundMessage.author.id)) {
+                    await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4);
+                    await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+                }
+                else {
+                    await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
+                }
+                console.log(`Rolls now: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
 
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
-            console.log(await getRolls(inboundMessage.guild.id, inboundMessage.author.id));
-            let player;
-            while (!player) {
-                const rank = Math.floor(Math.random() * 10000) + 1;
-                player = await getPlayerByRank(rank);
-            }
-            console.log(`${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
-            await createImage(player);
-            if (player) {
-                const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
-                const outboundMessage = await inboundMessage.channel.send({ files: [file] })
-                outboundMessage.react('👍');
+                // get a random player (rank 1 - 10,000)
+                let player;
+                while (!player) {
+                    const rank = Math.floor(Math.random() * 10000) + 1;
+                    player = await getPlayerByRank(rank);
+                }
+                console.log(`${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
-                const reactions = await outboundMessage.awaitReactions({
-                    filter: (reaction, user) => user.id != outboundMessage.author.id && reaction.emoji.name == '👍',
-                    max: 1,
-                    time: 30000
-                });
+                if (player) {
+                    await createImage(player);
+                    const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
+                    const outboundMessage = await inboundMessage.channel.send({ files: [file] })
+                    outboundMessage.react('👍');
 
-                const reaction = reactions.get('👍');
-                try {
-                    const reactionUsers = await reaction.users.fetch();
-                    let claimingUser;
-                    for (const [userId, user] of reactionUsers) {
-                        if (userId !== outboundMessage.author.id) {
-                            claimingUser = user;
+                    const reactions = await outboundMessage.awaitReactions({
+                        filter: (reaction, user) => user.id != outboundMessage.author.id && reaction.emoji.name == '👍',
+                        max: 1,
+                        time: 30000
+                    });
+
+                    const reaction = reactions.get('👍');
+                    try {
+                        const reactionUsers = await reaction.users.fetch();
+                        let claimingUser;
+                        for (const [userId, user] of reactionUsers) {
+                            if (userId !== outboundMessage.author.id) {
+                                claimingUser = user;
+                            }
                         }
-                    }
-                    if (!claimingUser) {
-                        outboundMessage.reply('Operation cancelled.');
-                        return;
-                    }
+                        if (!claimingUser) {
+                            outboundMessage.reply('Operation cancelled.');
+                            return;
+                        }
 
-                    await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
-                    //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
+                        await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
+                        //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
 
-                    await setResetTime(outboundMessage.guild.id, claimingUser.id);
-                    outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
-                } catch (error) {
-                    outboundMessage.reactions.removeAll()
-                        .catch(error => console.error('Failed to clear reactions:', error));
+                        await setResetTime(outboundMessage.guild.id, claimingUser.id);
+                        outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+                    } catch (error) {
+                        outboundMessage.reactions.removeAll()
+                            .catch(error => console.error('Failed to clear reactions:', error));
+                    }
                 }
             }
-
+            else {
+                const resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+                const resetTime = new Date(resetTimestamp);
+                inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${resetTime.toLocaleTimeString('en-US')}**.`);
+            }
         }
 
         if (command === 'cards') {
