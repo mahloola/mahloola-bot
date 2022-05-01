@@ -25,19 +25,24 @@ client.on("ready", async function () {
 
         // roll for a random player
         if (command === 'roll') {
+            const currentTime = new Date().getTime();
+            const resetTime = await getResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+            if (currentTime > resetTime) {
+                await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
+                await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+            }
 
-            const currentRolls = getRolls(inboundMessage.guild.id, inboundMessage.author.id);
+            const currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
             if (currentRolls > 0) {
                 // update statistics
                 statistics.rolls++;
                 setDatabaseStatistics(statistics);
 
                 // update user available rolls
-                const currentTime = new Date().getTime();
+
                 console.log(`Rolls before: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
-                if (currentTime > await getResetTime(inboundMessage.guild.id, inboundMessage.author.id)) {
+                if (currentTime > resetTime) {
                     await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4);
-                    await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
                 }
                 else {
                     await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
@@ -95,7 +100,20 @@ client.on("ready", async function () {
                 inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${resetTime.toLocaleTimeString('en-US')}**.`);
             }
         }
-
+        if (command === 'rolls') {
+            const currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
+            const resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+            const resetTime = new Date(resetTimestamp);
+            if (currentRolls === 1) {
+                inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is at **${resetTime.toLocaleTimeString('en-US')}**.`);
+            }
+            else if (currentRolls > 0) {
+                inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is at **${resetTime.toLocaleTimeString('en-US')}**.`);
+            }
+            else {
+                inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${resetTime.toLocaleTimeString('en-US')}**.`);
+            }
+        }
         if (command === 'cards') {
 
             let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
@@ -254,6 +272,7 @@ client.on("ready", async function () {
             inboundMessage.channel.send(`**Commands**\n\`\`\`
 Card-Related
     roll: Roll for a top 10,000 player. Claim by reacting with 👍
+    rolls: Check your available rolls.
     cards: Display all of your owned cards.
     pin(userId): Pin cards to the top of your cards page by typing ;pin UserID.
     unpin(userId): Remove pins from your cards page.
