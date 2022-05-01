@@ -130,14 +130,14 @@ async function setResetTime(serverId, userId) {
   let date = new Date();
   date.setMinutes(date.getMinutes() + 30);
   await userRef.set(
-    { 'resetTime': date },
+    { 'resetTime': date.getTime() },
     { merge: true }
   );
 }
 async function getResetTime(serverId, userId) {
   const userRef = await getUserRef(serverId, userId);
   const user = await userRef.get();
-  return user.data() ? user.data().reset : null;
+  return user.data() ? user.data().resetTime : null;
 }
 
 // this is the number of current rolls available to the user
