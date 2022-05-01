@@ -105,9 +105,10 @@ client.on("ready", async function () {
                 }
             }
             else {
-                const resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-                const resetTime = new Date(resetTimestamp);
-                inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${resetTime.toLocaleTimeString('en-US')}**.`);
+                let resetTimeMs = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+                let timeRemaining = resetTimeMs - currentTime;
+                let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+                inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${timeRemainingInMinutes} minutes**.`);
             }
         }
         if (command === 'rolls') {
@@ -133,18 +134,19 @@ client.on("ready", async function () {
             }
 
             let resetTimeMs = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-            resetTime = new Date(resetTimeMs);
+            let timeRemaining = resetTimeMs - currentTime;
+            let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
             if (currentRolls === 1) {
-                inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is at **${resetTime.toLocaleTimeString('en-US')}**.`);
+                inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
             }
             else if (currentRolls === 5 || resetTimeMs === null) {
                 inboundMessage.channel.send(`You have 5 rolls remaining.`);
             }
             else if (currentRolls > 0 && resetTimeMs != null) {
-                inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is at **${resetTime.toLocaleTimeString('en-US')}**.`);
+                inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
             }
             else {
-                inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${resetTime.toLocaleTimeString('en-US')}**.`);
+                inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes}** minutes.`);
             }
 
         }
