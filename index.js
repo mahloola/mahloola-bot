@@ -4,7 +4,7 @@ const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAG
 const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
     getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer,
     getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers,
-    getServerUser, updateStatistics, updateUserElo, updateUserEloByPlayers,
+    getServerUser, getUserRef, updateStatistics, updateUserElo, updateUserEloByPlayers,
     setResetTime, getResetTime, setRolls, getRolls } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
@@ -25,14 +25,24 @@ client.on("ready", async function () {
 
         // roll for a random player
         if (command === 'roll') {
-            const currentTime = new Date().getTime();
-            const resetTime = await getResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-            if (currentTime > resetTime) {
+            let resetTime = await getResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+            let currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
+
+            // if user doesn't exist yet
+            if (resetTime === null || currentRolls === null) {
                 await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
                 await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
             }
 
-            const currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
+            // if user is past their cooldown
+            const timestamp = new Date();
+            const currentTime = timestamp.getTime();
+            if (currentTime > resetTime) {
+                await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
+                await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+            }
+            currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
+            // if user has available rolls
             if (currentRolls > 0) {
                 // update statistics
                 statistics.rolls++;
@@ -86,7 +96,7 @@ client.on("ready", async function () {
                         await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
                         //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
 
-                        await setResetTime(outboundMessage.guild.id, claimingUser.id);
+                        //await setResetTime(outboundMessage.guild.id, claimingUser.id);
                         outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
                     } catch (error) {
                         outboundMessage.reactions.removeAll()
@@ -101,18 +111,42 @@ client.on("ready", async function () {
             }
         }
         if (command === 'rolls') {
-            const currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
-            const resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-            const resetTime = new Date(resetTimestamp);
+            let currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
+            let resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+
+            if (currentRolls === undefined || resetTimestamp === null || currentRolls === null || resetTimestamp === undefined) {
+                await setRolls(inboundMessage.channel.guildId, inboundMessage.author.id, 5);
+                await setResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+                currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
+                resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+            }
+
+            let resetTime = new Date(resetTimestamp);
+            const timestamp = new Date();
+            const currentTime = timestamp.getTime();
+            if (currentTime > resetTime) {
+                const userRef = await getUserRef(inboundMessage.channel.guildId, inboundMessage.author.id);
+                await userRef.set(
+                    { 'resetTime': null },
+                    { merge: true }
+                );
+            }
+
+            let resetTimeMs = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+            resetTime = new Date(resetTimeMs);
             if (currentRolls === 1) {
                 inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is at **${resetTime.toLocaleTimeString('en-US')}**.`);
             }
-            else if (currentRolls > 0) {
+            else if (currentRolls === 5 || resetTimeMs === null) {
+                inboundMessage.channel.send(`You have 5 rolls remaining.`);
+            }
+            else if (currentRolls > 0 && resetTimeMs != null) {
                 inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is at **${resetTime.toLocaleTimeString('en-US')}**.`);
             }
             else {
                 inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${resetTime.toLocaleTimeString('en-US')}**.`);
             }
+
         }
         if (command === 'cards') {
 
