@@ -29,7 +29,7 @@ client.on("ready", async function () {
             let currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
 
             // if user doesn't exist yet
-            if (resetTime === null || currentRolls === null) {
+            if (resetTime === null || currentRolls === null || resetTime === undefined || currentRolls === undefined) {
                 await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
                 await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
             }
