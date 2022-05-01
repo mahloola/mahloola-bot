@@ -1,7 +1,11 @@
 const Discord = require('discord.js');
 const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer, getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer, getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers, getServerUser, updateStatistics, updateUserElo, updateUserEloByPlayers } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
+    getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer,
+    getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers,
+    getServerUser, updateStatistics, updateUserElo, updateUserEloByPlayers,
+    setResetTime, getResetTime, setRolls, getRolls } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
 const { prefix, token } = require('./auth.json');
@@ -9,6 +13,7 @@ const { prefix, token } = require('./auth.json');
 client.on("ready", async function () {
     initializeDatabase();
     let statistics = await getDatabaseStatistics();
+    console.log(`\nCurrent Statistics\n------------------\nRolls   | ${statistics.rolls}\nServers | ${statistics.servers}\nUsers   | ${statistics.users}\n`);
 
     client.on('messageCreate', async (inboundMessage) => {
 
@@ -20,14 +25,29 @@ client.on("ready", async function () {
 
         // roll for a random player
         if (command === 'roll') {
+
+            // update statistics
             statistics.rolls++;
             setDatabaseStatistics(statistics);
+
+            console.log(inboundMessage.author.id.toString());
+            // update user available rolls
+            const currentTime = new Date();
+            console.log(`Current time: ${currentTime}`)
+            console.log(`Current rolls: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
+            await getResetTime(inboundMessage.guild.id, inboundMessage.author.id) > currentTime ?
+                await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4) :
+                await setRolls(await getRolls(inboundMessage.guild.id, inboundMessage.author.id) - 1)
+            console.log(`Rolls now: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
+
+            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
+            console.log(await getRolls(inboundMessage.guild.id, inboundMessage.author.id));
             let player;
             while (!player) {
                 const rank = Math.floor(Math.random() * 10000) + 1;
                 player = await getPlayerByRank(rank);
             }
-            console.log(`${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+            console.log(`${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
             await createImage(player);
             if (player) {
                 const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -56,6 +76,8 @@ client.on("ready", async function () {
 
                     await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
                     //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
+
+                    await setResetTime(outboundMessage.guild.id, claimingUser.id);
                     outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
                 } catch (error) {
                     outboundMessage.reactions.removeAll()
@@ -220,7 +242,20 @@ client.on("ready", async function () {
             }
         }
         if (command === 'help' || command === 'commands') {
-            inboundMessage.channel.send("**Commands**\n- Card collecting: roll, cards, pin(userId), trade\n- General: help, stats\n\n**Discord**\nhttps://discord.gg/DGdzyapHkW");
+            inboundMessage.channel.send(`**Commands**\n\`\`\`
+Card-Related
+    roll: Roll for a top 10,000 player. Claim by reacting with 👍
+    cards: Display all of your owned cards.
+    pin(userId): Pin cards to the top of your cards page by typing ;pin UserID.
+    unpin(userId): Remove pins from your cards page.
+    trade: Trade cards between your friends.
+
+General
+    help: Display all commands.
+    stats: Display global bot stats.
+    \`\`\`
+**Discord**
+    https://discord.gg/DGdzyapHkW`);
         }
 
     })
