@@ -10,6 +10,43 @@ const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
 const { prefix, token } = require('./auth.json');
 
+client.on("ready", async function () {
+    initializeDatabase();
+    let statistics = await getDatabaseStatistics();
+    console.log(`\nCurrent Statistics\n------------------\nRolls   | ${statistics.rolls}\nServers | ${statistics.servers}\nUsers   | ${statistics.users}\n`);
+
+    client.on('messageCreate', async (inboundMessage) => {
+
+        // if the message either doesn't start with the prefix or was sent by a bot, exit early
+        if (!inboundMessage.content.startsWith(prefix) || inboundMessage.author.bot) return;
+
+        const args = inboundMessage.content.slice(prefix.length).trim().split(/ +/);
+        const commandText = args.shift().toLowerCase(); // make lowercase work too
+
+        const commandMapping = {
+            ['roll']: roll,
+            ['rolls']: rolls,
+            ['cards']: cards,
+            ['stats']: stats,
+            ['trade']: trade,
+            ['avg']: avg,
+            ['pin']: pin,
+            ['unpin']: unpin,
+            ['help']: help,
+            ['commands']: help,
+        }
+        const command = commandMapping[commandText];
+        if (command) {
+            try {
+                await command(inboundMessage, args);
+            } catch (error) {
+                console.error(error)
+            }
+        }
+    })
+})
+client.login(token);
+
 const roll = async (inboundMessage, args) => {
     let resetTime = await getResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     let currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
@@ -300,41 +337,3 @@ General
 **Discord**
     https://discord.gg/DGdzyapHkW`);
 };
-
-client.on("ready", async function () {
-    initializeDatabase();
-    let statistics = await getDatabaseStatistics();
-    console.log(`\nCurrent Statistics\n------------------\nRolls   | ${statistics.rolls}\nServers | ${statistics.servers}\nUsers   | ${statistics.users}\n`);
-
-    client.on('messageCreate', async (inboundMessage) => {
-
-        // if the message either doesn't start with the prefix or was sent by a bot, exit early
-        if (!inboundMessage.content.startsWith(prefix) || inboundMessage.author.bot) return;
-
-        const args = inboundMessage.content.slice(prefix.length).trim().split(/ +/);
-        const commandText = args.shift().toLowerCase(); // make lowercase work too
-
-        const commandMapping = {
-            ['roll']: roll,
-            ['rolls']: rolls,
-            ['cards']: cards,
-            ['stats']: stats,
-            ['trade']: trade,
-            ['avg']: avg,
-            ['pin']: pin,
-            ['unpin']: unpin,
-            ['help']: help,
-            ['commands']: help,
-        }
-        const command = commandMapping[commandText];
-        if (command) {
-            try {
-                await command(inboundMessage, args);
-            } catch (error) {
-                console.error(error)
-            }
-        }
-    })
-})
-
-client.login(token);
