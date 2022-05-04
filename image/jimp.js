@@ -195,6 +195,7 @@ async function createPlayerCard(player) {
         await osuCard.writeAsync(`image/cache/osuCard-${player.apiv2.username}.png`);
     }
     catch (err) {
+        console.trace();
         console.log(err);
     }
 }

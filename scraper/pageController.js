@@ -7,6 +7,7 @@ async function scrapeAll(browserInstance){
 
     }
     catch(err){
+        console.trace();
         console.log("Could not resolve the browser instance => ", err);
     }
 }

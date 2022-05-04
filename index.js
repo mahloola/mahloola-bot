@@ -40,7 +40,8 @@ client.on("ready", async function () {
             try {
                 await command(inboundMessage, args);
             } catch (error) {
-                console.error(error)
+                console.trace();
+                console.error(error);
             }
         }
     })
@@ -129,6 +130,7 @@ const roll = async (inboundMessage, args) => {
         //await setResetTime(outboundMessage.guild.id, claimingUser.id);
         outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
     } catch (error) {
+        console.trace();
         outboundMessage.reactions.removeAll()
             .catch(error => console.error('Failed to clear reactions:', error));
     }
