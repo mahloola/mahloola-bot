@@ -7,6 +7,10 @@ var text2png = require('text2png');
 
 async function createPlayerCard(player) {
 
+    // make sure image/cache directory exists
+    // eslint-disable-next-line no-empty
+    try { await fs.mkdir('image/cache') } catch {}
+
     // create all text images in parallel using text2png 
     const writePromises = [];
     writePromises.push(fs.writeFile(`image/cache/text2png-${player.apiv2.username}.png`, text2png(`${player.apiv2.username}`, {
