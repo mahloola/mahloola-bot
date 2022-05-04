@@ -76,6 +76,7 @@ const roll = async (inboundMessage, args) => {
     }
 
     // update statistics
+    const statistics = await getDatabaseStatistics();
     statistics.rolls++;
     setDatabaseStatistics(statistics);
 
