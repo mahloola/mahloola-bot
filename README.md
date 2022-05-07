@@ -28,4 +28,8 @@ If you have any issues or suggestions, or just want a place to chat, please <a h
 <p align="center">
   <img src="https://cdn.discordapp.com/attachments/910050057712193548/969891898527481916/unknown.png" />
 </p>
+<p align="center">
+  <img src="https://cdn.discordapp.com/attachments/449722595911139328/972353408323420240/IMG_1723.png" />
+</p>
+
 
