@@ -4,7 +4,7 @@ const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAG
 const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
     getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer,
     getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers,
-    getServerUser, getUserRef, updateStatistics, updateUserElo, updateUserEloByPlayers,
+    getServerUser, getServerUserIds, getUserRef, updateStatistics, updateUserElo, updateUserEloByPlayers,
     setResetTime, getResetTime, setRolls, getRolls } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
@@ -34,6 +34,8 @@ client.on("ready", async function () {
             ['unpin']: unpin,
             ['help']: help,
             ['commands']: help,
+            ['leaderboard']: leaderboard,
+            ['lb']: leaderboard
         }
         const command = commandMapping[commandText];
         if (command) {
@@ -60,7 +62,7 @@ const roll = async (inboundMessage, args) => {
 
     // if user is past their cooldown
     const timestamp = new Date();
-    const currentTime = timestamp.getTime();
+    let currentTime = timestamp.getTime();
     if (currentTime > resetTime) {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
         await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
@@ -72,7 +74,7 @@ const roll = async (inboundMessage, args) => {
         let resetTimeMs = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
         let timeRemaining = resetTimeMs - currentTime;
         let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
-        inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock at **${timeRemainingInMinutes} minutes**.`);
+        inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
         return;
     }
 
@@ -82,14 +84,9 @@ const roll = async (inboundMessage, args) => {
     setDatabaseStatistics(statistics);
 
     // update user available rolls
-    console.log(`Rolls before: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
-    if (currentTime > resetTime) {
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4);
-    }
-    else {
+    currentTime > resetTime ?
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4) :
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
-    }
-    console.log(`Rolls now: ${await getRolls(inboundMessage.guild.id, inboundMessage.author.id)}`)
 
     // get a random player (rank 1 - 10,000)
     let player;
@@ -97,7 +94,8 @@ const roll = async (inboundMessage, args) => {
         const rank = Math.floor(Math.random() * 10000) + 1;
         player = await getPlayerByRank(rank);
     }
-    console.log(`${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+    currentTime = new Date();
+    console.log(`${currentTime.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -130,7 +128,6 @@ const roll = async (inboundMessage, args) => {
         //await setResetTime(outboundMessage.guild.id, claimingUser.id);
         outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
     } catch (error) {
-        console.trace();
         outboundMessage.reactions.removeAll()
             .catch(error => console.error('Failed to clear reactions:', error));
     }
@@ -171,7 +168,7 @@ const rolls = async (inboundMessage, args) => {
         inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
     }
     else {
-        inboundMessage.channel.send(`You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes}** minutes.`);
+        inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
     }
 };
 
@@ -323,6 +320,91 @@ const unpin = async (inboundMessage, args) => {
     }
 };
 
+const leaderboard = async (inboundMessage, args) => {
+
+    // get every user ID in the server
+    let userIds = await getServerUserIds(inboundMessage.channel.guildId);
+    let users = [];
+
+    console.log(userIds);
+
+    // 
+    for (let i = 0; i < userIds.length; i++) {
+
+        // get a specific user (to check if they have 10+ cards)
+        console.log("User ID: " + userIds[i]);
+        let user = await getServerUser(inboundMessage.channel.guildId, userIds[i]);
+
+        // if the user has 10+ cards
+        if (user.elo != undefined) {
+
+            // get their discord info
+            const userDiscordInfo = await client.users.fetch(userIds[i]);
+            const userDiscordInfoJSON = userDiscordInfo.toJSON();
+
+            // fix these fields because they can't be defined
+            userDiscordInfoJSON.banner = "";
+            userDiscordInfoJSON.accentColor = "";
+            userDiscordInfoJSON.hexAccentColor = "";
+            userDiscordInfoJSON.bannerURL = "";
+
+            const userRef = await getUserRef(inboundMessage.channel.guildId, userIds[i]);
+
+            // set discord info in the database
+            await userRef.set(
+                { 'discord': userDiscordInfoJSON },
+                { merge: true }
+            );
+            console.log("Ranked User: " + user.discord.username)
+            // finally, push all the qualified users to an array
+            users.push(user);
+        }
+    }
+
+    // sort qualified users by elo
+    const sortedUsers = users.sort((a, b) => {
+        return a.elo - b.elo;
+    });
+
+    // create the embed message
+    let embed = new Discord.MessageEmbed();
+
+    // populate the embed message
+    embed.setTitle(`${inboundMessage.guild.name} Leaderboard`)
+    embed.setColor('#D9A6BD')
+    embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
+    embed.setThumbnail(inboundMessage.guild.iconURL());
+    let embedDescription = `\`\`\`#    | User\n`;
+    embedDescription += `----------------\n`;
+    sortedUsers.forEach(user => {
+        console.log(user.discord.username);
+    })
+    sortedUsers.slice(0, 10).forEach(player => {
+        switch (player.elo.toFixed(0).toString().length) {
+            // determine how many spaces to add for table alignment
+            case 1:
+                embedDescription += `${player.elo.toFixed(0)}    | ${player.discord.username} \n`;
+                break;
+            case 2:
+                embedDescription += `${player.elo.toFixed(0)}   | ${player.discord.username} \n`;
+                break;
+            case 3:
+                embedDescription += `${player.elo.toFixed(0)}  | ${player.discord.username} \n`;
+                break;
+            case 4:
+                embedDescription += `${player.elo.toFixed(0)} | ${player.discord.username} \n`;
+                break;
+        }
+    });
+    embedDescription += `\`\`\``
+    embed.setDescription(`${embedDescription}`)
+    embed.setFooter({ text: `own 10+ cards to show up here`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
+    embed.setTimestamp(Date.now())
+
+    // send the message
+    inboundMessage.channel.send({ embeds: [embed] });
+}
+
 const help = async (inboundMessage, args) => {
     inboundMessage.channel.send(`**Commands**\n\`\`\`
 Card-Related
@@ -332,11 +414,12 @@ Card-Related
     pin(userId): Pin cards to the top of your cards page by typing ;pin UserID.
     unpin(userId): Remove pins from your cards page.
     trade: Trade cards between your friends.
+    lb: Display server leaderboard based on users' top 10 card ranking.
 
 General
     help: Display all commands.
     stats: Display global bot stats.
     \`\`\`
 **Discord**
-    https://discord.gg/DGdzyapHkW`);
+https://discord.gg/DGdzyapHkW`);
 };
