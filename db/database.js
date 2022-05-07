@@ -1,6 +1,7 @@
 // const { initializeApp } = require('firebase-admin/app');
 // const { sleep } = require('../util/sleep');
 const admin = require("firebase-admin");
+const { sleep } = require('../util/sleep');
 let db;
 
 const { firestoreKey } = require('../auth.json');
@@ -75,6 +76,20 @@ async function getUserRef(serverId, userId) {
   const serverUsersRef = serverRef.collection("users");
   const userRef = serverUsersRef.doc(userId.toString());
   return userRef;
+}
+async function getServerUserIds(serverId) {
+  let userIds = []
+  const usersCollection = await getServerUsers(serverId);
+  console.log(serverId);
+  console.log(usersCollection);
+  await usersCollection.onSnapshot(async querySnapshot => {
+    await querySnapshot.forEach(doc => {
+      userIds.push(doc.id);
+    })
+  });
+  await sleep(1000);
+  console.log(userIds);
+  return userIds;
 }
 
 // this is when a user claims a card
@@ -246,6 +261,7 @@ module.exports = {
   getServers,
   getServerUsers,
   getServerUser,
+  getServerUserIds,
   getUserRef,
   setResetTime,
   getResetTime,
