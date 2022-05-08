@@ -2,6 +2,9 @@
 // const { sleep } = require('../util/sleep');
 const admin = require("firebase-admin");
 const { sleep } = require('../util/sleep');
+/**
+ * @type {admin.firestore.Firestore}
+ */
 let db;
 
 const { firestoreKey } = require('../auth.json');

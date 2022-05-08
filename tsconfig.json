@@ -1,0 +1,8 @@
+{
+    "compilerOptions": {
+      "outDir": "./built",
+      "module": "commonjs",
+      "resolveJsonModule": true,
+      "allowJs": true,
+    },
+}
