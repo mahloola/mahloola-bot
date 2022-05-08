@@ -82,12 +82,11 @@ async function getServerUserIds(serverId) {
   const usersCollection = await getServerUsers(serverId);
   console.log(serverId);
   console.log(usersCollection);
-  await usersCollection.onSnapshot(async querySnapshot => {
-    await querySnapshot.forEach(doc => {
-      userIds.push(doc.id);
-    })
+  const userDocs = await usersCollection.get();
+  userDocs.forEach(doc => {
+    console.log(doc.id);
+    userIds.push(doc.id);
   });
-  await sleep(1000);
   console.log(userIds);
   return userIds;
 }
