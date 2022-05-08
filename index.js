@@ -12,6 +12,7 @@ const { prefix, token } = require('./auth.json');
 
 client.on("ready", async function () {
     initializeDatabase();
+    updateStatistics();
     let statistics = await getDatabaseStatistics();
     console.log(`\nCurrent Statistics\n------------------\nRolls   | ${statistics.rolls}\nServers | ${statistics.servers}\nUsers   | ${statistics.users}\n`);
 
@@ -56,7 +57,7 @@ const roll = async (inboundMessage, args) => {
 
     // if user doesn't exist yet
     if (resetTime === null || currentRolls === null || resetTime === undefined || currentRolls === undefined) {
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
         await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
@@ -64,7 +65,7 @@ const roll = async (inboundMessage, args) => {
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
     if (currentTime > resetTime) {
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 5);
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
         await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
@@ -85,7 +86,7 @@ const roll = async (inboundMessage, args) => {
 
     // update user available rolls
     currentTime > resetTime ?
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 4) :
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
 
     // get a random player (rank 1 - 10,000)
@@ -161,8 +162,8 @@ const rolls = async (inboundMessage, args) => {
     if (currentRolls === 1) {
         inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
     }
-    else if (currentRolls === 5 || resetTimeMs === null) {
-        inboundMessage.channel.send(`You have 5 rolls remaining.`);
+    else if (currentRolls === 10 || resetTimeMs === null) {
+        inboundMessage.channel.send(`You have 10 rolls remaining.`);
     }
     else if (currentRolls > 0 && resetTimeMs != null) {
         inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
@@ -262,7 +263,7 @@ const cards = async (inboundMessage, args) => {
 
 const stats = async (inboundMessage, args) => {
     //updateStatistics();
-    const statistics = await getDatabaseStatistics();
+    let statistics = await getDatabaseStatistics();
     inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
 };
 
@@ -374,6 +375,9 @@ const leaderboard = async (inboundMessage, args) => {
     embed.setColor('#D9A6BD')
     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
     embed.setThumbnail(inboundMessage.guild.iconURL());
+    if (getServerUsers(inboundMessage.guild.id)) {
+
+    }
     let embedDescription = `\`\`\`#    | User\n`;
     embedDescription += `----------------\n`;
     sortedUsers.forEach(user => {
