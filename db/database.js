@@ -60,13 +60,13 @@ async function getServers() {
   return serversCollection;
 }
 async function getServerUsers(serverId) {
-  const serversCollection = await getServers();
-  const serverDoc = await serversCollection.doc(serverId.toString());
-  const usersCollection = await serverDoc.collection('users');
+  const serversCollection = getServers();
+  const serverDoc = serversCollection.doc(serverId.toString());
+  const usersCollection = serverDoc.collection('users');
   return usersCollection;
 }
 async function getServerUser(serverId, userId) {
-  const usersCollection = await getServerUsers(serverId);
+  const usersCollection = getServerUsers(serverId);
   const userDoc = await usersCollection.doc(userId.toString()).get();
   return userDoc.exists ? userDoc.data() : null;
 }
@@ -142,7 +142,7 @@ async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
 async function setResetTime(serverId, userId) {
   const userRef = await getUserRef(serverId, userId);
   let date = new Date();
-  date.setMinutes(date.getMinutes() + 30);
+  date.setMinutes(date.getMinutes() + 60);
   await userRef.set(
     { 'resetTime': date.getTime() },
     { merge: true }
@@ -197,6 +197,9 @@ async function updateUserElo(serverId, userId) {
 
 // gets Top-10-Average for a particular user, but doesn't need to get player documents first
 async function updateUserEloByPlayers(serverId, userId, ownedPlayers) {
+  if (ownedPlayers.length < 10) {
+    return null;
+  }
   ownedPlayers.sort((a, b) => {
     return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
   });
@@ -211,15 +214,36 @@ async function updateUserEloByPlayers(serverId, userId, ownedPlayers) {
 }
 
 // global statistics
-async function setDatabaseStatistics(meta) {
-  await db.collection("statistics").doc("global").set(meta);
+async function setDatabaseStatistics(stats) {
+  await db.collection("statistics").doc("global").set(stats);
 }
 async function getDatabaseStatistics() {
   const doc = await db.collection("statistics").doc("global").get();
   return doc.data();
 }
 async function updateStatistics() {
-  let statistics = getDatabaseStatistics();
+  let statistics = await getDatabaseStatistics();
+  let serverCount = 0;
+  let serverIds = [];
+  let userCount = 0;
+  const serversSnapshot = await db.collection('servers').get();
+  const serversRef = db.collection("servers");
+  serverCount = serversSnapshot.size; // will return the collection size
+  statistics.servers = serverCount;
+  serversSnapshot.docs.forEach(doc => {
+    serverIds.push(doc.id);
+  });
+  for (let i = 0; i < serverCount; i++) {
+    const serverRef = serversRef.doc(serverIds[i].toString());
+    const usersSnapshot = await serverRef.collection("users").get();
+    userCount += usersSnapshot.size;
+  }
+
+  statistics.users = userCount;
+  statistics.servers = serverCount;
+  setDatabaseStatistics(statistics);
+  return statistics;
+
   // db.collection("servers")
   //   .get()
   //   .then((snap) => {
