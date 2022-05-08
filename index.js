@@ -3,11 +3,11 @@ const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
     getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer,
-    getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers,
+    getPinnedPlayers, deletePinnedPlayer, getServerUsersRef,
     getServerUser, getServerUserIds, getUserRef, updateStatistics, updateUserElo, updateUserEloByPlayers,
     setResetTime, getResetTime, setRolls, getRolls } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
-const paginationEmbed = require('discord.js-pagination');
+// const paginationEmbed = require('discord.js-pagination');
 const { prefix, token } = require('./auth.json');
 
 client.on("ready", async function () {
@@ -62,8 +62,7 @@ const roll = async (inboundMessage, args) => {
     }
 
     // if user is past their cooldown
-    const timestamp = new Date();
-    let currentTime = timestamp.getTime();
+    let currentTime = new Date().getTime();
     if (currentTime > resetTime) {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
         await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
@@ -95,8 +94,8 @@ const roll = async (inboundMessage, args) => {
         const rank = Math.floor(Math.random() * 10000) + 1;
         player = await getPlayerByRank(rank);
     }
-    currentTime = new Date();
-    console.log(`${currentTime.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+    const currentDate = new Date();
+    console.log(`${currentDate.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -145,13 +144,11 @@ const rolls = async (inboundMessage, args) => {
         resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
     }
 
-    let resetTime = new Date(resetTimestamp);
-    const timestamp = new Date();
-    const currentTime = timestamp.getTime();
-    if (currentTime > resetTime) {
+    const currentTime = new Date().getTime();
+    if (currentTime > resetTimestamp) {
         const userRef = await getUserRef(inboundMessage.channel.guildId, inboundMessage.author.id);
         await userRef.set(
-            { 'resetTime': null },
+            { resetTime: null },
             { merge: true }
         );
     }
@@ -174,7 +171,7 @@ const rolls = async (inboundMessage, args) => {
 };
 
 const cards = async (inboundMessage, args) => {
-    let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
+    let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id);
 
     // check if user owns anybody first
     if (!playerIds) {
@@ -375,7 +372,7 @@ const leaderboard = async (inboundMessage, args) => {
     embed.setColor('#D9A6BD')
     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
     embed.setThumbnail(inboundMessage.guild.iconURL());
-    if (getServerUsers(inboundMessage.guild.id)) {
+    if (getServerUsersRef(inboundMessage.guild.id)) {
 
     }
     let embedDescription = `\`\`\`#    | User\n`;

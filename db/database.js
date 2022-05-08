@@ -39,67 +39,47 @@ async function getPlayer(userId) {
 
 // the main function used for retrieving from roll
 async function getPlayerByRank(rank) {
-  let player;
-  const playersRef = db.collection("players");
-  const snapshot = await playersRef
+  const snapshot = await db
+    .collection("players")
     .where("apiv2.statistics.global_rank", "==", rank)
     .get(); // doc(userId.toString())
+  const players = snapshot.empty ? [] : snapshot.docs.map((doc) => doc.data())
 
   // if there's two users with the same rank, get the latest added one
-  let latestDate = new Date(0);
-  snapshot.forEach((doc) => {
-    player = doc.data();
-    if (doc.data().dateUpdated > latestDate) {
-      latestDate = doc.data().dateUpdated;
-      player = doc.data();
-    }
-  });
+  const sortedPlayers = players.sort((a, b) => b.dateUpdated - a.dateUpdated);
+  const player = players.length > 0 ? sortedPlayers[0] : null;
   return player;
 }
 
-// DB UTILITY FUNCTIONS
-async function getServers() {
-  const serversCollection = await db.collection("servers");
-  return serversCollection;
-}
-async function getServerUsers(serverId) {
-  const serversCollection = getServers();
-  const serverDoc = serversCollection.doc(serverId.toString());
-  const usersCollection = serverDoc.collection('users');
-  return usersCollection;
+function getServerUsersRef(serverId) {
+  return db
+    .collection("servers")
+    .doc(serverId.toString())
+    .collection('users');
 }
 async function getServerUser(serverId, userId) {
-  const usersCollection = getServerUsers(serverId);
-  const userDoc = await usersCollection.doc(userId.toString()).get();
+  const serverUsersRef = getServerUsersRef(serverId);
+  const userDoc = await serverUsersRef.doc(userId.toString()).get();
   return userDoc.exists ? userDoc.data() : null;
 }
-async function getUserRef(serverId, userId) {
-  const serversRef = db.collection("servers");
-  const serverRef = serversRef.doc(serverId.toString());
-  const serverUsersRef = serverRef.collection("users");
+function getUserRef(serverId, userId) {
+  const serverUsersRef = getServerUsersRef(serverId);
   const userRef = serverUsersRef.doc(userId.toString());
   return userRef;
 }
 async function getServerUserIds(serverId) {
-  let userIds = []
-  const usersCollection = await getServerUsers(serverId);
-  console.log(serverId);
-  console.log(usersCollection);
-  const userDocs = await usersCollection.get();
-  userDocs.forEach(doc => {
-    console.log(doc.id);
-    userIds.push(doc.id);
-  });
-  console.log(userIds);
+  const serverUsersRef = getServerUsersRef(serverId)
+  const serverUsersSnapshot = await serverUsersRef.get();
+  const userIds = serverUsersSnapshot.docs.map(doc => doc.id);
   return userIds;
 }
 
 // this is when a user claims a card
 async function setOwnedPlayer(serverId, userId, playerId) {
-  const serversRef = db.collection("servers");
-  const serverRef = serversRef.doc(serverId.toString());
-  const serverUsersRef = serverRef.collection("users");
-  const userRef = serverUsersRef.doc(userId.toString());
+  const serverRef = db
+    .collection("servers")
+    .doc(serverId.toString());
+  const userRef = getUserRef(serverId, userId);
 
   // set the player to be considered owned across the whole server
   await serverRef.set(
@@ -113,60 +93,60 @@ async function setOwnedPlayer(serverId, userId, playerId) {
   );
 }
 
-async function getOwnedPlayers(serverId, userId, perPage) {
-  const userDoc = await getUserRef(serverId, userId);
+async function getOwnedPlayers(serverId, userId) {
+  const userDoc = getUserRef(serverId, userId);
   const user = await userDoc.get();
   return user.data() ? user.data().ownedPlayers : null;
 }
 
 // PINNING FUNCTIONS
 async function setPinnedPlayer(serverId, userId, pinnedUserId) {
-  const userRef = await getUserRef(serverId, userId);
+  const userRef = getUserRef(serverId, userId);
   await userRef.set(
     { pinnedPlayers: admin.firestore.FieldValue.arrayUnion(pinnedUserId) },
     { merge: true }
   );
 }
 async function getPinnedPlayers(serverId, userId, perPage) {
-  const userDoc = await getUserRef(serverId, userId);
+  const userDoc = getUserRef(serverId, userId);
   const user = await userDoc.get();
   return user.data() ? user.data().pinnedPlayers : null;
 }
 async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
-  const userRef = await getUserRef(serverId, userId);
+  const userRef = getUserRef(serverId, userId);
   const userSnapshot = await userRef.get();
   const user = userSnapshot.data()
 
   const updatedOwnedUsers = user.pinnedPlayers.filter(id => id !== pinnedUserId)
-  await userRef.update({ pinnedPlayers: updatedOwnedUsers }, { merge: true })
+  await userRef.set({ pinnedPlayers: updatedOwnedUsers }, { merge: true })
 }
 
 // this is when the claim cooldown ends for a particular user
 async function setResetTime(serverId, userId) {
-  const userRef = await getUserRef(serverId, userId);
+  const userRef = getUserRef(serverId, userId);
   let date = new Date();
   date.setMinutes(date.getMinutes() + 60);
   await userRef.set(
-    { 'resetTime': date.getTime() },
+    { resetTime: date.getTime() },
     { merge: true }
   );
 }
 async function getResetTime(serverId, userId) {
-  const userRef = await getUserRef(serverId, userId);
+  const userRef = getUserRef(serverId, userId);
   const user = await userRef.get();
   return user.data() ? user.data().resetTime : null;
 }
 
 // this is the number of current rolls available to the user
 async function setRolls(serverId, userId, rolls) {
-  const userRef = await getUserRef(serverId, userId);
+  const userRef = getUserRef(serverId, userId);
   await userRef.set(
     { 'rolls': rolls },
     { merge: true }
   );
 }
 async function getRolls(serverId, userId) {
-  const userRef = await getUserRef(serverId, userId);
+  const userRef = getUserRef(serverId, userId);
   const user = await userRef.get();
   return user.data() ? user.data().rolls : null;
 }
@@ -226,24 +206,22 @@ async function getDatabaseStatistics() {
 }
 async function updateStatistics() {
   let statistics = await getDatabaseStatistics();
-  let serverCount = 0;
-  let serverIds = [];
-  let userCount = 0;
+
+  // get total server count
   const serversSnapshot = await db.collection('servers').get();
-  const serversRef = db.collection("servers");
-  serverCount = serversSnapshot.size; // will return the collection size
-  statistics.servers = serverCount;
-  serversSnapshot.docs.forEach(doc => {
-    serverIds.push(doc.id);
-  });
-  for (let i = 0; i < serverCount; i++) {
-    const serverRef = serversRef.doc(serverIds[i].toString());
-    const usersSnapshot = await serverRef.collection("users").get();
-    userCount += usersSnapshot.size;
+  statistics.servers = serversSnapshot.size; // will return the collection size
+
+  // get total user count
+  const serverIds = serversSnapshot.docs.map(doc => doc.id);
+  for (const serverId of serverIds) {
+    const usersSnapshot = await db
+      .collection("servers")
+      .doc(serverId.toString())
+      .collection("users")
+      .get();
+    statistics.users += usersSnapshot.size;
   }
 
-  statistics.users = userCount;
-  statistics.servers = serverCount;
   setDatabaseStatistics(statistics);
   return statistics;
 
@@ -284,8 +262,7 @@ module.exports = {
   setPinnedPlayer,
   getPinnedPlayers,
   deletePinnedPlayer,
-  getServers,
-  getServerUsers,
+  getServerUsersRef,
   getServerUser,
   getServerUserIds,
   getUserRef,
