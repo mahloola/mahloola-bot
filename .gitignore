@@ -6,3 +6,4 @@
 .vscode
 api.js
 app.yaml
+db/sortedPlayers.txt
