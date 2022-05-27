@@ -2,19 +2,19 @@ const Discord = require('discord.js');
 const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
-    getPlayer, getDatabaseStatistics, setDatabaseStatistics, setPinnedPlayer,
+    getPlayer, getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics, getServerStatistics, setServerStatistics, updateServerStatistics, setPinnedPlayer,
     getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers,
-    getServerUser, getServerUserIds, getUserRef, updateStatistics, updateUserElo, updateUserEloByPlayers,
-    setResetTime, getResetTime, setRolls, getRolls } = require('./db/database');
+    getServerUser, getServerUserIds, getUserRef, updateUserElo, updateUserEloByPlayers,
+    setRollResetTime, getRollResetTime, setRolls, getRolls, setClaimResetTime, getClaimResetTime } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
 const { prefix, token } = require('./auth.json');
 
 client.on("ready", async function () {
     initializeDatabase();
-    updateStatistics();
-    let statistics = await getDatabaseStatistics();
-    console.log(`\nCurrent Statistics\n------------------\nRolls   | ${statistics.rolls}\nServers | ${statistics.servers}\nUsers   | ${statistics.users}\n`);
+    updateDatabaseStatistics();
+    let databaseStatistics = await getDatabaseStatistics();
+    console.log(`\nCurrent Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
 
     client.on('messageCreate', async (inboundMessage) => {
 
@@ -52,13 +52,14 @@ client.on("ready", async function () {
 client.login(token);
 
 const roll = async (inboundMessage, args) => {
-    let resetTime = await getResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+    let resetTime = await getRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     let currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
 
     // if user doesn't exist yet
     if (resetTime === null || currentRolls === null || resetTime === undefined || currentRolls === undefined) {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
     }
 
     // if user is past their cooldown
@@ -66,16 +67,21 @@ const roll = async (inboundMessage, args) => {
     let currentTime = timestamp.getTime();
     if (currentTime > resetTime) {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        await setResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        await getRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
     // exit if user does not have enough rolls
     currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
     if (currentRolls <= 0) {
-        let resetTimeMs = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+        let resetTimeMs = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
         let timeRemaining = resetTimeMs - currentTime;
         let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
-        inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
+        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
+        }
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
+        }
         return;
     }
 
@@ -95,8 +101,7 @@ const roll = async (inboundMessage, args) => {
         const rank = Math.floor(Math.random() * 10000) + 1;
         player = await getPlayerByRank(rank);
     }
-    currentTime = new Date();
-    console.log(`${currentTime.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -106,7 +111,7 @@ const roll = async (inboundMessage, args) => {
     const reactions = await outboundMessage.awaitReactions({
         filter: (reaction, user) => user.id != outboundMessage.author.id && reaction.emoji.name == '👍',
         max: 1,
-        time: 30000
+        time: 60000
     });
 
     const reaction = reactions.get('👍');
@@ -115,19 +120,28 @@ const roll = async (inboundMessage, args) => {
         let claimingUser;
         for (const [userId, user] of reactionUsers) {
             if (userId !== outboundMessage.author.id) {
-                claimingUser = user;
+                const claimResetTime = await getClaimResetTime(outboundMessage.channel.guildId, userId)
+                if (currentTime > claimResetTime) {
+                    claimingUser = user;
+                    await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
+                    await setClaimResetTime(outboundMessage.guild.id, claimingUser.id, (currentTime + 3600000));
+                    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} claimed ${player.apiv2.username}.`);
+                    outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+                }
+                else {
+                    let timeRemaining = claimResetTime - currentTime;
+                    let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+                    if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
+                        outboundMessage.channel.send(`${user} You're still on cooldown, you can claim again in one minute!`);
+                    }
+                    else {
+                        outboundMessage.channel.send(`${user} You're still on cooldown, you can claim again in ${(timeRemainingInMinutes)} minutes!`);
+                    }
+
+                }
             }
         }
-        if (!claimingUser) {
-            outboundMessage.reply('Operation cancelled.');
-            return;
-        }
 
-        await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
-        //await updateUserElo(inboundMessage.guild.id, claimingUser.id);
-
-        //await setResetTime(outboundMessage.guild.id, claimingUser.id);
-        outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
     } catch (error) {
         outboundMessage.reactions.removeAll()
             .catch(error => console.error('Failed to clear reactions:', error));
@@ -136,13 +150,13 @@ const roll = async (inboundMessage, args) => {
 
 const rolls = async (inboundMessage, args) => {
     let currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
-    let resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+    let resetTimestamp = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
 
     if (currentRolls === undefined || resetTimestamp === null || currentRolls === null || resetTimestamp === undefined) {
         await setRolls(inboundMessage.channel.guildId, inboundMessage.author.id, 5);
-        await setResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+        await setRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
         currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
-        resetTimestamp = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+        resetTimestamp = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
     }
 
     let resetTime = new Date(resetTimestamp);
@@ -151,12 +165,12 @@ const rolls = async (inboundMessage, args) => {
     if (currentTime > resetTime) {
         const userRef = await getUserRef(inboundMessage.channel.guildId, inboundMessage.author.id);
         await userRef.set(
-            { 'resetTime': null },
+            { 'rollResetTime': null },
             { merge: true }
         );
     }
 
-    let resetTimeMs = await getResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+    let resetTimeMs = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
     let timeRemaining = resetTimeMs - currentTime;
     let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
     if (currentRolls === 1) {
@@ -169,7 +183,13 @@ const rolls = async (inboundMessage, args) => {
         inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
     }
     else {
-        inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
+        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
+        }
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
+        }
+
     }
 };
 

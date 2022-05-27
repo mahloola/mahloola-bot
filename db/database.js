@@ -1,7 +1,5 @@
-// const { initializeApp } = require('firebase-admin/app');
-// const { sleep } = require('../util/sleep');
+
 const admin = require("firebase-admin");
-const { sleep } = require('../util/sleep');
 let db;
 
 const { firestoreKey } = require('../auth.json');
@@ -13,6 +11,7 @@ function initializeDatabase() {
   });
   db = admin.firestore();
   console.log("Database initialized!");
+  return db;
 }
 
 // set document in player database (osu apiv2)
@@ -55,8 +54,8 @@ async function getPlayerByRank(rank) {
 }
 
 // DB UTILITY FUNCTIONS
-async function getServers() {
-  const serversCollection = await db.collection("servers");
+function getServers() {
+  const serversCollection = db.collection("servers");
   return serversCollection;
 }
 async function getServerUsers(serverId) {
@@ -139,19 +138,32 @@ async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
 }
 
 // this is when the claim cooldown ends for a particular user
-async function setResetTime(serverId, userId) {
+async function setRollResetTime(serverId, userId) {
   const userRef = await getUserRef(serverId, userId);
   let date = new Date();
   date.setMinutes(date.getMinutes() + 60);
   await userRef.set(
-    { 'resetTime': date.getTime() },
+    { 'rollResetTime': date.getTime() },
     { merge: true }
   );
 }
-async function getResetTime(serverId, userId) {
+async function getRollResetTime(serverId, userId) {
   const userRef = await getUserRef(serverId, userId);
   const user = await userRef.get();
-  return user.data() ? user.data().resetTime : null;
+  return user.data() ? user.data().rollResetTime : null;
+}
+async function setClaimResetTime(serverId, userId, time) {
+  const userRef = await getUserRef(serverId, userId);
+  await userRef.set(
+    { 'claimResetTime': time },
+    { merge: true }
+  );
+
+}
+async function getClaimResetTime(serverId, userId) {
+  const userRef = await getUserRef(serverId, userId);
+  const user = await userRef.get();
+  return user.data() ? user.data().claimResetTime : null;
 }
 
 // this is the number of current rolls available to the user
@@ -191,7 +203,7 @@ async function updateUserElo(serverId, userId) {
   }
   const avgRanks = totalRanks / 10;
   // update elo in the db
-  await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
+  await getServers().doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
 
@@ -209,7 +221,7 @@ async function updateUserEloByPlayers(serverId, userId, ownedPlayers) {
   }
   const avgRanks = totalRanks / 10;
   // update elo in the db
-  await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
+  await getServers().doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
 
@@ -221,7 +233,16 @@ async function getDatabaseStatistics() {
   const doc = await db.collection("statistics").doc("global").get();
   return doc.data();
 }
-async function updateStatistics() {
+async function setServerStatistics(serverId, stats) {
+  const serversRef = await getServers();
+  await serversRef.doc(serverId.toString()).set(stats);
+}
+async function getServerStatistics(serverId) {
+  const serversRef = await getServers();
+  const serverDoc = await serversRef.doc(serverId.toString()).get();
+  return serverDoc.statistics;
+}
+async function updateDatabaseStatistics() {
   let statistics = await getDatabaseStatistics();
   let serverCount = 0;
   let serverIds = [];
@@ -242,6 +263,17 @@ async function updateStatistics() {
   statistics.users = userCount;
   statistics.servers = serverCount;
   setDatabaseStatistics(statistics);
+  return statistics;
+}
+
+async function updateServerStatistics(serverId) {
+  let statistics = await getServerStatistics();
+  const serversRef = db.collection("servers");
+  const serverRef = await serversRef.doc(serverId.toString());
+  const usersSnapshot = await serverRef.get();
+  console.log(usersSnapshot);
+  statistics.users = usersSnapshot.size;
+  setServerStatistics(statistics);
   return statistics;
 
   // db.collection("servers")
@@ -265,7 +297,6 @@ async function updateStatistics() {
   //   });
   //   setDatabaseStatistics(metadata);
 }
-
 module.exports = {
   initializeDatabase,
   setPlayer,
@@ -275,7 +306,10 @@ module.exports = {
   getOwnedPlayers,
   setDatabaseStatistics,
   getDatabaseStatistics,
-  updateStatistics,
+  updateDatabaseStatistics,
+  setServerStatistics,
+  getServerStatistics,
+  updateServerStatistics,
   updateUserElo,
   updateUserEloByPlayers,
   setPinnedPlayer,
@@ -286,8 +320,10 @@ module.exports = {
   getServerUser,
   getServerUserIds,
   getUserRef,
-  setResetTime,
-  getResetTime,
+  setRollResetTime,
+  getRollResetTime,
+  setClaimResetTime,
+  getClaimResetTime,
   setRolls,
   getRolls
 };
