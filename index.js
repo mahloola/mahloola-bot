@@ -3,9 +3,9 @@ const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
     getPlayer, getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics, getServerStatistics, setServerStatistics, updateServerStatistics, setPinnedPlayer,
-    getPinnedPlayers, deletePinnedPlayer, getServers, getServerUsers,
+    getPinnedPlayers, deletePinnedPlayer, getServerUsers,
     getServerUser, getServerUserIds, getUserRef, updateUserElo, updateUserEloByPlayers,
-    setRollResetTime, getRollResetTime, setRolls, getRolls, setClaimResetTime, getClaimResetTime } = require('./db/database');
+    setRollResetTime, setRolls, setClaimResetTime } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
 const { prefix, token } = require('./auth.json');
@@ -17,7 +17,6 @@ client.on("ready", async function () {
     console.log(`\nCurrent Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
 
     client.on('messageCreate', async (inboundMessage) => {
-
         // if the message either doesn't start with the prefix or was sent by a bot, exit early
         if (!inboundMessage.content.startsWith(prefix) || inboundMessage.author.bot) return;
 
@@ -52,28 +51,33 @@ client.on("ready", async function () {
 client.login(token);
 
 const roll = async (inboundMessage, args) => {
-    let resetTime = await getRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-    let currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
-
-    // if user doesn't exist yet
-    if (resetTime === null || currentRolls === null || resetTime === undefined || currentRolls === undefined) {
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+    let user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
+    let resetTime;
+    let currentRolls;
+    if (user) {
+        resetTime = user.rollResetTime;
+        currentRolls = user.rolls;
+    }
+    else {  // if user doesn't exist yet
         await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
         await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+        user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
     // if user is past their cooldown
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
     if (currentTime > resetTime) {
+        currentRolls = 10;
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        await getRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
     // exit if user does not have enough rolls
-    currentRolls = await getRolls(inboundMessage.guild.id, inboundMessage.author.id);
+
     if (currentRolls <= 0) {
-        let resetTimeMs = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+        let resetTimeMs = user.rollResetTime;
         let timeRemaining = resetTimeMs - currentTime;
         let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
         if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
@@ -118,24 +122,36 @@ const roll = async (inboundMessage, args) => {
     try {
         const reactionUsers = await reaction.users.fetch();
         let claimingUser;
-        for (const [userId, user] of reactionUsers) {
+        for (const [userId, userObject] of reactionUsers) {
             if (userId !== outboundMessage.author.id) {
-                const claimResetTime = await getClaimResetTime(outboundMessage.channel.guildId, userId)
+                const claimingUserDoc = await getServerUser(outboundMessage.guild.id, userId);
+                const claimResetTime = claimingUserDoc.claimResetTime;
                 if (currentTime > claimResetTime) {
-                    claimingUser = user;
-                    await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id);
-                    await setClaimResetTime(outboundMessage.guild.id, claimingUser.id, (currentTime + 3600000));
+                    claimingUser = userObject;
+                    await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id)
+                        .then(async () => {
+                            if (claimingUserDoc.ownedPlayers.length > 9) {
+                                await setClaimResetTime(outboundMessage.guild.id, claimingUser.id, (currentTime + 3600000));
+                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+                            }
+                            else if (!claimingUserDoc.ownedPlayers) {
+                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **9** more cards with no cooldown.`);
+                            }
+                            else {
+                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **${10 - claimingUserDoc.ownedPlayers.length}** more cards with no cooldown.`);
+                            }
+                        })
                     console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} claimed ${player.apiv2.username}.`);
-                    outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
+
                 }
                 else {
                     let timeRemaining = claimResetTime - currentTime;
                     let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
                     if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-                        outboundMessage.channel.send(`${user} You're still on cooldown, you can claim again in one minute!`);
+                        outboundMessage.channel.send(`${userObject} You may claim again in **one** minute!`);
                     }
                     else {
-                        outboundMessage.channel.send(`${user} You're still on cooldown, you can claim again in ${(timeRemainingInMinutes)} minutes!`);
+                        outboundMessage.channel.send(`${userObject} You may claim again in **${(timeRemainingInMinutes)}** minutes!`);
                     }
 
                 }
@@ -149,37 +165,38 @@ const roll = async (inboundMessage, args) => {
 };
 
 const rolls = async (inboundMessage, args) => {
-    let currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
-    let resetTimestamp = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-
-    if (currentRolls === undefined || resetTimestamp === null || currentRolls === null || resetTimestamp === undefined) {
-        await setRolls(inboundMessage.channel.guildId, inboundMessage.author.id, 5);
+    let user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
+    let currentRolls;
+    let resetTimestamp;
+    if (user) {
+        currentRolls = user.rolls;
+        resetTimestamp = user.rollResetTime;
+    }
+    else {
+        await setRolls(inboundMessage.channel.guildId, inboundMessage.author.id, 10);
         await setRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-        currentRolls = await getRolls(inboundMessage.channel.guildId, inboundMessage.author.id);
-        resetTimestamp = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
+        currentRolls = 10;
+        resetTimestamp = new Date().getTime();
+        user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
     let resetTime = new Date(resetTimestamp);
-    const timestamp = new Date();
-    const currentTime = timestamp.getTime();
+    const currentTime = new Date().getTime();
     if (currentTime > resetTime) {
-        const userRef = await getUserRef(inboundMessage.channel.guildId, inboundMessage.author.id);
-        await userRef.set(
-            { 'rollResetTime': null },
-            { merge: true }
-        );
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+        currentRolls = 10;
     }
 
-    let resetTimeMs = await getRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-    let timeRemaining = resetTimeMs - currentTime;
+    console.log(currentRolls);
+    let timeRemaining = resetTime - currentTime;
     let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
     if (currentRolls === 1) {
         inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
     }
-    else if (currentRolls === 10 || resetTimeMs === null) {
+    else if (currentRolls === 10 || resetTime === null) {
         inboundMessage.channel.send(`You have 10 rolls remaining.`);
     }
-    else if (currentRolls > 0 && resetTimeMs != null) {
+    else if (currentRolls > 0 && resetTime != null) {
         inboundMessage.channel.send(`You have ${currentRolls} rolls remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
     }
     else {
@@ -191,6 +208,7 @@ const rolls = async (inboundMessage, args) => {
         }
 
     }
+
 };
 
 const cards = async (inboundMessage, args) => {
@@ -347,13 +365,12 @@ const leaderboard = async (inboundMessage, args) => {
     let userIds = await getServerUserIds(inboundMessage.channel.guildId);
     let users = [];
 
-    console.log(userIds);
+    console.log(`${inboundMessage.author.username} used ;leaderboard in ${inboundMessage.guild.name}.`);
 
     // 
     for (let i = 0; i < userIds.length; i++) {
 
         // get a specific user (to check if they have 10+ cards)
-        console.log("User ID: " + userIds[i]);
         let user = await getServerUser(inboundMessage.channel.guildId, userIds[i]);
 
         // if the user has 10+ cards
@@ -376,7 +393,6 @@ const leaderboard = async (inboundMessage, args) => {
                 { 'discord': userDiscordInfoJSON },
                 { merge: true }
             );
-            console.log("Ranked User: " + user.discord.username)
             // finally, push all the qualified users to an array
             users.push(user);
         }
@@ -395,14 +411,8 @@ const leaderboard = async (inboundMessage, args) => {
     embed.setColor('#D9A6BD')
     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
     embed.setThumbnail(inboundMessage.guild.iconURL());
-    if (getServerUsers(inboundMessage.guild.id)) {
-
-    }
     let embedDescription = `\`\`\`#    | User\n`;
     embedDescription += `----------------\n`;
-    sortedUsers.forEach(user => {
-        console.log(user.discord.username);
-    })
     sortedUsers.slice(0, 10).forEach(player => {
         switch (player.elo.toFixed(0).toString().length) {
             // determine how many spaces to add for table alignment
