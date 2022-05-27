@@ -65,7 +65,7 @@ async function getServerUsers(serverId) {
   return usersCollection;
 }
 async function getServerUser(serverId, userId) {
-  const usersCollection = getServerUsers(serverId);
+  const usersCollection = await getServerUsers(serverId);
   const userDoc = await usersCollection.doc(userId.toString()).get();
   return userDoc.exists ? userDoc.data() : null;
 }
@@ -79,14 +79,10 @@ async function getUserRef(serverId, userId) {
 async function getServerUserIds(serverId) {
   let userIds = []
   const usersCollection = await getServerUsers(serverId);
-  console.log(serverId);
-  console.log(usersCollection);
   const userDocs = await usersCollection.get();
   userDocs.forEach(doc => {
-    console.log(doc.id);
     userIds.push(doc.id);
   });
-  console.log(userIds);
   return userIds;
 }
 
@@ -147,11 +143,7 @@ async function setRollResetTime(serverId, userId) {
     { merge: true }
   );
 }
-async function getRollResetTime(serverId, userId) {
-  const userRef = await getUserRef(serverId, userId);
-  const user = await userRef.get();
-  return user.data() ? user.data().rollResetTime : null;
-}
+
 async function setClaimResetTime(serverId, userId, time) {
   const userRef = await getUserRef(serverId, userId);
   await userRef.set(
@@ -159,11 +151,6 @@ async function setClaimResetTime(serverId, userId, time) {
     { merge: true }
   );
 
-}
-async function getClaimResetTime(serverId, userId) {
-  const userRef = await getUserRef(serverId, userId);
-  const user = await userRef.get();
-  return user.data() ? user.data().claimResetTime : null;
 }
 
 // this is the number of current rolls available to the user
@@ -173,11 +160,6 @@ async function setRolls(serverId, userId, rolls) {
     { 'rolls': rolls },
     { merge: true }
   );
-}
-async function getRolls(serverId, userId) {
-  const userRef = await getUserRef(serverId, userId);
-  const user = await userRef.get();
-  return user.data() ? user.data().rolls : null;
 }
 
 // gets Top-10-Average for a particular user, while getting owned player documents first (**1000 MS RUNTIME**)
@@ -271,7 +253,6 @@ async function updateServerStatistics(serverId) {
   const serversRef = db.collection("servers");
   const serverRef = await serversRef.doc(serverId.toString());
   const usersSnapshot = await serverRef.get();
-  console.log(usersSnapshot);
   statistics.users = usersSnapshot.size;
   setServerStatistics(statistics);
   return statistics;
@@ -321,9 +302,6 @@ module.exports = {
   getServerUserIds,
   getUserRef,
   setRollResetTime,
-  getRollResetTime,
   setClaimResetTime,
-  getClaimResetTime,
   setRolls,
-  getRolls
 };
