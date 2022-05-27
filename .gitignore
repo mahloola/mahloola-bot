@@ -7,3 +7,4 @@
 api.js
 app.yaml
 db/sortedPlayers.txt
+db/getSortedPlayers.js
