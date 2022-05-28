@@ -229,6 +229,7 @@ const cards = async (inboundMessage, args) => {
     }
     else {
         discordUserId = inboundMessage.author.id
+        discordUser = inboundMessage.author
     }
     let playerIds = await getOwnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
