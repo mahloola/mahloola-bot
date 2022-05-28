@@ -229,7 +229,6 @@ const cards = async (inboundMessage, args) => {
     }
     else {
         discordUserId = inboundMessage.author.id
-        discordUser = inboundMessage.author
     }
     let playerIds = await getOwnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
@@ -364,11 +363,11 @@ const pin = async (inboundMessage, args) => {
                 inboundMessage.channel.send(`${inboundMessage.author} pinned ${username} successfully.`)
             }
             else {
-                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}".`);
+                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}". (check capitalization)`);
             }
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
         }
     }
     else {
@@ -420,8 +419,9 @@ const claimed = async (inboundMessage, args) => {
         const lb = await getLeaderboardData("claimed");
         let players = lb.players;
         players.sort((a, b) => {
-            return a.count - b.count;
+            return b.count - a.count;
         });
+        console.log(players);
         // create the embed message
         let embed = new Discord.MessageEmbed();
 
