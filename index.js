@@ -1,14 +1,15 @@
 const Discord = require('discord.js');
 const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { initializeDatabase, getPlayerByRank, getOwnedPlayers, setOwnedPlayer,
-    getPlayer, getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics, getServerStatistics, setServerStatistics, updateServerStatistics, setPinnedPlayer,
-    getPinnedPlayers, deletePinnedPlayer, getServerUsers,
-    getServerUser, getServerUserIds, getUserRef, updateUserElo, updateUserEloByPlayers,
-    setRollResetTime, setRolls, setClaimResetTime } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayers, setOwnedPlayer,
+    getPlayer, setPlayerClaimCounter, getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics, getServerStatistics, setServerStatistics, updateServerStatistics, setPinnedPlayer,
+    getPinnedPlayers, deletePinnedPlayer, getServerUsersRef,
+    getServerUserDoc, getServerUserIds, getUserRef, updateUserElo, updateUserEloByPlayers,
+    setRollResetTime, setRolls, setClaimResetTime, getLeaderboardData } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
 const { prefix, token } = require('./auth.json');
+const ADMIN_DISCORD_ID = "198773384794996739";
 
 client.on("ready", async function () {
     initializeDatabase();
@@ -32,6 +33,7 @@ client.on("ready", async function () {
             ['avg']: avg,
             ['pin']: pin,
             ['unpin']: unpin,
+            ['claimed']: claimed,
             ['help']: help,
             ['commands']: help,
             ['leaderboard']: leaderboard,
@@ -51,7 +53,7 @@ client.on("ready", async function () {
 client.login(token);
 
 const roll = async (inboundMessage, args) => {
-    let user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
+    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     let resetTime;
     let currentRolls;
     if (user) {
@@ -62,9 +64,10 @@ const roll = async (inboundMessage, args) => {
         await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
         await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
+        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+        currentRolls = user.rolls;
+        resetTime = user.rollResetTime;
     }
-
     // if user is past their cooldown
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
@@ -73,10 +76,8 @@ const roll = async (inboundMessage, args) => {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
         await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
     }
-
     // exit if user does not have enough rolls
-
-    if (currentRolls <= 0) {
+    if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
         let resetTimeMs = user.rollResetTime;
         let timeRemaining = resetTimeMs - currentTime;
         let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
@@ -124,21 +125,22 @@ const roll = async (inboundMessage, args) => {
         let claimingUser;
         for (const [userId, userObject] of reactionUsers) {
             if (userId !== outboundMessage.author.id) {
-                const claimingUserDoc = await getServerUser(outboundMessage.guild.id, userId);
+                const claimingUserDoc = await getServerUserDoc(outboundMessage.guild.id, userId);
                 const claimResetTime = claimingUserDoc.claimResetTime;
-                if (currentTime > claimResetTime) {
+                if (currentTime > claimResetTime || inboundMessage.author.id === ADMIN_DISCORD_ID) {
                     claimingUser = userObject;
                     await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id)
                         .then(async () => {
-                            if (claimingUserDoc.ownedPlayers.length > 9) {
+                            player.claimCounter === undefined ? await setPlayerClaimCounter(player, 1) : await setPlayerClaimCounter(player, player.claimCounter + 1);
+                            if (claimingUserDoc.ownedPlayers === undefined) {
+                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **9** more cards with no cooldown.`);
+                            }
+                            else if (claimingUserDoc.ownedPlayers.length >= 9) {
                                 await setClaimResetTime(outboundMessage.guild.id, claimingUser.id, (currentTime + 3600000));
                                 outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`);
                             }
-                            else if (!claimingUserDoc.ownedPlayers) {
-                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **9** more cards with no cooldown.`);
-                            }
                             else {
-                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **${10 - claimingUserDoc.ownedPlayers.length}** more cards with no cooldown.`);
+                                outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **${9 - claimingUserDoc.ownedPlayers.length}** more cards with no cooldown.`);
                             }
                         })
                     console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} claimed ${player.apiv2.username}.`);
@@ -165,7 +167,7 @@ const roll = async (inboundMessage, args) => {
 };
 
 const rolls = async (inboundMessage, args) => {
-    let user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
+    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     let currentRolls;
     let resetTimestamp;
     if (user) {
@@ -177,7 +179,7 @@ const rolls = async (inboundMessage, args) => {
         await setRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
         currentRolls = 10;
         resetTimestamp = new Date().getTime();
-        user = await getServerUser(inboundMessage.guild.id, inboundMessage.author.id);
+        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
     let resetTime = new Date(resetTimestamp);
@@ -187,7 +189,6 @@ const rolls = async (inboundMessage, args) => {
         currentRolls = 10;
     }
 
-    console.log(currentRolls);
     let timeRemaining = resetTime - currentTime;
     let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
     if (currentRolls === 1) {
@@ -212,11 +213,27 @@ const rolls = async (inboundMessage, args) => {
 };
 
 const cards = async (inboundMessage, args) => {
-    let playerIds = await getOwnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
+    let discordUserId;
+    let discordUser;
+    if (inboundMessage.content.length > (6 + prefix.length)) {
+        let discordUsername;
+        if (inboundMessage.mentions.users.first()) {
+            discordUser = inboundMessage.mentions.users.first();
+        }
+        else {
+            discordUsername = inboundMessage.content.substring(6 + prefix.length);
+            discordUser = await client.users.cache.find(user => user.username == discordUsername);
+        }
+        discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found.`);
+    }
+    else {
+        discordUserId = inboundMessage.author.id
+    }
+    let playerIds = await getOwnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
     // check if user owns anybody first
     if (!playerIds) {
-        inboundMessage.channel.send("You don't own any players.");
+        discordUserId == inboundMessage.author.id ? inboundMessage.channel.send("You don't own any players.") : inboundMessage.channel.send(`${discordUser.username} doesn't own any players.`)
         return;
     }
     // get full list of players
@@ -318,9 +335,9 @@ const trade = async (inboundMessage, args) => {
 
     inboundMessage.channel.send("lol this command doesn't work yet");
     //inboundMessage.channel.send(await getServerUser(serverId, user.id).ownedPlayers[0]);
-    let user2 = await getServerUser(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
+    let user2 = await getServerUserDoc(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
     //inboundMessage.channel.send(`${user}, who would you like to trade with?`);
-    //let user2 = await getServerUsers(serverId).where(userResponse.first().content, '==', getServerUser(serverId, user.id).apiv2.username);
+    //let user2 = await getServerUsers(serverId).where(userResponse.first().content, '==', getServerUserDoc(serverId, user.id).apiv2.username);
 };
 
 const avg = async (inboundMessage, args) => {
@@ -334,30 +351,104 @@ const avg = async (inboundMessage, args) => {
 };
 
 const pin = async (inboundMessage, args) => {
-    let pinnedId = parseInt(inboundMessage.content.substring(5));
-    const user = await getServerUser(inboundMessage.channel.guildId, inboundMessage.author.id);
-    const validFlag = user?.ownedPlayers?.includes(pinnedId);
-    if (validFlag) {
-        await setPinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, pinnedId).catch(err => console.error(err));
-        inboundMessage.channel.send(`${inboundMessage.author} pin successful.`)
+    let username = inboundMessage.content.substring(5);
+    if (username) {
+        let player = await getPlayerByUsername(username);
+        if (player) {
+            const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+            const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
+            if (validFlag) {
+                await setPinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, player.apiv2.id).catch(err => console.error(err));
+                inboundMessage.channel.send(`${inboundMessage.author} pinned ${username} successfully.`)
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}".`);
+            }
+        }
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+        }
     }
     else {
-        inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with ID ${pinnedId}.`);
+        inboundMessage.channel.send(`${inboundMessage.author} Please enter the username of the player you want to pin.`)
     }
+
 };
 
 const unpin = async (inboundMessage, args) => {
-    let pinnedId = parseInt(inboundMessage.content.substring(7));
-    const user = await getServerUser(inboundMessage.channel.guildId, inboundMessage.author.id);
-    const validFlag = user?.pinnedPlayers?.includes(pinnedId);
-    if (validFlag) {
-        await deletePinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, pinnedId).catch(err => console.error(err));
-        inboundMessage.channel.send(`${inboundMessage.author} User ${pinnedId} has been unpinned.`)
+    let username = inboundMessage.content.substring(7);
+    if (username) {
+        let player = await getPlayerByUsername(username);
+        if (player) {
+            const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+            const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
+            if (validFlag) {
+                await deletePinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, player.apiv2.id).catch(err => console.error(err));
+                inboundMessage.channel.send(`${inboundMessage.author} unpinned ${username} successfully.`)
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}".`);
+            }
+        }
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+        }
     }
     else {
-        inboundMessage.channel.send(`${inboundMessage.author} You do not have a player with ID ${pinnedId} pinned.`);
+        inboundMessage.channel.send(`${inboundMessage.author} Please enter the username of the player you want to unpin.`)
     }
+
 };
+
+const claimed = async (inboundMessage, args) => {
+    if (inboundMessage.content.length > (8 + prefix.length)) {
+        let username = inboundMessage.content.substring(8 + prefix.length);
+        const player = await getPlayerByUsername(username);
+        if (player) {
+            player.claimCounter === 1 ? inboundMessage.channel.send(`${player.apiv2.username} has been claimed once.`)
+                : player.claimCounter > 1 ? inboundMessage.channel.send(`${player.apiv2.username} has been claimed ${player.claimCounter} times.`)
+                    : inboundMessage.channel.send(`${player.apiv2.username} has never been claimed.`);
+        }
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+        }
+
+    }
+    else {
+        const lb = await getLeaderboardData("claimed");
+        let players = lb.players;
+        players.sort((a, b) => {
+            return a.count - b.count;
+        });
+        // create the embed message
+        let embed = new Discord.MessageEmbed();
+
+        // populate the embed message
+        embed.setTitle(`Claimed Leaderboard`)
+        embed.setColor('#D9A6BD')
+        embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
+        embed.setThumbnail(inboundMessage.guild.iconURL());
+        let embedDescription = `\`\`\`Player          | Claimed\n`;
+        embedDescription += `---------------------\n`;
+        players = players.slice(0, 10);
+        for (let i = 0; i < players.length; i++) {
+            const playerObject = await getPlayer(players[i].playerId);
+            const username = playerObject.apiv2.username;
+            let spaces = '';
+            for (let i = 0; i < (16 - username.length); i++) {
+                spaces += ' ';
+            }
+            embedDescription += `${username}${spaces}| ${players[i].count.toFixed(0)}\n`;
+        }
+        embedDescription += `\`\`\``
+        embed.setDescription(`${embedDescription}`)
+        embed.setFooter({ text: `updated every server restart`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
+        embed.setTimestamp(Date.now())
+
+        // send the message
+        inboundMessage.channel.send({ embeds: [embed] });
+    }
+}
 
 const leaderboard = async (inboundMessage, args) => {
 
@@ -371,7 +462,7 @@ const leaderboard = async (inboundMessage, args) => {
     for (let i = 0; i < userIds.length; i++) {
 
         // get a specific user (to check if they have 10+ cards)
-        let user = await getServerUser(inboundMessage.channel.guildId, userIds[i]);
+        let user = await getServerUserDoc(inboundMessage.channel.guildId, userIds[i]);
 
         // if the user has 10+ cards
         if (user.elo != undefined) {
@@ -445,9 +536,10 @@ Card-Related
     roll: Roll for a top 10,000 player. Claim by reacting with 👍
     rolls: Check your available rolls.
     cards: Display all of your owned cards.
-    pin(userId): Pin cards to the top of your cards page by typing ;pin UserID.
-    unpin(userId): Remove pins from your cards page.
-    trade: Trade cards between your friends.
+    pin(username): Pin cards to the top of your cards page by typing ;pin <username>.
+    unpin(username): Remove pins from your cards page.
+    claimed(optional:username): Display the most claimed players, or the number of times a specific user has been claimed.
+    avg: Display the average rank in your top 10 cards.
     lb: Display server leaderboard based on users' top 10 card ranking.
 
 General
