@@ -105,6 +105,7 @@ const roll = async (inboundMessage, args) => {
     while (!player) {
         const rank = Math.floor(Math.random() * 10000) + 1;
         player = await getPlayerByRank(rank);
+        // player = await getPlayerByUsername("Informous");
     }
     console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
@@ -162,7 +163,7 @@ const roll = async (inboundMessage, args) => {
 
     } catch (error) {
         outboundMessage.reactions.removeAll()
-            .catch(error => console.error('Failed to clear reactions:', error));
+            .catch(error => console.error('Failed to clear reactions: DiscordAPIError: Missing Permissions'));
     }
 };
 
@@ -258,7 +259,7 @@ const cards = async (inboundMessage, args) => {
     }
 
     // get pinned players
-    let pinnedPlayerIds = await getPinnedPlayers(inboundMessage.guild.id, inboundMessage.author.id, 10);
+    let pinnedPlayerIds = await getPinnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
     const pinnedPlayerPromises = [];
 
@@ -296,10 +297,10 @@ const cards = async (inboundMessage, args) => {
     let embed = new Discord.MessageEmbed();
 
     // add the rest of the information
-    embed.setTitle(`${inboundMessage.author.username}'s cards`)
+    embed.setTitle(`${discordUser.username}'s cards`)
     embed.setColor('#D9A6BD')
     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
-    embed.setThumbnail(inboundMessage.author.avatarURL())
+    embed.setThumbnail(discordUser.avatarURL())
     embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`)
     if (pinnedPlayerIds?.length > 0) {
         embed.addField(`Pinned`, pinnedDescription);
@@ -405,9 +406,9 @@ const claimed = async (inboundMessage, args) => {
         let username = inboundMessage.content.substring(8 + prefix.length);
         const player = await getPlayerByUsername(username);
         if (player) {
-            player.claimCounter === 1 ? inboundMessage.channel.send(`${player.apiv2.username} has been claimed once.`)
-                : player.claimCounter > 1 ? inboundMessage.channel.send(`${player.apiv2.username} has been claimed ${player.claimCounter} times.`)
-                    : inboundMessage.channel.send(`${player.apiv2.username} has never been claimed.`);
+            player.claimCounter === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed once.`)
+                : player.claimCounter > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed ${player.claimCounter} times.`)
+                    : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been claimed.`);
         }
         else {
             inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
@@ -428,7 +429,7 @@ const claimed = async (inboundMessage, args) => {
         embed.setColor('#D9A6BD')
         embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
         embed.setThumbnail(inboundMessage.guild.iconURL());
-        let embedDescription = `\`\`\`Player          | Claimed\n`;
+        let embedDescription = `\`\`\`Player          | Times Claimed\n`;
         embedDescription += `---------------------\n`;
         players = players.slice(0, 10);
         for (let i = 0; i < players.length; i++) {
@@ -442,7 +443,7 @@ const claimed = async (inboundMessage, args) => {
         }
         embedDescription += `\`\`\``
         embed.setDescription(`${embedDescription}`)
-        embed.setFooter({ text: `updated every server restart`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
+        embed.setFooter({ text: `this command may take a while`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
         embed.setTimestamp(Date.now())
 
         // send the message
