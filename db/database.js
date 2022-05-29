@@ -165,26 +165,26 @@ module.exports.setOwnedPlayer = async function (serverId, userId, playerId) {
 }
 
 module.exports.getOwnedPlayers = async function (serverId, userId, perPage) {
-  const userDoc = await getServerUserRef(serverId, userId);
+  const userDoc = await module.exports.getServerUserRef(serverId, userId);
   const user = await userDoc.get();
   return user.data() ? user.data().ownedPlayers : null;
 }
 
 // PINNING FUNCTIONS
 module.exports.setPinnedPlayer = async function (serverId, userId, pinnedUserId) {
-  const userRef = await getServerUserRef(serverId, userId);
+  const userRef = await module.exports.getServerUserRef(serverId, userId);
   await userRef.set(
     { pinnedPlayers: admin.firestore.FieldValue.arrayUnion(pinnedUserId) },
     { merge: true }
   );
 }
 module.exports.getPinnedPlayers = async function (serverId, userId, perPage) {
-  const userDoc = await getServerUserRef(serverId, userId);
+  const userDoc = await module.exports.getServerUserRef(serverId, userId);
   const user = await userDoc.get();
   return user.data() ? user.data().pinnedPlayers : null;
 }
 module.exports.deletePinnedPlayer = async function (serverId, userId, pinnedUserId) {
-  const userRef = await getServerUserRef(serverId, userId);
+  const userRef = await module.exports.getServerUserRef(serverId, userId);
   const userSnapshot = await userRef.get();
   const user = userSnapshot.data()
 
@@ -194,7 +194,7 @@ module.exports.deletePinnedPlayer = async function (serverId, userId, pinnedUser
 
 // this is when the claim cooldown ends for a particular user
 module.exports.setRollResetTime = async function (serverId, userId) {
-  const userRef = await getServerUserRef(serverId, userId);
+  const userRef = await module.exports.getServerUserRef(serverId, userId);
   let date = new Date();
   date.setMinutes(date.getMinutes() + 60);
   await userRef.set(
@@ -204,7 +204,7 @@ module.exports.setRollResetTime = async function (serverId, userId) {
 }
 
 module.exports.setClaimResetTime = async function (serverId, userId, time) {
-  const userRef = await getServerUserRef(serverId, userId);
+  const userRef = await module.exports.getServerUserRef(serverId, userId);
   await userRef.set(
     { 'claimResetTime': time },
     { merge: true }
