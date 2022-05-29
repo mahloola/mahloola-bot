@@ -1,10 +1,9 @@
-
 const admin = require("firebase-admin");
 let db;
-const { firestoreKey } = require('../auth.json');
+const { firestoreKey, workflow } = require('../auth.json');
 
 // connect to firestore
-function initializeDatabase() {
+module.exports.initializeDatabase = function () {
   admin.initializeApp({
     credential: admin.credential.cert(firestoreKey),
   });
@@ -14,7 +13,7 @@ function initializeDatabase() {
 }
 
 // set document in player database (osu apiv2)
-async function setPlayer(player) {
+module.exports.setPlayer = async function (player) {
   if (player) {
     const docRef = db.collection("players").doc(player.id.toString());
     await docRef.set(
@@ -27,7 +26,7 @@ async function setPlayer(player) {
 }
 
 // set the counter for how many times a player has been claimed
-async function setPlayerClaimCounter(player, count) {
+module.exports.setPlayerClaimCounter = async function (player, count) {
   if (player) {
     // it's player.id in osu apiv2, but player.apiv2.id in my database
     const playerId = player.apiv2.id.toString();
@@ -38,7 +37,30 @@ async function setPlayerClaimCounter(player, count) {
       { merge: true }
     );
     // set the claim counter in the leaderboard database
-    const leaderboardRef = db.collection("leaderboards").doc("claimed");
+    const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("claimed") : db.collection("leaderboards").doc("claimed");
+    await leaderboardRef.set(
+      { players: admin.firestore.FieldValue.arrayUnion({ playerId, count }) },
+      { merge: true }
+    );
+  } else {
+    console.log(`Failed to set player counter for ${player.id}`);
+  }
+}
+// set the counter for how many times a player has been rolled
+module.exports.setPlayerRollCounter = async function (player, count) {
+  if (player) {
+    // it's player.id in osu apiv2, but player.apiv2.id in my database
+    const playerId = player.apiv2.id.toString();
+    // set the claim counter in the player database
+    const playersRef = db.collection("players").doc(playerId);
+    // use the alternative leaderboard database if I'm testing
+
+    await playersRef.set(
+      { rollCounter: count },
+      { merge: true }
+    );
+    // set the claim counter in the leaderboard database
+    const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("rolled") : db.collection("leaderboards").doc("rolled");
     await leaderboardRef.set(
       { players: admin.firestore.FieldValue.arrayUnion({ playerId, count }) },
       { merge: true }
@@ -49,12 +71,13 @@ async function setPlayerClaimCounter(player, count) {
 }
 
 // get document in player database (osu apiv2)
-async function getPlayer(userId) {
+module.exports.getPlayer = async function (userId) {
   const playerDoc = await db.collection("players").doc(userId.toString()).get();
   return playerDoc.exists ? playerDoc.data() : null;
 }
 
-async function getPlayerByUsername(username) {
+// 
+module.exports.getPlayerByUsername = async function (username) {
   const playersRef = db.collection("players");
   const snapshot = await playersRef
     .where("apiv2.username", "==", username)
@@ -72,7 +95,7 @@ async function getPlayerByUsername(username) {
 }
 
 // the main function used for retrieving from roll
-async function getPlayerByRank(rank) {
+module.exports.getPlayerByRank = async function (rank) {
   const playersRef = db.collection("players");
   const snapshot = await playersRef
     .where("apiv2.statistics.global_rank", "==", rank)
@@ -91,25 +114,25 @@ async function getPlayerByRank(rank) {
 }
 
 // DB UTILITY FUNCTIONS
-function getServerUsersRef(serverId) {
-  const serversRef = db.collection("servers");
+module.exports.getServerUsersRef = function (serverId) {
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = serversRef.doc(serverId.toString());
   const usersRef = serverDoc.collection('users');
   return usersRef;
 }
-async function getServerUserDoc(serverId, userId) {
-  const usersRef = getServerUsersRef(serverId);
+module.exports.getServerUserDoc = async function (serverId, userId) {
+  const usersRef = module.exports.getServerUsersRef(serverId);
   const userDoc = await usersRef.doc(userId.toString()).get();
   return userDoc.exists ? userDoc.data() : null;
 }
-async function getServerUserRef(serverId, userId) {
-  const usersRef = getServerUsersRef(serverId);
+module.exports.getServerUserRef = async function (serverId, userId) {
+  const usersRef = module.exports.getServerUsersRef(serverId);
   const userRef = await usersRef.doc(userId.toString());
   return userRef;
 }
-async function getServerUserIds(serverId) {
+module.exports.getServerUserIds = async function (serverId) {
   let userIds = []
-  const usersRef = getServerUsersRef(serverId);
+  const usersRef = module.exports.getServerUsersRef(serverId);
   const userDocs = await usersRef.get();
   userDocs.forEach(doc => {
     userIds.push(doc.id);
@@ -117,16 +140,14 @@ async function getServerUserIds(serverId) {
   return userIds;
 }
 
-async function getLeaderboardData(type) {
-  if (type == "claimed") {
-    const leaderboardRef = db.collection("leaderboards");
-    const leaderboardDoc = await leaderboardRef.doc("claimed").get();
-    return leaderboardDoc.exists ? leaderboardDoc.data() : null;
-  }
+module.exports.getLeaderboardData = async function (type) {
+  const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards") : db.collection("leaderboards");
+  const leaderboardDoc = await leaderboardRef.doc(type).get();
+  return leaderboardDoc.exists ? leaderboardDoc.data() : null;
 }
 // this is when a user claims a card
-async function setOwnedPlayer(serverId, userId, playerId) {
-  const serversRef = db.collection("servers");
+module.exports.setOwnedPlayer = async function (serverId, userId, playerId) {
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   const serverRef = serversRef.doc(serverId.toString());
   const serverUsersRef = serverRef.collection("users");
   const userRef = serverUsersRef.doc(userId.toString());
@@ -143,26 +164,26 @@ async function setOwnedPlayer(serverId, userId, playerId) {
   );
 }
 
-async function getOwnedPlayers(serverId, userId, perPage) {
+module.exports.getOwnedPlayers = async function (serverId, userId, perPage) {
   const userDoc = await getServerUserRef(serverId, userId);
   const user = await userDoc.get();
   return user.data() ? user.data().ownedPlayers : null;
 }
 
 // PINNING FUNCTIONS
-async function setPinnedPlayer(serverId, userId, pinnedUserId) {
+module.exports.setPinnedPlayer = async function (serverId, userId, pinnedUserId) {
   const userRef = await getServerUserRef(serverId, userId);
   await userRef.set(
     { pinnedPlayers: admin.firestore.FieldValue.arrayUnion(pinnedUserId) },
     { merge: true }
   );
 }
-async function getPinnedPlayers(serverId, userId, perPage) {
+module.exports.getPinnedPlayers = async function (serverId, userId, perPage) {
   const userDoc = await getServerUserRef(serverId, userId);
   const user = await userDoc.get();
   return user.data() ? user.data().pinnedPlayers : null;
 }
-async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
+module.exports.deletePinnedPlayer = async function (serverId, userId, pinnedUserId) {
   const userRef = await getServerUserRef(serverId, userId);
   const userSnapshot = await userRef.get();
   const user = userSnapshot.data()
@@ -172,7 +193,7 @@ async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
 }
 
 // this is when the claim cooldown ends for a particular user
-async function setRollResetTime(serverId, userId) {
+module.exports.setRollResetTime = async function (serverId, userId) {
   const userRef = await getServerUserRef(serverId, userId);
   let date = new Date();
   date.setMinutes(date.getMinutes() + 60);
@@ -182,7 +203,7 @@ async function setRollResetTime(serverId, userId) {
   );
 }
 
-async function setClaimResetTime(serverId, userId, time) {
+module.exports.setClaimResetTime = async function (serverId, userId, time) {
   const userRef = await getServerUserRef(serverId, userId);
   await userRef.set(
     { 'claimResetTime': time },
@@ -192,8 +213,8 @@ async function setClaimResetTime(serverId, userId, time) {
 }
 
 // this is the number of current rolls available to the user
-async function setRolls(serverId, userId, rolls) {
-  const userRef = await getServerUserRef(serverId, userId);
+module.exports.setRolls = async function (serverId, userId, rolls) {
+  const userRef = await module.exports.getServerUserRef(serverId, userId);
   await userRef.set(
     { 'rolls': rolls },
     { merge: true }
@@ -201,7 +222,7 @@ async function setRolls(serverId, userId, rolls) {
 }
 
 // gets Top-10-Average for a particular user, while getting owned player documents first (**1000 MS RUNTIME**)
-async function updateUserElo(serverId, userId) {
+module.exports.updateUserElo = async function (serverId, userId) {
   let user = await getServerUserDoc(serverId, userId);
   // if user owns less than 10 players, they are unranked
   if (user.ownedPlayers == undefined || user.ownedPlayers.length < 10) {
@@ -223,12 +244,13 @@ async function updateUserElo(serverId, userId) {
   }
   const avgRanks = totalRanks / 10;
   // update elo in the db
-  await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
 
 // gets Top-10-Average for a particular user, but doesn't need to get player documents first
-async function updateUserEloByPlayers(serverId, userId, ownedPlayers) {
+module.exports.updateUserEloByPlayers = async function (serverId, userId, ownedPlayers) {
   if (ownedPlayers.length < 10) {
     return null;
   }
@@ -241,34 +263,37 @@ async function updateUserEloByPlayers(serverId, userId, ownedPlayers) {
   }
   const avgRanks = totalRanks / 10;
   // update elo in the db
-  await db.collection("servers").doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
 
 // global statistics
-async function setDatabaseStatistics(stats) {
-  await db.collection("statistics").doc("global").set(stats);
+module.exports.setDatabaseStatistics = async function (stats) {
+  const statisticsRef = (workflow === 'production') ? db.collection("testing-statistics") : db.collection("statistics");
+  await statisticsRef.doc("global").set(stats);
 }
-async function getDatabaseStatistics() {
-  const doc = await db.collection("statistics").doc("global").get();
+module.exports.getDatabaseStatistics = async function () {
+  const statisticsRef = (workflow === 'production') ? db.collection("testing-statistics") : db.collection("statistics");
+  const doc = await statisticsRef.doc("global").get();
   return doc.data();
 }
-async function setServerStatistics(serverId, stats) {
-  const serversRef = db.collection("servers");
+module.exports.setServerStatistics = async function (serverId, stats) {
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   await serversRef.doc(serverId.toString()).set(stats);
 }
-async function getServerStatistics(serverId) {
-  const serversRef = db.collection("servers");
+module.exports.getServerStatistics = async function (serverId) {
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = await serversRef.doc(serverId.toString()).get();
   return serverDoc.statistics;
 }
-async function updateDatabaseStatistics() {
-  let statistics = await getDatabaseStatistics();
+module.exports.updateDatabaseStatistics = async function () {
+  let statistics = await module.exports.getDatabaseStatistics();
   let serverCount = 0;
   let serverIds = [];
   let userCount = 0;
   const serversSnapshot = await db.collection('servers').get();
-  const serversRef = db.collection("servers");
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   serverCount = serversSnapshot.size; // will return the collection size
   statistics.servers = serverCount;
   serversSnapshot.docs.forEach(doc => {
@@ -282,13 +307,13 @@ async function updateDatabaseStatistics() {
 
   statistics.users = userCount;
   statistics.servers = serverCount;
-  setDatabaseStatistics(statistics);
+  module.exports.setDatabaseStatistics(statistics);
   return statistics;
 }
 
-async function updateServerStatistics(serverId) {
+module.exports.updateServerStatistics = async function (serverId) {
   let statistics = await getServerStatistics();
-  const serversRef = db.collection("servers");
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   const serverRef = await serversRef.doc(serverId.toString());
   const usersSnapshot = await serverRef.get();
   statistics.users = usersSnapshot.size;
@@ -316,32 +341,3 @@ async function updateServerStatistics(serverId) {
   //   });
   //   setDatabaseStatistics(metadata);
 }
-module.exports = {
-  initializeDatabase,
-  setPlayer,
-  setPlayerClaimCounter,
-  getPlayer,
-  getPlayerByRank,
-  getPlayerByUsername,
-  setOwnedPlayer,
-  getOwnedPlayers,
-  getLeaderboardData,
-  setDatabaseStatistics,
-  getDatabaseStatistics,
-  updateDatabaseStatistics,
-  setServerStatistics,
-  getServerStatistics,
-  updateServerStatistics,
-  updateUserElo,
-  updateUserEloByPlayers,
-  setPinnedPlayer,
-  getPinnedPlayers,
-  deletePinnedPlayer,
-  getServerUsersRef,
-  getServerUserDoc,
-  getServerUserIds,
-  getServerUserRef,
-  setRollResetTime,
-  setClaimResetTime,
-  setRolls,
-};

@@ -1,21 +1,27 @@
 const Discord = require('discord.js');
 const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayers, setOwnedPlayer,
-    getPlayer, setPlayerClaimCounter, getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics, getServerStatistics, setServerStatistics, updateServerStatistics, setPinnedPlayer,
-    getPinnedPlayers, deletePinnedPlayer, getServerUsersRef, getServerUserRef,
-    getServerUserDoc, getServerUserIds, updateUserElo, updateUserEloByPlayers,
-    setRollResetTime, setRolls, setClaimResetTime, getLeaderboardData } = require('./db/database');
+const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayers,
+    setOwnedPlayer, getPlayer, setPlayerClaimCounter, setPlayerRollCounter,
+    getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics,
+    getServerStatistics, setServerStatistics, updateServerStatistics,
+    setPinnedPlayer, getPinnedPlayers, deletePinnedPlayer, getServerUsersRef,
+    getServerUserRef, getServerUserDoc, getServerUserIds, updateUserElo,
+    updateUserEloByPlayers, setRollResetTime, setRolls, setClaimResetTime,
+    getLeaderboardData }
+    = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
-const { prefix, token } = require('./auth.json');
+const { prefix, token, workflow } = require('./auth.json');
 const ADMIN_DISCORD_ID = "198773384794996739";
 
 client.on("ready", async function () {
     initializeDatabase();
     updateDatabaseStatistics();
     let databaseStatistics = await getDatabaseStatistics();
-    console.log(`\nCurrent Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
+    workflow === 'production' ?
+        console.log(`\nTesting Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`) :
+        console.log(`\nCurrent Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
 
     client.on('messageCreate', async (inboundMessage) => {
         // if the message either doesn't start with the prefix or was sent by a bot, exit early
@@ -90,11 +96,6 @@ const roll = async (inboundMessage, args) => {
         return;
     }
 
-    // update statistics
-    const statistics = await getDatabaseStatistics();
-    statistics.rolls++;
-    setDatabaseStatistics(statistics);
-
     // update user available rolls
     currentTime > resetTime ?
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
@@ -104,13 +105,15 @@ const roll = async (inboundMessage, args) => {
     let player;
     while (!player) {
         const rank = Math.floor(Math.random() * 10000) + 1;
-        if (inboundMessage.author.id === ADMIN_DISCORD_ID) {
-            player = await getPlayerByRank(rank);
-        }
         player = await getPlayerByRank(rank);
-        // player = await getPlayerByUsername("Informous");
     }
     console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+
+    // update statistics
+    const statistics = await getDatabaseStatistics();
+    statistics.rolls++;
+    setDatabaseStatistics(statistics);
+    player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
 
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -425,7 +428,6 @@ const claimed = async (inboundMessage, args) => {
         players.sort((a, b) => {
             return b.count - a.count;
         });
-        console.log(players);
         // create the embed message
         let embed = new Discord.MessageEmbed();
 
