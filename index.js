@@ -3,8 +3,8 @@ const { MessageAttachment, Intents } = require("discord.js");
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayers, setOwnedPlayer,
     getPlayer, setPlayerClaimCounter, getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics, getServerStatistics, setServerStatistics, updateServerStatistics, setPinnedPlayer,
-    getPinnedPlayers, deletePinnedPlayer, getServerUsersRef,
-    getServerUserDoc, getServerUserIds, getUserRef, updateUserElo, updateUserEloByPlayers,
+    getPinnedPlayers, deletePinnedPlayer, getServerUsersRef, getServerUserRef,
+    getServerUserDoc, getServerUserIds, updateUserElo, updateUserEloByPlayers,
     setRollResetTime, setRolls, setClaimResetTime, getLeaderboardData } = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
@@ -104,6 +104,9 @@ const roll = async (inboundMessage, args) => {
     let player;
     while (!player) {
         const rank = Math.floor(Math.random() * 10000) + 1;
+        if (inboundMessage.author.id === ADMIN_DISCORD_ID) {
+            player = await getPlayerByRank(rank);
+        }
         player = await getPlayerByRank(rank);
         // player = await getPlayerByUsername("Informous");
     }
@@ -144,7 +147,7 @@ const roll = async (inboundMessage, args) => {
                                 outboundMessage.channel.send(`**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **${9 - claimingUserDoc.ownedPlayers.length}** more cards with no cooldown.`);
                             }
                         })
-                    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} claimed ${player.apiv2.username}.`);
+                    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${claimingUser.username} claimed ${player.apiv2.username}.`);
 
                 }
                 else {
@@ -229,6 +232,7 @@ const cards = async (inboundMessage, args) => {
     }
     else {
         discordUserId = inboundMessage.author.id
+        discordUser = inboundMessage.author
     }
     let playerIds = await getOwnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
@@ -426,10 +430,10 @@ const claimed = async (inboundMessage, args) => {
         let embed = new Discord.MessageEmbed();
 
         // populate the embed message
-        embed.setTitle(`Claimed Leaderboard`)
+        embed.setTitle(`Global Claim Leaderboard`)
         embed.setColor('#D9A6BD')
         embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
-        embed.setThumbnail(inboundMessage.guild.iconURL());
+        embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`);
         let embedDescription = `\`\`\`Player          | Times Claimed\n`;
         embedDescription += `---------------------\n`;
         players = players.slice(0, 10);
@@ -479,7 +483,7 @@ const leaderboard = async (inboundMessage, args) => {
             userDiscordInfoJSON.hexAccentColor = "";
             userDiscordInfoJSON.bannerURL = "";
 
-            const userRef = await getUserRef(inboundMessage.channel.guildId, userIds[i]);
+            const userRef = await getServerUserRef(inboundMessage.channel.guildId, userIds[i]);
 
             // set discord info in the database
             await userRef.set(
