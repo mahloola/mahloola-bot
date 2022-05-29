@@ -15,20 +15,25 @@ async function main() {
     });
     playerList.sort((a, b) => {
         // change this line to sort by x field
-        return new Date(a.apiv2.join_date) - new Date(b.apiv2.join_date);
+        return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
+    })
+    const top100 = playerList.slice(0, 100);
+    top100.sort((a, b) => {
+        // change this line to sort by x field
+        return b.apiv2.scores_first_count - a.apiv2.scores_first_count;
     })
     let hitsPerPlayLeaderboardString = "";
-    for (let i = 0; i < playerList.length; i++) {
-        if (playerList[i]) {
+    for (let i = 0; i < top100.length; i++) {
+        if (top100[i]) {
             // change this line to display x user statistic
-            hitsPerPlayLeaderboardString += (`${((i + 1) + '.').padEnd(5, ' ')}${playerList[i].apiv2.username.padEnd(15, ' ')} | ${playerList[i].apiv2.join_date.substring(2, 10)}\n`);
+            hitsPerPlayLeaderboardString += (`${((i + 1) + '.').padEnd(5, ' ')}${top100[i].apiv2.username.padEnd(15, ' ')} | ${top100[i].apiv2.scores_first_count}\n`);
         }
     }
     // write to file
     fs.writeFile('db/sortedPlayers.txt', hitsPerPlayLeaderboardString, (err) => {
         if (err) throw err;
     })
-    return playerList;
+    return top100;
 
 }
 
