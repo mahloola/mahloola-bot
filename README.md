@@ -1,4 +1,4 @@
-<a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2147609664&scope=applications.commands%20bot">
+<a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=8&scope=bot">
   <p align="center">
   <img src="https://i.imgur.com/RZHlVph.png" alt="invite-link" width="200"/>
   </p>
