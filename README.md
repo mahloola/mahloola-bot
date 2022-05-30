@@ -19,7 +19,7 @@ This is a **work in progress**; as such, many intended features have not been im
 - **;trade**: Trade cards between your friends. 🤝
 
 ## Development Server
-If you have any issues or suggestions, or just want a place to chat, please <a href="https://discord.gg/VBMSxEhW">join the Discord server</a>.
+If you have any issues or suggestions, or just want a place to chat, please <a href="https://discord.gg/DGdzyapHkW">join the Discord server</a>.
 
 ## Gallery
 <p align="center">
