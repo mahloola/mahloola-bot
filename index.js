@@ -6,114 +6,137 @@ const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayer
     getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics,
     getServerStatistics, setServerStatistics, updateServerStatistics,
     setPinnedPlayer, getPinnedPlayers, deletePinnedPlayer, getServerUsersRef,
-    getServerUserRef, getServerUserDoc, getServerUserIds, updateUserElo,
-    updateUserEloByPlayers, setRollResetTime, setRolls, setClaimResetTime,
-    getLeaderboardData }
+    getServerUserRef, getServerUserDoc, getServerUserIds, getServersRef,
+    getServerDoc, updateUserElo, updateUserEloByPlayers, setRollResetTime,
+    setRolls, setClaimResetTime, getLeaderboardData, setPrefix }
     = require('./db/database');
 const { createImage } = require('./image/jimp.js');
 const paginationEmbed = require('discord.js-pagination');
-const { prefix, token, workflow } = require('./auth.json');
+const { defaultPrefix, token, workflow } = require('./auth.json');
 const ADMIN_DISCORD_ID = "198773384794996739";
+let serverPrefix;
 
 client.on("ready", async function () {
-    initializeDatabase();
+    const db = initializeDatabase();
     updateDatabaseStatistics();
     let databaseStatistics = await getDatabaseStatistics();
     workflow === 'production' ?
         console.log(`\nTesting Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`) :
         console.log(`\nCurrent Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
-
-    client.on('messageCreate', async (inboundMessage) => {
-        // if the message either doesn't start with the prefix or was sent by a bot, exit early
-        if (!inboundMessage.content.startsWith(prefix) || inboundMessage.author.bot) return;
-
-        const args = inboundMessage.content.slice(prefix.length).trim().split(/ +/);
-        const commandText = args.shift().toLowerCase(); // make lowercase work too
-
-        const commandMapping = {
-            ['roll']: roll,
-            ['rolls']: rolls,
-            ['cards']: cards,
-            ['stats']: stats,
-            ['trade']: trade,
-            ['avg']: avg,
-            ['pin']: pin,
-            ['unpin']: unpin,
-            ['claimed']: claimed,
-            ['help']: help,
-            ['commands']: help,
-            ['leaderboard']: leaderboard,
-            ['lb']: leaderboard
-        }
-        const command = commandMapping[commandText];
-        if (command) {
-            try {
-                await command(inboundMessage, args);
-            } catch (error) {
-                console.trace();
-                console.error(error);
+    try {
+        client.on('messageCreate', async (inboundMessage) => {
+            const serverDoc = await getServerDoc(inboundMessage.guild.id);
+            if (serverDoc) {
+                if (serverDoc.prefix === undefined) {
+                    serverPrefix = defaultPrefix;
+                }
+                else {
+                    serverPrefix = serverDoc.prefix;
+                }
+                serverPrefix = (serverDoc.prefix === undefined ? defaultPrefix : serverDoc.prefix);
             }
-        }
-    })
+            else {
+                serverPrefix = defaultPrefix;
+            }
+            console.log(serverPrefix);
+            // if the message either doesn't start with the prefix or was sent by a bot, exit early
+            if (!inboundMessage.content.startsWith(serverPrefix) || inboundMessage.author.bot) return;
+
+            const args = inboundMessage.content.slice(serverPrefix.length).trim().split(/ +/);
+            const commandText = args.shift().toLowerCase(); // make lowercase work too
+
+            const commandMapping = {
+                ['roll']: roll,
+                ['rolls']: rolls,
+                ['cards']: cards,
+                ['stats']: stats,
+                ['trade']: trade,
+                ['avg']: avg,
+                ['pin']: pin,
+                ['unpin']: unpin,
+                ['claimed']: claimed,
+                ['rolled']: rolled,
+                ['help']: help,
+                ['commands']: help,
+                ['leaderboard']: leaderboard,
+                ['lb']: leaderboard,
+                ['prefix']: prefix,
+                ['fixdb']: fixdb
+            }
+            const command = commandMapping[commandText];
+            if (command) {
+                await command(inboundMessage, db);
+            }
+        })
+    } catch (err) {
+        console.trace();
+        console.error(err);
+    }
+
 })
 client.login(token);
 
-const roll = async (inboundMessage, args) => {
-    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-    let resetTime;
-    let currentRolls;
-    if (user) {
-        resetTime = user.rollResetTime;
-        currentRolls = user.rolls;
-    }
-    else {  // if user doesn't exist yet
-        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-        await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-        currentRolls = user.rolls;
-        resetTime = user.rollResetTime;
-    }
-    // if user is past their cooldown
+const roll = async (inboundMessage, db) => {
+
+    let player;
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
-    if (currentTime > resetTime) {
-        currentRolls = 10;
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-    }
-    // exit if user does not have enough rolls
-    if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
-        let resetTimeMs = user.rollResetTime;
-        let timeRemaining = resetTimeMs - currentTime;
-        let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
-        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
+
+    await db.runTransaction(async (t) => {
+        let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+        let resetTime;
+        let currentRolls;
+        if (user) {
+            resetTime = user.rollResetTime;
+            currentRolls = user.rolls;
         }
-        else {
-            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
+        else {  // if user doesn't exist yet
+            await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+            await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
+            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+            user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+            currentRolls = user.rolls;
+            resetTime = user.rollResetTime;
         }
-        return;
-    }
+        // if user is past their cooldown
+        if (currentTime > resetTime) {
+            currentRolls = 10;
+            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+            await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        }
+        // exit if user does not have enough rolls
+        if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+            let resetTimeMs = user.rollResetTime;
+            let timeRemaining = resetTimeMs - currentTime;
+            let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+            if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
+                inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
+            }
+            return;
+        }
 
-    // update user available rolls
-    currentTime > resetTime ?
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
+        // update user available rolls
+        currentTime > resetTime ?
+            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
+            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
 
-    // get a random player (rank 1 - 10,000)
-    let player;
-    while (!player) {
-        const rank = Math.floor(Math.random() * 10000) + 1;
-        player = await getPlayerByRank(rank);
-    }
-    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+        // get a random player (rank 1 - 10,000)
+        while (!player) {
+            const rank = Math.floor(Math.random() * 10000) + 1;
+            player = await getPlayerByRank(rank);
+            // player = await getPlayerByUsername("CharlesGNS");
+        }
+        console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
-    // update statistics
-    const statistics = await getDatabaseStatistics();
-    statistics.rolls++;
-    setDatabaseStatistics(statistics);
-    player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
+        // update statistics
+        const statistics = await getDatabaseStatistics();
+        statistics.rolls++;
+        setDatabaseStatistics(statistics);
+        player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
+    });
 
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -171,9 +194,10 @@ const roll = async (inboundMessage, args) => {
         outboundMessage.reactions.removeAll()
             .catch(error => console.error('Failed to clear reactions: DiscordAPIError: Missing Permissions'));
     }
+
 };
 
-const rolls = async (inboundMessage, args) => {
+const rolls = async (inboundMessage) => {
     let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     let currentRolls;
     let resetTimestamp;
@@ -219,16 +243,16 @@ const rolls = async (inboundMessage, args) => {
 
 };
 
-const cards = async (inboundMessage, args) => {
+const cards = async (inboundMessage) => {
     let discordUserId;
     let discordUser;
-    if (inboundMessage.content.length > (6 + prefix.length)) {
+    if (inboundMessage.content.length > (6 + serverPrefix.length)) {
         let discordUsername;
         if (inboundMessage.mentions.users.first()) {
             discordUser = inboundMessage.mentions.users.first();
         }
         else {
-            discordUsername = inboundMessage.content.substring(6 + prefix.length);
+            discordUsername = inboundMessage.content.substring(6 + serverPrefix.length);
             discordUser = await client.users.cache.find(user => user.username == discordUsername);
         }
         discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found.`);
@@ -324,13 +348,13 @@ const cards = async (inboundMessage, args) => {
     const embed2 = embed;
 };
 
-const stats = async (inboundMessage, args) => {
+const stats = async (inboundMessage) => {
     //updateStatistics();
     let statistics = await getDatabaseStatistics();
     inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
 };
 
-const trade = async (inboundMessage, args) => {
+const trade = async (inboundMessage) => {
     let user = inboundMessage.author;
     let serverId = inboundMessage.guild.id
     inboundMessage.channel.send(`${user}, who would you like to trade with?`);
@@ -348,7 +372,7 @@ const trade = async (inboundMessage, args) => {
     //let user2 = await getServerUsers(serverId).where(userResponse.first().content, '==', getServerUserDoc(serverId, user.id).apiv2.username);
 };
 
-const avg = async (inboundMessage, args) => {
+const avg = async (inboundMessage) => {
     const elo = await updateUserElo(inboundMessage.channel.guildId, inboundMessage.author.id);
     if (elo == null) {
         inboundMessage.channel.send("You are unranked; you need to own at least 10 players.");
@@ -358,8 +382,8 @@ const avg = async (inboundMessage, args) => {
     }
 };
 
-const pin = async (inboundMessage, args) => {
-    let username = inboundMessage.content.substring(5);
+const pin = async (inboundMessage) => {
+    let username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
         let player = await getPlayerByUsername(username);
         if (player) {
@@ -383,8 +407,8 @@ const pin = async (inboundMessage, args) => {
 
 };
 
-const unpin = async (inboundMessage, args) => {
-    let username = inboundMessage.content.substring(7);
+const unpin = async (inboundMessage) => {
+    let username = inboundMessage.content.substring(6 + serverPrefix.length);
     if (username) {
         let player = await getPlayerByUsername(username);
         if (player) {
@@ -408,13 +432,14 @@ const unpin = async (inboundMessage, args) => {
 
 };
 
-const claimed = async (inboundMessage, args) => {
-    if (inboundMessage.content.length > (8 + prefix.length)) {
-        let username = inboundMessage.content.substring(8 + prefix.length);
+const claimed = async (inboundMessage) => {
+    const lbData = await getLeaderboardData("claimed");
+    if (inboundMessage.content.length > (8 + serverPrefix.length)) {
+        let username = inboundMessage.content.substring(8 + serverPrefix.length);
         const player = await getPlayerByUsername(username);
         if (player) {
-            player.claimCounter === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed once.`)
-                : player.claimCounter > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed ${player.claimCounter} times.`)
+            lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed once.`)
+                : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed ${lbData.players[player.apiv2.id]} times.`)
                     : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been claimed.`);
         }
         else {
@@ -423,11 +448,9 @@ const claimed = async (inboundMessage, args) => {
 
     }
     else {
-        const lb = await getLeaderboardData("claimed");
-        let players = lb.players;
-        players.sort((a, b) => {
-            return b.count - a.count;
-        });
+
+        let players = lbData.players;
+        const sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1])
         // create the embed message
         let embed = new Discord.MessageEmbed();
 
@@ -438,15 +461,17 @@ const claimed = async (inboundMessage, args) => {
         embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`);
         let embedDescription = `\`\`\`Player          | Times Claimed\n`;
         embedDescription += `---------------------\n`;
-        players = players.slice(0, 10);
-        for (let i = 0; i < players.length; i++) {
-            const playerObject = await getPlayer(players[i].playerId);
+        //console.log(sortedPlayerIds);
+        //players = sortedPlayerIds.slice(0, 10);
+        for (let i = 0; i < sortedPlayerIds.length; i++) {
+            const playerObject = await getPlayer(sortedPlayerIds[i]);
             const username = playerObject.apiv2.username;
             let spaces = '';
             for (let i = 0; i < (16 - username.length); i++) {
                 spaces += ' ';
             }
-            embedDescription += `${username}${spaces}| ${players[i].count.toFixed(0)}\n`;
+            //console.log(players[sortedPlayerIds[i]]);
+            embedDescription += `${username}${spaces}| ${players[sortedPlayerIds[i]]}\n`;
         }
         embedDescription += `\`\`\``
         embed.setDescription(`${embedDescription}`)
@@ -457,8 +482,62 @@ const claimed = async (inboundMessage, args) => {
         inboundMessage.channel.send({ embeds: [embed] });
     }
 }
+const rolled = async (inboundMessage) => {
+    const lbData = await getLeaderboardData("rolled");
+    if (inboundMessage.content.length > (8 + serverPrefix.length)) {
+        let username = inboundMessage.content.substring(7 + serverPrefix.length);
+        const player = await getPlayerByUsername(username);
+        if (player) {
+            lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled once.`)
+                : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled ${lbData.players[player.apiv2.id]} times.`)
+                    : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been rolled.`);
+        }
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+        }
 
-const leaderboard = async (inboundMessage, args) => {
+    }
+    else {
+        const lb = await getLeaderboardData("rolled");
+        let players = lb.players;
+        let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1])
+        // create the embed message
+        let embed = new Discord.MessageEmbed();
+
+        // populate the embed message
+        embed.setTitle(`Global Rolled Leaderboard`)
+        embed.setColor('#D9A6BD')
+        embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
+        embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`);
+        let embedDescription = `\`\`\`Player          | Times Rolled\n`;
+        embedDescription += `---------------------\n`;
+        //console.log(sortedPlayerIds);
+        sortedPlayerIds = sortedPlayerIds.slice(0, 10);
+        for (let i = 0; i < sortedPlayerIds.length; i++) {
+            const playerObject = await getPlayer(sortedPlayerIds[i]);
+            const username = playerObject.apiv2.username;
+            let spaces = '';
+            for (let i = 0; i < (16 - username.length); i++) {
+                spaces += ' ';
+            }
+            //console.log(players[sortedPlayerIds[i]]);
+            embedDescription += `${username}${spaces}| ${players[sortedPlayerIds[i]]}\n`;
+        }
+        embedDescription += `\`\`\``
+        embed.setDescription(`${embedDescription}`)
+        embed.setFooter({ text: `this command may take a while`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
+        embed.setTimestamp(Date.now())
+
+        // send the message
+        inboundMessage.channel.send({ embeds: [embed] });
+    }
+}
+const prefix = async (inboundMessage) => {
+    const newPrefix = inboundMessage.content.substring(7 + serverPrefix.length);
+    await setPrefix(inboundMessage.guild.id, newPrefix);
+    inboundMessage.channel.send(`${inboundMessage.author} The mahloola BOT server prefix for ${inboundMessage.guild.name} has been set to \`${newPrefix}\`.`);
+}
+const leaderboard = async (inboundMessage) => {
 
     // get every user ID in the server
     let userIds = await getServerUserIds(inboundMessage.channel.guildId);
@@ -538,7 +617,23 @@ const leaderboard = async (inboundMessage, args) => {
     inboundMessage.channel.send({ embeds: [embed] });
 }
 
-const help = async (inboundMessage, args) => {
+const fixdb = async (inboundMessage) => {
+    const db = initializeDatabase();
+    const lbData = await getLeaderboardData('rolled');
+    const players = lbData.players;
+    const convertedPlayers = {};
+    for (const player of players) {
+        const duplicates = players.filter(p => p.playerId === player.playerId);
+        convertedPlayers[player.playerId] = Math.max(...duplicates.map(player => player.count));
+    }
+
+    const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("rolled") : db.collection("leaderboards").doc("rolled");
+    await leaderboardRef.set(
+        { players: convertedPlayers },
+        { merge: true }
+    );
+}
+const help = async (inboundMessage) => {
     inboundMessage.channel.send(`**Commands**\n\`\`\`
 Card-Related
     roll: Roll for a top 10,000 player. Claim by reacting with 👍

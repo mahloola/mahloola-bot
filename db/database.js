@@ -38,8 +38,11 @@ module.exports.setPlayerClaimCounter = async function (player, count) {
     );
     // set the claim counter in the leaderboard database
     const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("claimed") : db.collection("leaderboards").doc("claimed");
+    const claimedLeaderboardData = await module.exports.getLeaderboardData('claimed');
+    const claimedPlayers = claimedLeaderboardData.players ?? {}
+    claimedPlayers[playerId] = count;
     await leaderboardRef.set(
-      { players: admin.firestore.FieldValue.arrayUnion({ playerId, count }) },
+      { players: claimedPlayers },
       { merge: true }
     );
   } else {
@@ -49,6 +52,7 @@ module.exports.setPlayerClaimCounter = async function (player, count) {
 // set the counter for how many times a player has been rolled
 module.exports.setPlayerRollCounter = async function (player, count) {
   if (player) {
+
     // it's player.id in osu apiv2, but player.apiv2.id in my database
     const playerId = player.apiv2.id.toString();
     // set the claim counter in the player database
@@ -61,8 +65,12 @@ module.exports.setPlayerRollCounter = async function (player, count) {
     );
     // set the claim counter in the leaderboard database
     const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("rolled") : db.collection("leaderboards").doc("rolled");
+    const rolledLeaderboardData = await module.exports.getLeaderboardData('rolled');
+    let rolledPlayers = rolledLeaderboardData.players ?? {}
+    rolledPlayers[playerId] = count;
+    // rolledPlayers = [{ playerId: 111, count: 1 }, { playerId: 1121, count: 3 }, { playerId: 141, count: 6 }]
     await leaderboardRef.set(
-      { players: admin.firestore.FieldValue.arrayUnion({ playerId, count }) },
+      { players: rolledPlayers },
       { merge: true }
     );
   } else {
@@ -114,6 +122,15 @@ module.exports.getPlayerByRank = async function (rank) {
 }
 
 // DB UTILITY FUNCTIONS
+module.exports.getServersRef = function () {
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  return serversRef;
+}
+module.exports.getServerDoc = async function (serverId) {
+  const serversRef = module.exports.getServersRef(serverId);
+  const serverDoc = await serversRef.doc(serverId.toString()).get();
+  return serverDoc.exists ? serverDoc.data() : null;
+}
 module.exports.getServerUsersRef = function (serverId) {
   const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = serversRef.doc(serverId.toString());
@@ -145,15 +162,24 @@ module.exports.getLeaderboardData = async function (type) {
   const leaderboardDoc = await leaderboardRef.doc(type).get();
   return leaderboardDoc.exists ? leaderboardDoc.data() : null;
 }
+module.exports.setPrefix = async function (serverId, newPrefix) {
+  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serverDoc = serversRef.doc(serverId.toString());
+  await serverDoc.set(
+    { 'prefix': newPrefix },
+    { merge: true }
+  );
+}
+
 // this is when a user claims a card
 module.exports.setOwnedPlayer = async function (serverId, userId, playerId) {
   const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
-  const serverRef = serversRef.doc(serverId.toString());
-  const serverUsersRef = serverRef.collection("users");
+  const serverDoc = serversRef.doc(serverId.toString());
+  const serverUsersRef = serverDoc.collection("users");
   const userRef = serverUsersRef.doc(userId.toString());
 
   // set the player to be considered owned across the whole server
-  await serverRef.set(
+  await serverDoc.set(
     { ownedPlayers: admin.firestore.FieldValue.arrayUnion(playerId) },
     { merge: true }
   );
@@ -223,7 +249,7 @@ module.exports.setRolls = async function (serverId, userId, rolls) {
 
 // gets Top-10-Average for a particular user, while getting owned player documents first (**1000 MS RUNTIME**)
 module.exports.updateUserElo = async function (serverId, userId) {
-  let user = await getServerUserDoc(serverId, userId);
+  let user = await module.exports.getServerUserDoc(serverId, userId);
   // if user owns less than 10 players, they are unranked
   if (user.ownedPlayers == undefined || user.ownedPlayers.length < 10) {
     return null;
@@ -231,7 +257,7 @@ module.exports.updateUserElo = async function (serverId, userId) {
   let playerIds = user.ownedPlayers;
   const ownedPlayerPromises = [];
   for (const id of playerIds) {
-    ownedPlayerPromises.push(getPlayer(id));
+    ownedPlayerPromises.push(module.exports.getPlayer(id));
   }
   const ownedPlayers = await Promise.all(ownedPlayerPromises);
 
