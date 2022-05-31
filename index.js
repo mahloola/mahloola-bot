@@ -450,7 +450,7 @@ const claimed = async (inboundMessage) => {
     else {
 
         let players = lbData.players;
-        const sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1])
+        let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1])
         // create the embed message
         let embed = new Discord.MessageEmbed();
 
@@ -461,8 +461,8 @@ const claimed = async (inboundMessage) => {
         embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`);
         let embedDescription = `\`\`\`Player          | Times Claimed\n`;
         embedDescription += `---------------------\n`;
-        //console.log(sortedPlayerIds);
-        //players = sortedPlayerIds.slice(0, 10);
+
+        sortedPlayerIds = sortedPlayerIds.slice(0, 10);
         for (let i = 0; i < sortedPlayerIds.length; i++) {
             const playerObject = await getPlayer(sortedPlayerIds[i]);
             const username = playerObject.apiv2.username;
@@ -533,9 +533,15 @@ const rolled = async (inboundMessage) => {
     }
 }
 const prefix = async (inboundMessage) => {
-    const newPrefix = inboundMessage.content.substring(7 + serverPrefix.length);
-    await setPrefix(inboundMessage.guild.id, newPrefix);
-    inboundMessage.channel.send(`${inboundMessage.author} The mahloola BOT server prefix for ${inboundMessage.guild.name} has been set to \`${newPrefix}\`.`);
+
+    const newPrefix = inboundMessage.member.permissionsIn(inboundMessage.channel).has("ADMINISTRATOR") ? inboundMessage.content.substring(7 + serverPrefix.length) : null;
+    if (newPrefix) {
+        await setPrefix(inboundMessage.guild.id, newPrefix);
+        inboundMessage.channel.send(`${inboundMessage.author} The mahloola BOT server prefix for ${inboundMessage.guild.name} has been set to \`${newPrefix}\`.`);
+    }
+    else {
+        inboundMessage.channel.send(`${inboundMessage.author} You must be an administrator to change the prefix.`)
+    }
 }
 const leaderboard = async (inboundMessage) => {
 
@@ -617,22 +623,6 @@ const leaderboard = async (inboundMessage) => {
     inboundMessage.channel.send({ embeds: [embed] });
 }
 
-const fixdb = async (inboundMessage) => {
-    const db = initializeDatabase();
-    const lbData = await getLeaderboardData('rolled');
-    const players = lbData.players;
-    const convertedPlayers = {};
-    for (const player of players) {
-        const duplicates = players.filter(p => p.playerId === player.playerId);
-        convertedPlayers[player.playerId] = Math.max(...duplicates.map(player => player.count));
-    }
-
-    const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("rolled") : db.collection("leaderboards").doc("rolled");
-    await leaderboardRef.set(
-        { players: convertedPlayers },
-        { merge: true }
-    );
-}
 const help = async (inboundMessage) => {
     inboundMessage.channel.send(`**Commands**\n\`\`\`
 Card-Related
