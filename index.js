@@ -38,7 +38,6 @@ client.on("ready", async function () {
             else {
                 serverPrefix = defaultPrefix;
             }
-            console.log(serverPrefix);
             // if the message either doesn't start with the prefix or was sent by a bot, exit early
             if (!inboundMessage.content.startsWith(serverPrefix) || inboundMessage.author.bot) return;
 
@@ -81,61 +80,59 @@ const roll = async (inboundMessage, db) => {
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
 
-    await db.runTransaction(async (t) => {
-        let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-        let resetTime;
-        let currentRolls;
-        if (user) {
-            resetTime = user.rollResetTime;
-            currentRolls = user.rolls;
+    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+    let resetTime;
+    let currentRolls;
+    if (user) {
+        resetTime = user.rollResetTime;
+        currentRolls = user.rolls;
+    }
+    else {  // if user doesn't exist yet
+        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+        currentRolls = user.rolls;
+        resetTime = user.rollResetTime;
+    }
+    // if user is past their cooldown
+    if (currentTime > resetTime) {
+        currentRolls = 10;
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+    }
+    // exit if user does not have enough rolls
+    if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+        let resetTimeMs = user.rollResetTime;
+        let timeRemaining = resetTimeMs - currentTime;
+        let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
         }
-        else {  // if user doesn't exist yet
-            await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-            await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-            user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-            currentRolls = user.rolls;
-            resetTime = user.rollResetTime;
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
         }
-        // if user is past their cooldown
-        if (currentTime > resetTime) {
-            currentRolls = 10;
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-            await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-        }
-        // exit if user does not have enough rolls
-        if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
-            let resetTimeMs = user.rollResetTime;
-            let timeRemaining = resetTimeMs - currentTime;
-            let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
-            if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-                inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
-            }
-            else {
-                inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
-            }
-            return;
-        }
+        return;
+    }
 
-        // update user available rolls
-        currentTime > resetTime ?
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
+    // update user available rolls
+    currentTime > resetTime ?
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
 
-        // get a random player (rank 1 - 10,000)
-        while (!player) {
-            const rank = Math.floor(Math.random() * 10000) + 1;
-            player = await getPlayerByRank(rank);
-            // player = await getPlayerByUsername("CharlesGNS");
-        }
-        console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+    // get a random player (rank 1 - 10,000)
+    while (!player) {
+        const rank = Math.floor(Math.random() * 10000) + 1;
+        player = await getPlayerByRank(rank);
+        // player = await getPlayerByUsername("CharlesGNS");
+    }
+    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
 
-        // update statistics
-        const statistics = await getDatabaseStatistics();
-        statistics.rolls++;
-        setDatabaseStatistics(statistics);
-        player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
-    });
+    // update statistics
+    const statistics = await getDatabaseStatistics();
+    statistics.rolls++;
+    setDatabaseStatistics(statistics);
+    player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
 
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
@@ -254,7 +251,7 @@ const cards = async (inboundMessage) => {
             discordUsername = inboundMessage.content.substring(6 + serverPrefix.length);
             discordUser = await client.users.cache.find(user => user.username == discordUsername);
         }
-        discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found.`);
+        discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found. (check capitalization)`);
     }
     else {
         discordUserId = inboundMessage.author.id
@@ -422,7 +419,7 @@ const unpin = async (inboundMessage) => {
             }
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
         }
     }
     else {
@@ -442,7 +439,7 @@ const claimed = async (inboundMessage) => {
                     : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been claimed.`);
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
         }
 
     }
@@ -492,7 +489,7 @@ const rolled = async (inboundMessage) => {
                     : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been rolled.`);
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
         }
 
     }
