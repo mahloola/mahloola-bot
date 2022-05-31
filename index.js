@@ -61,7 +61,6 @@ client.on("ready", async function () {
                 ['leaderboard']: leaderboard,
                 ['lb']: leaderboard,
                 ['prefix']: prefix,
-                ['fixdb']: fixdb
             }
             const command = commandMapping[commandText];
             if (command) {
@@ -233,7 +232,7 @@ const rolls = async (inboundMessage) => {
     }
     else {
         if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in less than a minute.`);
         }
         else {
             inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
@@ -624,21 +623,39 @@ const leaderboard = async (inboundMessage) => {
 }
 
 const help = async (inboundMessage) => {
-    inboundMessage.channel.send(`**Commands**\n\`\`\`
-Card-Related
-    roll: Roll for a top 10,000 player. Claim by reacting with 👍
-    rolls: Check your available rolls.
-    cards: Display all of your owned cards.
-    pin(username): Pin cards to the top of your cards page by typing ;pin <username>.
-    unpin(username): Remove pins from your cards page.
-    claimed(optional:username): Display the most claimed players, or the number of times a specific user has been claimed.
-    avg: Display the average rank in your top 10 cards.
-    lb: Display server leaderboard based on users' top 10 card ranking.
+    // create the embed message
 
-General
-    help: Display all commands.
-    stats: Display global bot stats.
-    \`\`\`
-**Discord**
-https://discord.gg/DGdzyapHkW`);
+
+    const description = `
+    **Card-Related**
+        \t\`roll:\` Roll for a top 10,000 player. Claim by reacting with 👍
+        \t\`rolls:\` Check your available rolls.
+        \t\`cards:\` Display all of your owned cards.
+        \t\`pin(username):\` Pin cards to the top of your cards page.
+        \t\`unpin(username):\` Remove pins from your cards page.
+        \t\`claimed(username):\` Display the times a user has been claimed.
+        \t\`claimed:\` Display the most claimed players.
+        \t\`rolled(username):\` Display the times a user has been rolled.
+        \t\`rolled:\` Display the most rolled players.
+        \t\`avg:\` Display the average rank in your top 10 cards.
+        \t\`lb:\` Display server leaderboard based on top 10 card rankings.\n 
+    **General**
+        \t\`help:\` Display all commands.
+        \t\`prefix:\` Change the bot prefix (must be an administrator).
+        \t\`stats:\` Display global bot stats.\n
+    **Discord**
+    https://discord.gg/DGdzyapHkW
+    `;
+    let embed = new Discord.MessageEmbed();
+
+    embed.setTitle(`mahloola BOT commands`)
+    embed.setColor('#D9A6BD')
+    embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
+    embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`)
+    embed.setDescription(description)
+    embed.setTimestamp(Date.now())
+
+    // send the message
+    inboundMessage.channel.send({ embeds: [embed] });
+
 };
