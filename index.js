@@ -23,54 +23,53 @@ client.on("ready", async function () {
     workflow === 'production' ?
         console.log(`\nTesting Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`) :
         console.log(`\nCurrent Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
-    try {
-        client.on('messageCreate', async (inboundMessage) => {
-            const serverDoc = await getServerDoc(inboundMessage.guild.id);
-            if (serverDoc) {
-                if (serverDoc.prefix === undefined) {
-                    serverPrefix = defaultPrefix;
-                }
-                else {
-                    serverPrefix = serverDoc.prefix;
-                }
-                serverPrefix = (serverDoc.prefix === undefined ? defaultPrefix : serverDoc.prefix);
-            }
-            else {
+    client.on('messageCreate', async (inboundMessage) => {
+        const serverDoc = await getServerDoc(inboundMessage.guild.id);
+        if (serverDoc) {
+            if (serverDoc.prefix === undefined) {
                 serverPrefix = defaultPrefix;
             }
-            // if the message either doesn't start with the prefix or was sent by a bot, exit early
-            if (!inboundMessage.content.startsWith(serverPrefix) || inboundMessage.author.bot) return;
-
-            const args = inboundMessage.content.slice(serverPrefix.length).trim().split(/ +/);
-            const commandText = args.shift().toLowerCase(); // make lowercase work too
-
-            const commandMapping = {
-                ['roll']: roll,
-                ['rolls']: rolls,
-                ['cards']: cards,
-                ['stats']: stats,
-                ['trade']: trade,
-                ['avg']: avg,
-                ['pin']: pin,
-                ['unpin']: unpin,
-                ['claimed']: claimed,
-                ['rolled']: rolled,
-                ['help']: help,
-                ['commands']: help,
-                ['leaderboard']: leaderboard,
-                ['lb']: leaderboard,
-                ['prefix']: prefix,
+            else {
+                serverPrefix = serverDoc.prefix;
             }
-            const command = commandMapping[commandText];
-            if (command) {
+            serverPrefix = (serverDoc.prefix === undefined ? defaultPrefix : serverDoc.prefix);
+        }
+        else {
+            serverPrefix = defaultPrefix;
+        }
+        // if the message either doesn't start with the prefix or was sent by a bot, exit early
+        if (!inboundMessage.content.startsWith(serverPrefix) || inboundMessage.author.bot) return;
+
+        const args = inboundMessage.content.slice(serverPrefix.length).trim().split(/ +/);
+        const commandText = args.shift().toLowerCase(); // make lowercase work too
+
+        const commandMapping = {
+            ['roll']: roll,
+            ['rolls']: rolls,
+            ['cards']: cards,
+            ['stats']: stats,
+            ['trade']: trade,
+            ['avg']: avg,
+            ['pin']: pin,
+            ['unpin']: unpin,
+            ['claimed']: claimed,
+            ['rolled']: rolled,
+            ['help']: help,
+            ['commands']: help,
+            ['leaderboard']: leaderboard,
+            ['lb']: leaderboard,
+            ['prefix']: prefix,
+        }
+        const command = commandMapping[commandText];
+        if (command) {
+            try {
                 await command(inboundMessage, db);
+            } catch (err) {
+                console.trace();
+                console.log(err);
             }
-        })
-    } catch (err) {
-        console.trace();
-        console.error(err);
-    }
-
+        }
+    })
 })
 client.login(token);
 
@@ -610,6 +609,7 @@ const leaderboard = async (inboundMessage) => {
                 break;
         }
     });
+
     embedDescription += `\`\`\``
     embed.setDescription(`${embedDescription}`)
     embed.setFooter({ text: `own 10+ cards to show up here`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
