@@ -1,4 +1,4 @@
-<a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2147609664&scope=applications.commands%20bot">
+<a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=8&scope=bot">
   <p align="center">
   <img src="https://i.imgur.com/RZHlVph.png" alt="invite-link" width="200"/>
   </p>
@@ -19,7 +19,7 @@ This is a **work in progress**; as such, many intended features have not been im
 - **;trade**: Trade cards between your friends. 🤝
 
 ## Development Server
-If you have any issues or suggestions, or just want a place to chat, please <a href="https://discord.gg/VBMSxEhW">join the Discord server</a>.
+If you have any issues or suggestions, or just want a place to chat, please <a href="https://discord.gg/DGdzyapHkW">join the Discord server</a>.
 
 ## Gallery
 <p align="center">
