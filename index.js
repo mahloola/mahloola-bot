@@ -21,7 +21,7 @@ client.on("ready", async function () {
 
     updateDatabaseStatistics().then(async () => {
         let databaseStatistics = await getDatabaseStatistics();
-        const statisticsVersion = workflow === 'production' ? 'Testing' : 'Current';
+        const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
         console.log(`\n${statisticsVersion} Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
     })
     client.on('messageCreate', async (inboundMessage) => {
@@ -60,7 +60,7 @@ client.on("ready", async function () {
             ['leaderboard']: leaderboard,
             ['lb']: leaderboard,
             ['prefix']: prefix,
-            ['updatedb']: updatedb
+            ['updatestats']: updatestats
         }
         const command = commandMapping[commandText];
         if (command) {
@@ -81,7 +81,7 @@ const roll = async (inboundMessage, db) => {
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
 
-    // const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+    // const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
     // const serverDoc = serversRef.doc(inboundMessage.guild.id.toString());
     // const usersRef = serverDoc.collection(inboundMessage.guild.id);
     // const userDoc = await usersRef.doc(inboundMessage.author.id.toString()).get();
@@ -95,6 +95,7 @@ const roll = async (inboundMessage, db) => {
         currentRolls = user.rolls ? user.rolls : 0;
     }
     else {  // if user doesn't exist yet
+
         await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
         await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
@@ -353,9 +354,28 @@ const cards = async (inboundMessage) => {
 };
 
 const stats = async (inboundMessage) => {
-    //updateStatistics();
+    // create the embed message
+
     let statistics = await getDatabaseStatistics();
-    inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
+    //inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
+    const description = `
+        **Users**: ${statistics.users}
+        **Servers**: ${statistics.servers}   
+        **Rolls**: ${statistics.rolls}
+        `;
+    let embed = new Discord.MessageEmbed();
+
+    embed.setTitle(`mahloola BOT Global Stats`)
+    embed.setColor('#D9A6BD')
+    embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
+    embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`)
+    embed.setDescription(description)
+    embed.setTimestamp(Date.now())
+
+    // send the message
+    inboundMessage.channel.send({ embeds: [embed] });
+    //updateStatistics();
+
 };
 
 const trade = async (inboundMessage) => {
@@ -627,8 +647,8 @@ const leaderboard = async (inboundMessage) => {
     // send the message
     inboundMessage.channel.send({ embeds: [embed] });
 }
-const updatedb = async (inboundMessage) => {
-    inboundMessage.channel.send(`${inboundMessage.author} Updating database...`);
+const updatestats = async (inboundMessage) => {
+    inboundMessage.channel.send(`${inboundMessage.author} Updating database statistics...`);
     updateDatabaseStatistics().then(async () => {
         inboundMessage.channel.send(`${inboundMessage.author} Database statistics have been updated.`);
     })
