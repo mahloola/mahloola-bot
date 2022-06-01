@@ -79,68 +79,70 @@ const roll = async (inboundMessage, db) => {
     let player;
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
-    await db.runTransaction(async (t) => {
 
-        const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
-        const serverDoc = serversRef.doc(inboundMessage.guild.id.toString());
-        const usersRef = serverDoc.collection(inboundMessage.guild.id);
-        const userDoc = usersRef.doc(inboundMessage.author.id.toString());
-        const userDocData = await t.get(userDoc);
-        let user = userDocData.exists ? userDocData.data() : null;
-        let resetTime;
-        let currentRolls;
-        if (user) {
-            resetTime = user.rollResetTime ? user.rollResetTime : 0;
-            currentRolls = user.rolls ? user.rolls : 0;
-        }
-        else {  // if user doesn't exist yet
-            await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-            await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-            user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-            currentRolls = user.rolls;
-            resetTime = user.rollResetTime;
-        }
-        // if user is past their cooldown
-        if (currentTime > resetTime) {
-            currentRolls = 10;
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-            await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-        }
-        // exit if user does not have enough rolls
-        if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+    // const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+    // const serverDoc = serversRef.doc(inboundMessage.guild.id.toString());
+    // const usersRef = serverDoc.collection(inboundMessage.guild.id);
+    // const userDoc = await usersRef.doc(inboundMessage.author.id.toString()).get();
+    // let user = userDoc.exists ? await userDoc.data() : null;
 
-            let resetTimeMs = user.rollResetTime;
-            let timeRemaining = resetTimeMs - currentTime;
-            let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
-            if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-                inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
-            }
-            else {
-                inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
-            }
-            return;
+    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+    console.log(user);
+    let resetTime;
+    let currentRolls;
+    if (user) {
+        resetTime = user.rollResetTime ? user.rollResetTime : 0;
+        currentRolls = user.rolls ? user.rolls : 0;
+    }
+    else {  // if user doesn't exist yet
+        console.log("adsf")
+        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+        await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+        currentRolls = user.rolls;
+        resetTime = user.rollResetTime;
+    }
+    // if user is past their cooldown
+    if (currentTime > resetTime) {
+        currentRolls = 10;
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
+        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
+    }
+    // exit if user does not have enough rolls
+    if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+
+        let resetTimeMs = user.rollResetTime;
+        let timeRemaining = resetTimeMs - currentTime;
+        let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
         }
-
-        // update user available rolls
-        currentTime > resetTime ?
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
-            await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
-
-        // get a random player (rank 1 - 10,000)
-        while (!player) {
-            const rank = Math.floor(Math.random() * 10000) + 1;
-            player = await getPlayerByRank(rank);
+        else {
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
         }
-        console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+        return;
+    }
 
-        // update statistics
-        const statistics = await getDatabaseStatistics();
-        statistics.rolls++;
-        setDatabaseStatistics(statistics);
-        // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
-        player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
-    });
+    // update user available rolls
+    currentTime > resetTime ?
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9) :
+        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
+
+    // get a random player (rank 1 - 10,000)
+    while (!player) {
+        const rank = Math.floor(Math.random() * 10000) + 1;
+        player = await getPlayerByRank(rank);
+    }
+    console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
+
+    // update statistics
+    const statistics = await getDatabaseStatistics();
+    statistics.rolls++;
+    setDatabaseStatistics(statistics);
+    // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
+    player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
+
     await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] })
