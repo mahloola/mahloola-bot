@@ -60,6 +60,7 @@ client.on("ready", async function () {
             ['leaderboard']: leaderboard,
             ['lb']: leaderboard,
             ['prefix']: prefix,
+            ['updatedb']: updatedb
         }
         const command = commandMapping[commandText];
         if (command) {
@@ -87,7 +88,6 @@ const roll = async (inboundMessage, db) => {
     // let user = userDoc.exists ? await userDoc.data() : null;
 
     let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-    console.log(user);
     let resetTime;
     let currentRolls;
     if (user) {
@@ -95,7 +95,6 @@ const roll = async (inboundMessage, db) => {
         currentRolls = user.rolls ? user.rolls : 0;
     }
     else {  // if user doesn't exist yet
-        console.log("adsf")
         await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
         await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
@@ -116,7 +115,7 @@ const roll = async (inboundMessage, db) => {
         let timeRemaining = resetTimeMs - currentTime;
         let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
         if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in one minute**.`);
+            inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in less than a minute.`);
         }
         else {
             inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`);
@@ -628,7 +627,12 @@ const leaderboard = async (inboundMessage) => {
     // send the message
     inboundMessage.channel.send({ embeds: [embed] });
 }
-
+const updatedb = async (inboundMessage) => {
+    inboundMessage.channel.send(`${inboundMessage.author} Updating database...`);
+    updateDatabaseStatistics().then(async () => {
+        inboundMessage.channel.send(`${inboundMessage.author} Database statistics have been updated.`);
+    })
+}
 const help = async (inboundMessage) => {
     // create the embed message
 
