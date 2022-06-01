@@ -338,12 +338,12 @@ module.exports.updateDatabaseStatistics = async function () {
 }
 
 module.exports.updateServerStatistics = async function (serverId) {
-  let statistics = await getServerStatistics();
+  let statistics = await module.exports.getServerStatistics();
   const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
   const serverRef = await serversRef.doc(serverId.toString());
   const usersSnapshot = await serverRef.get();
   statistics.users = usersSnapshot.size;
-  setServerStatistics(statistics);
+  module.exports.setServerStatistics(statistics);
   return statistics;
 
   // db.collection("servers")
