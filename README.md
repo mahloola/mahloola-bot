@@ -30,15 +30,14 @@ If you have any issues or suggestions, or just want a place to chat, please <a h
 - **;prefix**: Change the bot prefix for your server (must be a server administrator).
 - **;stats**: Display global bot stats.
 
-
-
 ## Gallery
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/61226619/171368666-21ff37fb-50e9-447f-8fe0-28c90873c757.png"/>
+  <img src="https://user-images.githubusercontent.com/61226619/171373850-69299274-09a0-4edf-b504-b3781a481380.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171369919-4c376fb8-b297-45c5-9e22-8759a56030c8.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171368644-e0be6b1a-29f0-4668-a4d0-12f48f18fa20.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171368658-97ad4d68-82bf-4c11-a2fc-286ebb12ab69.png"/>
-  <img src="https://user-images.githubusercontent.com/61226619/171368673-8a2af7d5-4c12-4f85-9ef5-7b4049660bde.png"/>
+  <img src="https://user-images.githubusercontent.com/61226619/171373403-ce8c6ae9-e83c-4377-88e8-4d2a5624a4db.png"/>
+  <img src="https://user-images.githubusercontent.com/61226619/171372887-6dab7af6-c5a8-4cd3-8c3b-8e9cc40b045a.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171370416-51a9823d-3cda-41d0-99a3-c3e9a4c58d06.png"/>
 </p>
 
