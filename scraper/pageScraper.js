@@ -27,9 +27,14 @@ const scraperObject = {
             // convert 50 user IDs into user objects
             // WARNING: rate-limit these calls to <60 calls per minute
             for (const userId of userIds) {
-                const player = await getUser(apiToken, userId);
-                console.log(`Scraping ${player.username}...`);
-                setPlayer(player);
+                let player;
+                try {
+                    player = await getUser(apiToken, userId);
+                    console.log(`Scraping ${player.username}...`);
+                    setPlayer(player);
+                } catch (err) {
+                    console.log(`Failed to scraper user ${userId}: ${err}`);
+                }
             }
             // after 50 calls, wait for 1 minute
             console.log("Waiting 1 minute...");
