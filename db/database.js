@@ -37,7 +37,7 @@ module.exports.setPlayerClaimCounter = async function (player, count) {
       { merge: true }
     );
     // set the claim counter in the leaderboard database
-    const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("claimed") : db.collection("leaderboards").doc("claimed");
+    const leaderboardRef = (workflow === 'development') ? db.collection("testing-leaderboards").doc("claimed") : db.collection("leaderboards").doc("claimed");
     const claimedLeaderboardData = await module.exports.getLeaderboardData('claimed');
     const claimedPlayers = claimedLeaderboardData.players ?? {}
     claimedPlayers[playerId] = count;
@@ -64,7 +64,7 @@ module.exports.setPlayerRollCounter = async function (player, count) {
       { merge: true }
     );
     // set the claim counter in the leaderboard database
-    const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards").doc("rolled") : db.collection("leaderboards").doc("rolled");
+    const leaderboardRef = (workflow === 'development') ? db.collection("testing-leaderboards").doc("rolled") : db.collection("leaderboards").doc("rolled");
     const rolledLeaderboardData = await module.exports.getLeaderboardData('rolled');
     let rolledPlayers = rolledLeaderboardData.players ?? {}
     rolledPlayers[playerId] = count;
@@ -123,7 +123,7 @@ module.exports.getPlayerByRank = async function (rank) {
 
 // DB UTILITY FUNCTIONS
 module.exports.getServersRef = function () {
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   return serversRef;
 }
 module.exports.getServerDoc = async function (serverId) {
@@ -132,7 +132,7 @@ module.exports.getServerDoc = async function (serverId) {
   return serverDoc.exists ? serverDoc.data() : null;
 }
 module.exports.getServerUsersRef = function (serverId) {
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = serversRef.doc(serverId.toString());
   const usersRef = serverDoc.collection('users');
   return usersRef;
@@ -158,12 +158,12 @@ module.exports.getServerUserIds = async function (serverId) {
 }
 
 module.exports.getLeaderboardData = async function (type) {
-  const leaderboardRef = (workflow === 'production') ? db.collection("testing-leaderboards") : db.collection("leaderboards");
+  const leaderboardRef = (workflow === 'development') ? db.collection("testing-leaderboards") : db.collection("leaderboards");
   const leaderboardDoc = await leaderboardRef.doc(type).get();
   return leaderboardDoc.exists ? leaderboardDoc.data() : null;
 }
 module.exports.setPrefix = async function (serverId, newPrefix) {
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = serversRef.doc(serverId.toString());
   await serverDoc.set(
     { 'prefix': newPrefix },
@@ -173,7 +173,7 @@ module.exports.setPrefix = async function (serverId, newPrefix) {
 
 // this is when a user claims a card
 module.exports.setOwnedPlayer = async function (serverId, userId, playerId) {
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = serversRef.doc(serverId.toString());
   const serverUsersRef = serverDoc.collection("users");
   const userRef = serverUsersRef.doc(userId.toString());
@@ -270,7 +270,7 @@ module.exports.updateUserElo = async function (serverId, userId) {
   }
   const avgRanks = totalRanks / 10;
   // update elo in the db
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
@@ -289,27 +289,27 @@ module.exports.updateUserEloByPlayers = async function (serverId, userId, ownedP
   }
   const avgRanks = totalRanks / 10;
   // update elo in the db
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
   return avgRanks;
 }
 
 // global statistics
 module.exports.setDatabaseStatistics = async function (stats) {
-  const statisticsRef = (workflow === 'production') ? db.collection("testing-statistics") : db.collection("statistics");
+  const statisticsRef = (workflow === 'development') ? db.collection("testing-statistics") : db.collection("statistics");
   await statisticsRef.doc("global").set(stats);
 }
 module.exports.getDatabaseStatistics = async function () {
-  const statisticsRef = (workflow === 'production') ? db.collection("testing-statistics") : db.collection("statistics");
+  const statisticsRef = (workflow === 'development') ? db.collection("testing-statistics") : db.collection("statistics");
   const doc = await statisticsRef.doc("global").get();
   return doc.data();
 }
 module.exports.setServerStatistics = async function (serverId, stats) {
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   await serversRef.doc(serverId.toString()).set(stats);
 }
 module.exports.getServerStatistics = async function (serverId) {
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   const serverDoc = await serversRef.doc(serverId.toString()).get();
   return serverDoc.statistics;
 }
@@ -319,7 +319,7 @@ module.exports.updateDatabaseStatistics = async function () {
   let serverIds = [];
   let userCount = 0;
   const serversSnapshot = await db.collection('servers').get();
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   serverCount = serversSnapshot.size; // will return the collection size
   statistics.servers = serverCount;
   serversSnapshot.docs.forEach(doc => {
@@ -339,7 +339,7 @@ module.exports.updateDatabaseStatistics = async function () {
 
 module.exports.updateServerStatistics = async function (serverId) {
   let statistics = await module.exports.getServerStatistics();
-  const serversRef = (workflow === 'production') ? db.collection("testing-servers") : db.collection("servers");
+  const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
   const serverRef = await serversRef.doc(serverId.toString());
   const usersSnapshot = await serverRef.get();
   statistics.users = usersSnapshot.size;
