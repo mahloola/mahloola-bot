@@ -253,14 +253,20 @@ const cards = async (inboundMessage) => {
     let discordUser;
     if (inboundMessage.content.length > (6 + serverPrefix.length)) {
         let discordUsername;
-        if (inboundMessage.mentions.users.first()) {
-            discordUser = inboundMessage.mentions.users.first();
+        if (discordUsername === '@everyone' || discordUsername === '@here') {
+            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            return;
         }
         else {
-            discordUsername = inboundMessage.content.substring(6 + serverPrefix.length);
-            discordUser = await client.users.cache.find(user => user.username == discordUsername);
+            if (inboundMessage.mentions.users.first()) {
+                discordUser = inboundMessage.mentions.users.first();
+            }
+            else {
+                discordUsername = inboundMessage.content.substring(6 + serverPrefix.length);
+                discordUser = await client.users.cache.find(user => user.username == discordUsername);
+            }
+            discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found. (check capitalization)`);
         }
-        discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found. (check capitalization)`);
     }
     else {
         discordUserId = inboundMessage.author.id
@@ -409,21 +415,28 @@ const avg = async (inboundMessage) => {
 const pin = async (inboundMessage) => {
     let username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
-        let player = await getPlayerByUsername(username);
-        if (player) {
-            const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
-            const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
-            if (validFlag) {
-                await setPinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, player.apiv2.id).catch(err => console.error(err));
-                inboundMessage.channel.send(`${inboundMessage.author} pinned ${username} successfully.`)
-            }
-            else {
-                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}". (check capitalization)`);
-            }
+        if (username === '@everyone' || username === '@here') {
+            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            return;
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            let player = await getPlayerByUsername(username);
+            if (player) {
+                const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+                const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
+                if (validFlag) {
+                    await setPinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, player.apiv2.id).catch(err => console.error(err));
+                    inboundMessage.channel.send(`${inboundMessage.author} pinned ${username} successfully.`)
+                }
+                else {
+                    inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}". (check capitalization)`);
+                }
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            }
         }
+
     }
     else {
         inboundMessage.channel.send(`${inboundMessage.author} Please enter the username of the player you want to pin.`)
@@ -434,20 +447,26 @@ const pin = async (inboundMessage) => {
 const unpin = async (inboundMessage) => {
     let username = inboundMessage.content.substring(6 + serverPrefix.length);
     if (username) {
-        let player = await getPlayerByUsername(username);
-        if (player) {
-            const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
-            const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
-            if (validFlag) {
-                await deletePinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, player.apiv2.id).catch(err => console.error(err));
-                inboundMessage.channel.send(`${inboundMessage.author} unpinned ${username} successfully.`)
-            }
-            else {
-                inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}".`);
-            }
+        if (username === '@everyone' || username === '@here') {
+            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            return;
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            let player = await getPlayerByUsername(username);
+            if (player) {
+                const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+                const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
+                if (validFlag) {
+                    await deletePinnedPlayer(inboundMessage.channel.guildId, inboundMessage.author.id, player.apiv2.id).catch(err => console.error(err));
+                    inboundMessage.channel.send(`${inboundMessage.author} unpinned ${username} successfully.`)
+                }
+                else {
+                    inboundMessage.channel.send(`${inboundMessage.author} You do not own a player with the username "${username}".`);
+                }
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            }
         }
     }
     else {
@@ -460,16 +479,21 @@ const claimed = async (inboundMessage) => {
     const lbData = await getLeaderboardData("claimed");
     if (inboundMessage.content.length > (8 + serverPrefix.length)) {
         let username = inboundMessage.content.substring(8 + serverPrefix.length);
-        const player = await getPlayerByUsername(username);
-        if (player) {
-            lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed once.`)
-                : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed ${lbData.players[player.apiv2.id]} times.`)
-                    : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been claimed.`);
+        if (username === '@everyone' || username === '@here') {
+            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            return;
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            const player = await getPlayerByUsername(username);
+            if (player) {
+                lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed once.`)
+                    : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been claimed ${lbData.players[player.apiv2.id]} times.`)
+                        : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been claimed.`);
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            }
         }
-
     }
     else {
 
@@ -507,19 +531,25 @@ const claimed = async (inboundMessage) => {
     }
 }
 const rolled = async (inboundMessage) => {
+    inboundMessage.channel.send(`This feature is temporarily disabled until the data is fixed.`);
     const lbData = await getLeaderboardData("rolled");
     if (inboundMessage.content.length > (8 + serverPrefix.length)) {
         let username = inboundMessage.content.substring(7 + serverPrefix.length);
-        const player = await getPlayerByUsername(username);
-        if (player) {
-            lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled once.`)
-                : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled ${lbData.players[player.apiv2.id]} times.`)
-                    : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been rolled.`);
+        if (username === '@everyone' || username === '@here') {
+            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            return;
         }
         else {
-            inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            const player = await getPlayerByUsername(username);
+            if (player) {
+                lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled once.`)
+                    : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled ${lbData.players[player.apiv2.id]} times.`)
+                        : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been rolled.`);
+            }
+            else {
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+            }
         }
-
     }
     else {
         const lb = await getLeaderboardData("rolled");
