@@ -131,7 +131,22 @@ const roll = async (inboundMessage, db) => {
 
     // get a random player (rank 1 - 10,000)
     while (!player) {
-        const rank = Math.floor(Math.random() * 10000) + 1;
+        
+        let temp =Math.random();
+        if(temp<=0.005){
+            temp=Math.floor(Math.random()*100)+1;  
+
+
+        }else if(temp<=0.01){
+            temp=Math.floor(Math.random() * (1000 - 100 + 1)) + 100; 
+
+
+
+        }else{
+
+            temp=Math.floor(Math.random() * (10000 - 1000 + 1)) + 1000;
+        }
+        const rank=temp;
         player = await getPlayerByRank(rank);
     }
     console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
