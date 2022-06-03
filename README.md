@@ -4,6 +4,9 @@
   </p>
 </a>
 
+# HOW TO BUILD
+<!--TODO before pushing: replace 'cfgexe' with 'mahloola'--> 
+read [building.md](https://github.com/cfgexe/mahloola-bot) if you want to run this locally.
 
 # mahloola bot
 
