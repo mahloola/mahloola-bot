@@ -17,7 +17,7 @@ module.exports.setPlayer = async function (player) {
   if (player) {
     const docRef = db.collection("players").doc(player.id.toString());
     await docRef.set(
-      { apiv2: player, dateUpdated: new Date() },
+      { apiv2: player, dateUpdated: new Date(), usernameLowercase: player.username.toLowerCase() },
       { merge: true }
     );
   } else {
