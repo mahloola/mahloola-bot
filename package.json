@@ -23,7 +23,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "scrape": "node ./scraper/scrape.js"
+    "scrape": "node ./scraper/scrape.js",
+    "update": "node ./scraper/update.js"
   },
   "repository": {
     "type": "git",
