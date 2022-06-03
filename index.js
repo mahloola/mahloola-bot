@@ -143,7 +143,6 @@ const roll = async (inboundMessage, db) => {
     // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
     player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
 
-    await createImage(player);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] })
     outboundMessage.react('👍');
@@ -355,8 +354,6 @@ const cards = async (inboundMessage) => {
 
     // send the message
     inboundMessage.channel.send({ embeds: [embed] });
-
-    const embed2 = embed;
 };
 
 const stats = async (inboundMessage) => {
@@ -368,6 +365,7 @@ const stats = async (inboundMessage) => {
         **Users**: ${statistics.users}
         **Servers**: ${statistics.servers}   
         **Rolls**: ${statistics.rolls}
+        **Players**: ${statistics.players}
         `;
     let embed = new Discord.MessageEmbed();
 
@@ -376,6 +374,7 @@ const stats = async (inboundMessage) => {
     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
     embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`)
     embed.setDescription(description)
+    embed.setFooter({ text: `'players' refers to cards you can roll`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
     embed.setTimestamp(Date.now())
 
     // send the message
