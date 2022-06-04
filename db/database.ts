@@ -225,7 +225,7 @@ export async function attemptRoll(serverId, userId): Promise<boolean> {
         let dataToSet: ServerUser = null;
         let rollSuccess;
 
-        if (!user || !user.rollResetTime) {
+        if (!user || user.rollResetTime === undefined) {
             // user doesn't exist yet
             rollSuccess = true;
             dataToSet = {
