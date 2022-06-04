@@ -21,7 +21,7 @@ async function createPlayerCard(player) {
         lineSpacing: 10,
         padding: 20
     })));
-    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-left.png`, text2png(`Global\n\npp\nPlaycount`, {
+    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-left.png`, text2png(`Global\n\npp\nPlaycount\nClaims`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -30,7 +30,7 @@ async function createPlayerCard(player) {
         lineSpacing: 10,
         padding: 20,
     })));
-    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-right.png`, text2png(`${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${player.statistics.play_count}`, {
+    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-right.png`, text2png(`${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${player.statistics.play_count}\n${player.claimedCount ? player.claimedCount : 0}`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
