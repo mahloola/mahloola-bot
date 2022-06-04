@@ -31,6 +31,7 @@ import {
     setClaimResetTime,
     getLeaderboardData,
     setPrefix,
+    attemptRoll,
 } from './db/database';
 import { createPlayerCard } from './image/jimp';
 // import paginationEmbed from 'discord.js-pagination';
@@ -114,30 +115,12 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     // const userDoc = await usersRef.doc(inboundMessage.author.id.toString()).get();
     // let user = userDoc.exists ? await userDoc.data() : null;
 
-    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-    let resetTime;
-    let currentRolls;
-    if (user) {
-        resetTime = user.rollResetTime ? user.rollResetTime : 0;
-        currentRolls = user.rolls ? user.rolls : 0;
-    } else {
-        // if user doesn't exist yet
+    const user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
 
-        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-        await setClaimResetTime(inboundMessage.guild.id, inboundMessage.author.id, 0);
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-        currentRolls = user.rolls;
-        resetTime = user.rollResetTime;
-    }
-    // if user is past their cooldown
-    if (currentTime > resetTime) {
-        currentRolls = 10;
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        await setRollResetTime(inboundMessage.guild.id, inboundMessage.author.id);
-    }
     // exit if user does not have enough rolls
-    if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+    const rollSuccess = await attemptRoll(inboundMessage.guild.id, inboundMessage.author.id);
+    const isAdmin = inboundMessage.author.id === ADMIN_DISCORD_ID;
+    if (!rollSuccess && !isAdmin) {
         const resetTimeMs = user.rollResetTime;
         const timeRemaining = resetTimeMs - currentTime;
         const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
@@ -152,11 +135,6 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
         }
         return;
     }
-
-    // update user available rolls
-    currentTime > resetTime
-        ? await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 9)
-        : await setRolls(inboundMessage.guild.id, inboundMessage.author.id, currentRolls - 1);
 
     // get a random player (rank 1 - 10,000)
     while (!player) {
