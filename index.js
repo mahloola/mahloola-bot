@@ -19,11 +19,10 @@ let serverPrefix;
 client.on("ready", async function () {
     const db = initializeDatabase();
 
-    updateDatabaseStatistics().then(async () => {
-        let databaseStatistics = await getDatabaseStatistics();
-        const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
-        console.log(`\n${statisticsVersion} Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\n`);
-    })
+    let databaseStatistics = await getDatabaseStatistics();
+    const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
+    console.log(`\n${statisticsVersion} Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\nPlayers | ${databaseStatistics.players}`);
+
     client.on('messageCreate', async (inboundMessage) => {
         const serverDoc = await getServerDoc(inboundMessage.guild.id);
         if (serverDoc) {
@@ -65,7 +64,7 @@ client.on("ready", async function () {
         const command = commandMapping[commandText];
         if (command) {
             try {
-                await command(inboundMessage, db);
+                await command(inboundMessage, db, databaseStatistics);
             } catch (err) {
                 console.trace();
                 console.log(err);
@@ -75,8 +74,10 @@ client.on("ready", async function () {
 })
 client.login(token);
 
-const roll = async (inboundMessage, db) => {
+const roll = async (inboundMessage, db, databaseStatistics) => {
 
+    console.log(prefix);
+    console.log("rolling")
     let player;
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
@@ -131,7 +132,7 @@ const roll = async (inboundMessage, db) => {
 
     // get a random player (rank 1 - 10,000)
     while (!player) {
-        const rank = Math.floor(Math.random() * 10000) + 1;
+        const rank = Math.floor(Math.random() * databaseStatistics.players) + 1;
         player = await getPlayerByRank(rank);
     }
     console.log(`${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${inboundMessage.author.username} rolled ${player.apiv2.username}.`);
@@ -142,7 +143,7 @@ const roll = async (inboundMessage, db) => {
     setDatabaseStatistics(statistics);
     // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
     player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
-
+    // await createImage(player.apiv2);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] })
     outboundMessage.react('👍');
@@ -264,7 +265,12 @@ const cards = async (inboundMessage) => {
                 discordUsername = inboundMessage.content.substring(6 + serverPrefix.length);
                 discordUser = await client.users.cache.find(user => user.username == discordUsername);
             }
-            discordUser ? discordUserId = discordUser.id : inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found. (check capitalization)`);
+            if (discordUser) {
+                discordUserId = discordUser.id;
+            } else {
+                inboundMessage.channel.send(`${inboundMessage.author} User "${discordUsername}" was not found. (check capitalization)`);
+                return;
+            }
         }
     }
     else {
@@ -312,7 +318,7 @@ const cards = async (inboundMessage) => {
     const pinnedPlayers = await Promise.all(pinnedPlayerPromises);
 
     // get the top 10 average
-    const elo = await updateUserEloByPlayers(inboundMessage.guild.id, inboundMessage.author.id, ownedPlayers);
+    const elo = await updateUserEloByPlayers(inboundMessage.guild.id, discordUserId, ownedPlayers);
     let eloDisplay = elo == null ? "N/A" : elo;
 
     // create embed body
