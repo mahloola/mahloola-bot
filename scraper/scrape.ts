@@ -1,5 +1,5 @@
-import { startBrowser } from './browser'
-import { initializeDatabase, setPlayer } from '../db/database'
+import { startBrowser } from './browser';
+import { initializeDatabase, setPlayer } from '../db/database';
 import scraperController from './pageController';
 
 initializeDatabase();

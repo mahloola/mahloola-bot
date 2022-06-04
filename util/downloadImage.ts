@@ -1,5 +1,5 @@
-import * as fs from 'fs'
-import request from 'request'
+import * as fs from 'fs';
+import request from 'request';
 
 export const download = function (uri, filename, callback) {
     request.head(uri, function (err, res, body) {
