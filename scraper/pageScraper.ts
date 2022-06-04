@@ -1,21 +1,22 @@
-require('dotenv').config();
-const { getUser } = require('./api');
-const { setPlayer } = require('../db/database');
-const { sleep } = require('../util/sleep');
-const { requestClientCredentialsToken } = require('./api');
+import dotenv from 'dotenv'
+import { setPlayer } from '../db/database'
+import { sleep } from '../util/sleep'
+import { getUser } from './api'
+import { requestClientCredentialsToken } from './api'
 
-let apiToken;
+dotenv.config()
 
-const scraperObject = {
+export default {
     async scraper(browser) {
-        let page = await browser.newPage();
+        const page = await browser.newPage();
         for (let i = 1; i < 201; i++) {
             await page.goto(`https://osu.ppy.sh/rankings/osu/performance?page=${i}`);
             await page.waitForSelector('tr');
             console.log("Waiting for selector...");
 
             // get new token
-            apiToken = await requestClientCredentialsToken();
+            // TODO: stop requesting a new token on every page and just do it once in the beginning
+            const apiToken = await requestClientCredentialsToken();
 
             // get 50 user IDs
             const userIds = await page.$$eval('td > div', async (divs) => {
@@ -42,5 +43,3 @@ const scraperObject = {
         }
     }
 }
-
-module.exports = scraperObject;

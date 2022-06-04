@@ -1,7 +1,6 @@
-const Discord = require('discord.js');
-const { MessageAttachment, Intents } = require("discord.js");
-const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayers,
+import Discord from 'discord.js';
+import { MessageAttachment, Intents } from 'discord.js'
+import { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayers,
     setOwnedPlayer, getPlayer, setPlayerClaimCounter, setPlayerRollCounter,
     getDatabaseStatistics, setDatabaseStatistics, updateDatabaseStatistics,
     getServerStatistics, setServerStatistics, updateServerStatistics,
@@ -9,17 +8,19 @@ const { initializeDatabase, getPlayerByRank, getPlayerByUsername, getOwnedPlayer
     getServerUserRef, getServerUserDoc, getServerUserIds, getServersRef,
     getServerDoc, updateUserElo, updateUserEloByPlayers, setRollResetTime,
     setRolls, setClaimResetTime, getLeaderboardData, setPrefix }
-    = require('./db/database');
-const { createImage } = require('./image/jimp.js');
-const paginationEmbed = require('discord.js-pagination');
-const { defaultPrefix, token, workflow } = require('./auth.json');
+    from './db/database'
+import { createPlayerCard } from './image/jimp'
+// import paginationEmbed from 'discord.js-pagination';
+import { defaultPrefix, token, workflow } from './auth.json'
+
+const client = new Discord.Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
 const ADMIN_DISCORD_ID = "198773384794996739";
 let serverPrefix;
 
 client.on("ready", async function () {
     const db = initializeDatabase();
 
-    let databaseStatistics = await getDatabaseStatistics();
+    const databaseStatistics = await getDatabaseStatistics();
     const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
     console.log(`\n${statisticsVersion} Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\nPlayers | ${databaseStatistics.players}`);
 
@@ -80,7 +81,7 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
 
     let player;
     const timestamp = new Date();
-    let currentTime = timestamp.getTime();
+    const currentTime = timestamp.getTime();
 
     // const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
     // const serverDoc = serversRef.doc(inboundMessage.guild.id.toString());
@@ -113,9 +114,9 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
     // exit if user does not have enough rolls
     if (currentRolls <= 0 && inboundMessage.author.id !== ADMIN_DISCORD_ID) {
 
-        let resetTimeMs = user.rollResetTime;
-        let timeRemaining = resetTimeMs - currentTime;
-        let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+        const resetTimeMs = user.rollResetTime;
+        const timeRemaining = resetTimeMs - currentTime;
+        const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
         if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
             inboundMessage.channel.send(`${inboundMessage.author} You've run out of rolls. Your rolls will restock in less than a minute.`);
         }
@@ -144,7 +145,7 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
     // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
     player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
 
-    await createImage(player.apiv2, player.claimCounter);
+    await createPlayerCard(player.apiv2, player.claimCounter);
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] })
     outboundMessage.react('👍');
@@ -183,8 +184,8 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
 
                 }
                 else {
-                    let timeRemaining = claimResetTime - currentTime;
-                    let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+                    const timeRemaining = claimResetTime - currentTime;
+                    const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
                     if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
                         outboundMessage.channel.send(`${userObject} You may claim again in **one** minute!`);
                     }
@@ -219,15 +220,15 @@ const rolls = async (inboundMessage) => {
         user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     }
 
-    let resetTime = new Date(resetTimestamp);
+    const resetTime = new Date(resetTimestamp).getTime();
     const currentTime = new Date().getTime();
     if (currentTime > resetTime) {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
         currentRolls = 10;
     }
 
-    let timeRemaining = resetTime - currentTime;
-    let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+    const timeRemaining = resetTime - currentTime;
+    const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
     if (currentRolls === 1) {
         inboundMessage.channel.send(`You have 1 final roll remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`);
     }
@@ -249,7 +250,7 @@ const rolls = async (inboundMessage) => {
 
 };
 const claim = async (inboundMessage) => {
-    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+    const user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     let resetTime;
     const currentTime = new Date().getTime();
     if (user) { // if user exists in the database
@@ -263,8 +264,8 @@ const claim = async (inboundMessage) => {
         await setClaimResetTime(inboundMessage.channel.guildId, inboundMessage.author.id, currentTime); // set their reset time to 'now'
         resetTime = currentTime;
     }
-    let timeRemaining = resetTime - currentTime;
-    let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+    const timeRemaining = resetTime - currentTime;
+    const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
     if (timeRemainingInMinutes > 1) {
         inboundMessage.channel.send(`${inboundMessage.author} You have **${timeRemainingInMinutes}** minutes left until you can claim again.`);
     }
@@ -307,7 +308,7 @@ const cards = async (inboundMessage) => {
         discordUserId = inboundMessage.author.id
         discordUser = inboundMessage.author
     }
-    let playerIds = await getOwnedPlayers(inboundMessage.guild.id, discordUserId, 10);
+    const playerIds = await getOwnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
     // check if user owns anybody first
     if (!playerIds) {
@@ -315,8 +316,8 @@ const cards = async (inboundMessage) => {
         return;
     }
     // get full list of players
-    let ownedPlayersNames = [];
-    let ownedPlayersRanks = [];
+    const ownedPlayersNames = [];
+    const ownedPlayersRanks = [];
 
     const ownedPlayerPromises = [];
     for (const id of playerIds) {
@@ -336,7 +337,7 @@ const cards = async (inboundMessage) => {
     }
 
     // get pinned players
-    let pinnedPlayerIds = await getPinnedPlayers(inboundMessage.guild.id, discordUserId, 10);
+    const pinnedPlayerIds = await getPinnedPlayers(inboundMessage.guild.id, discordUserId, 10);
 
     const pinnedPlayerPromises = [];
 
@@ -349,7 +350,7 @@ const cards = async (inboundMessage) => {
 
     // get the top 10 average
     const elo = await updateUserEloByPlayers(inboundMessage.guild.id, discordUserId, ownedPlayers);
-    let eloDisplay = elo == null ? "N/A" : elo;
+    const eloDisplay = elo == null ? "N/A" : elo;
 
     // create embed body
     let pinnedDescription = "";
@@ -371,7 +372,7 @@ const cards = async (inboundMessage) => {
     });
 
     // create the embed message
-    let embed = new Discord.MessageEmbed();
+    const embed = new Discord.MessageEmbed();
 
     // add the rest of the information
     embed.setTitle(`${discordUser.username}'s cards`)
@@ -395,7 +396,7 @@ const cards = async (inboundMessage) => {
 const stats = async (inboundMessage) => {
     // create the embed message
 
-    let statistics = await getDatabaseStatistics();
+    const statistics = await getDatabaseStatistics();
     //inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
     const description = `
 **Users**: ${statistics.users}
@@ -403,7 +404,7 @@ const stats = async (inboundMessage) => {
 **Rolls**: ${statistics.rolls}
 **Players**: ${statistics.players}
 `;
-    let embed = new Discord.MessageEmbed();
+    const embed = new Discord.MessageEmbed();
 
     embed.setTitle(`mahloola BOT Global Stats`)
     embed.setColor('#D9A6BD')
@@ -420,8 +421,8 @@ const stats = async (inboundMessage) => {
 };
 
 const trade = async (inboundMessage) => {
-    let user = inboundMessage.author;
-    let serverId = inboundMessage.guild.id
+    const user = inboundMessage.author;
+    const serverId = inboundMessage.guild.id
     inboundMessage.channel.send(`${user}, who would you like to trade with?`);
     const userResponse = await inboundMessage.channel.awaitMessages({
         filter: (sender) => { return sender.author.id == user.id },
@@ -432,7 +433,7 @@ const trade = async (inboundMessage) => {
 
     inboundMessage.channel.send("lol this command doesn't work yet");
     //inboundMessage.channel.send(await getServerUser(serverId, user.id).ownedPlayers[0]);
-    let user2 = await getServerUserDoc(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
+    const user2 = await getServerUserDoc(serverId, user.id).catch((err) => console.error(`Couldn't retrieve user ${user.id}: ${err}`))
     //inboundMessage.channel.send(`${user}, who would you like to trade with?`);
     //let user2 = await getServerUsers(serverId).where(userResponse.first().content, '==', getServerUserDoc(serverId, user.id).apiv2.username);
 };
@@ -448,14 +449,14 @@ const avg = async (inboundMessage) => {
 };
 
 const pin = async (inboundMessage) => {
-    let username = inboundMessage.content.substring(4 + serverPrefix.length);
+    const username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
         if (username === '@everyone' || username === '@here') {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         }
         else {
-            let player = await getPlayerByUsername(username);
+            const player = await getPlayerByUsername(username);
             if (player) {
                 const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
@@ -480,14 +481,14 @@ const pin = async (inboundMessage) => {
 };
 
 const unpin = async (inboundMessage) => {
-    let username = inboundMessage.content.substring(6 + serverPrefix.length);
+    const username = inboundMessage.content.substring(6 + serverPrefix.length);
     if (username) {
         if (username === '@everyone' || username === '@here') {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         }
         else {
-            let player = await getPlayerByUsername(username);
+            const player = await getPlayerByUsername(username);
             if (player) {
                 const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
@@ -513,7 +514,7 @@ const unpin = async (inboundMessage) => {
 const claimed = async (inboundMessage) => {
     const lbData = await getLeaderboardData("claimed");
     if (inboundMessage.content.length > (8 + serverPrefix.length)) {
-        let username = inboundMessage.content.substring(8 + serverPrefix.length);
+        const username = inboundMessage.content.substring(8 + serverPrefix.length);
         if (username === '@everyone' || username === '@here') {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
@@ -532,10 +533,10 @@ const claimed = async (inboundMessage) => {
     }
     else {
 
-        let players = lbData.players;
+        const players = lbData.players;
         let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1])
         // create the embed message
-        let embed = new Discord.MessageEmbed();
+        const embed = new Discord.MessageEmbed();
 
         // populate the embed message
         embed.setTitle(`Global Claim Leaderboard`)
@@ -635,8 +636,8 @@ const prefix = async (inboundMessage) => {
 const leaderboard = async (inboundMessage) => {
 
     // get every user ID in the server
-    let userIds = await getServerUserIds(inboundMessage.channel.guildId);
-    let users = [];
+    const userIds = await getServerUserIds(inboundMessage.channel.guildId);
+    const users = [];
 
     console.log(`${inboundMessage.author.username} used ;leaderboard in ${inboundMessage.guild.name}.`);
 
@@ -644,7 +645,7 @@ const leaderboard = async (inboundMessage) => {
     for (let i = 0; i < userIds.length; i++) {
 
         // get a specific user (to check if they have 10+ cards)
-        let user = await getServerUserDoc(inboundMessage.channel.guildId, userIds[i]);
+        const user = await getServerUserDoc(inboundMessage.channel.guildId, userIds[i]);
 
         // if the user has 10+ cards
         if (user.elo != undefined) {
@@ -654,10 +655,10 @@ const leaderboard = async (inboundMessage) => {
             const userDiscordInfoJSON = userDiscordInfo.toJSON();
 
             // fix these fields because they can't be defined
-            userDiscordInfoJSON.banner = "";
-            userDiscordInfoJSON.accentColor = "";
-            userDiscordInfoJSON.hexAccentColor = "";
-            userDiscordInfoJSON.bannerURL = "";
+            // userDiscordInfoJSON.banner = "";
+            // userDiscordInfoJSON.accentColor = "";
+            // userDiscordInfoJSON.hexAccentColor = "";
+            // userDiscordInfoJSON.bannerURL = "";
 
             const userRef = await getServerUserRef(inboundMessage.channel.guildId, userIds[i]);
 
@@ -677,7 +678,7 @@ const leaderboard = async (inboundMessage) => {
     });
 
     // create the embed message
-    let embed = new Discord.MessageEmbed();
+    const embed = new Discord.MessageEmbed();
 
     // populate the embed message
     embed.setTitle(`${inboundMessage.guild.name} Leaderboard`)
@@ -743,7 +744,7 @@ const help = async (inboundMessage) => {
 **Discord**
 https://discord.gg/DGdzyapHkW
     `;
-    let embed = new Discord.MessageEmbed();
+    const embed = new Discord.MessageEmbed();
 
     embed.setTitle(`mahloola BOT commands`)
     embed.setColor('#D9A6BD')

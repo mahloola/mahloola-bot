@@ -1,18 +1,18 @@
-var Jimp = require('jimp');
-var fs = require('fs').promises;
-var text2png = require('text2png');
-// const { download } = require('../util/downloadImage');
-// const { ClientRequest } = require('http');
-// const { getEnvironmentData } = require('worker_threads');
+import * as Jimp from 'jimp'
+import * as fs from 'fs'
+import text2png from 'text2png'
+// import { download } from '../util/downloadImage'
+// import { ClientRequest } from 'http'
+// import { getEnvironmentData } from 'worker_threads'
 
-async function createPlayerCard(player, claimCount) {
+export async function createPlayerCard(player, claimCount) {
     // make sure image/cache directory exists
     // eslint-disable-next-line no-empty
-    try { await fs.mkdir('image/cache') } catch { }
+    try { await fs.promises.mkdir('image/cache') } catch { }
 
     // create all text images in parallel using text2png 
     const writePromises = [];
-    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}.png`, text2png(`${player.username}`, {
+    writePromises.push(fs.promises.writeFile(`image/cache/text2png-${player.username}.png`, text2png(`${player.username}`, {
         font: '36px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -21,7 +21,7 @@ async function createPlayerCard(player, claimCount) {
         lineSpacing: 10,
         padding: 20
     })));
-    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-left.png`, text2png(`Global\n\npp\nPlaycount\nClaims`, {
+    writePromises.push(fs.promises.writeFile(`image/cache/text2png-${player.username}-statistics-left.png`, text2png(`Global\n\npp\nPlaycount\nClaims`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -30,7 +30,7 @@ async function createPlayerCard(player, claimCount) {
         lineSpacing: 10,
         padding: 20,
     })));
-    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-right.png`, text2png(`${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${player.statistics.play_count}\n${claimCount ? claimCount : 0}`, {
+    writePromises.push(fs.promises.writeFile(`image/cache/text2png-${player.username}-statistics-right.png`, text2png(`${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${player.statistics.play_count}\n${claimCount ? claimCount : 0}`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -215,8 +215,4 @@ async function createPlayerCard(player, claimCount) {
         console.trace();
         console.log(err);
     }
-}
-
-module.exports = {
-    createImage: createPlayerCard
 }
