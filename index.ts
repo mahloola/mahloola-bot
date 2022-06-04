@@ -35,6 +35,7 @@ import {
 import { createPlayerCard } from './image/jimp';
 // import paginationEmbed from 'discord.js-pagination';
 import { defaultPrefix, token, workflow } from './auth.json';
+import { NonDmChannel, Player } from './types';
 
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
@@ -102,8 +103,8 @@ client.on('ready', async function () {
 });
 client.login(token);
 
-const roll = async (inboundMessage, db, databaseStatistics) => {
-    let player;
+const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatistics) => {
+    let player: Player;
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
 
@@ -163,7 +164,7 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
         player = await getPlayerByRank(rank);
     }
     console.log(
-        `${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${
+        `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(inboundMessage.channel as NonDmChannel).guild.name}: ${
             inboundMessage.author.username
         } rolled ${player.apiv2.username}.`
     );
@@ -191,7 +192,7 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
     const reaction = reactions.get('👍');
     try {
         const reactionUsers = await reaction.users.fetch();
-        let claimingUser;
+        let claimingUser: Discord.User;
         for (const [userId, userObject] of reactionUsers) {
             if (userId !== outboundMessage.author.id) {
                 const claimingUserDoc = await getServerUserDoc(outboundMessage.guild.id, userId);
@@ -222,9 +223,9 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
                         }
                     });
                     console.log(
-                        `${timestamp.toLocaleTimeString().slice(0, 5)} | ${inboundMessage.channel.guild.name}: ${
-                            claimingUser.username
-                        } claimed ${player.apiv2.username}.`
+                        `${timestamp.toLocaleTimeString().slice(0, 5)} | ${
+                            (inboundMessage.channel as NonDmChannel).guild.name
+                        }: ${claimingUser.username} claimed ${player.apiv2.username}.`
                     );
                 } else {
                     const timeRemaining = claimResetTime - currentTime;

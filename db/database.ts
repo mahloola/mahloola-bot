@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 import { firestoreKey, workflow } from '../auth.json';
+import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
 
 admin.initializeApp({
     // @ts-ignore
@@ -73,13 +74,13 @@ export async function setPlayerRollCounter(player, count) {
 }
 
 // get document in player database (osu apiv2)
-export async function getPlayer(userId) {
+export async function getPlayer(userId): Promise<Player> {
     const playerDoc = await db.collection('players').doc(userId.toString()).get();
-    return playerDoc.exists ? playerDoc.data() : null;
+    return playerDoc.exists ? (playerDoc.data() as Player) : null;
 }
 
 //
-export async function getPlayerByUsername(username) {
+export async function getPlayerByUsername(username): Promise<Player> {
     const playersRef = db.collection('players');
     const snapshot = await playersRef.where('apiv2.username', '==', username).get(); // doc(userId.toString())
 
@@ -91,11 +92,11 @@ export async function getPlayerByUsername(username) {
             playerDoc = doc;
         }
     });
-    return playerDoc ? playerDoc.data() : null;
+    return playerDoc ? (playerDoc.data() as Player) : null;
 }
 
 // the main function used for retrieving from roll
-export async function getPlayerByRank(rank) {
+export async function getPlayerByRank(rank): Promise<Player> {
     const playersRef = db.collection('players');
     const snapshot = await playersRef.where('apiv2.statistics.global_rank', '==', rank).get(); // doc(userId.toString())
 
@@ -108,7 +109,7 @@ export async function getPlayerByRank(rank) {
             playerDoc = doc;
         }
     });
-    return playerDoc ? playerDoc.data() : null;
+    return playerDoc ? (playerDoc.data() as Player) : null;
 }
 
 // DB UTILITY FUNCTIONS
@@ -116,10 +117,10 @@ export function getServersRef() {
     const serversRef = workflow === 'development' ? db.collection('testing-servers') : db.collection('servers');
     return serversRef;
 }
-export async function getServerDoc(serverId) {
+export async function getServerDoc(serverId): Promise<Server> {
     const serversRef = getServersRef();
     const serverDoc = await serversRef.doc(serverId.toString()).get();
-    return serverDoc.exists ? serverDoc.data() : null;
+    return serverDoc.exists ? (serverDoc.data() as Server) : null;
 }
 export function getServerUsersRef(serverId) {
     const serversRef = getServersRef();
@@ -127,18 +128,18 @@ export function getServerUsersRef(serverId) {
     const usersRef = serverDoc.collection('users');
     return usersRef;
 }
-export async function getServerUserDoc(serverId, userId) {
+export async function getServerUserDoc(serverId, userId): Promise<ServerUser> {
     const usersRef = getServerUsersRef(serverId);
     const userDoc = await usersRef.doc(userId.toString()).get();
-    return userDoc.exists ? userDoc.data() : null;
+    return userDoc.exists ? (userDoc.data() as ServerUser) : null;
 }
 export async function getServerUserRef(serverId, userId) {
     const usersRef = getServerUsersRef(serverId);
-    const userRef = await usersRef.doc(userId.toString());
+    const userRef = usersRef.doc(userId.toString());
     return userRef;
 }
 export async function getServerUserIds(serverId) {
-    const userIds = [];
+    const userIds: string[] = [];
     const usersRef = getServerUsersRef(serverId);
     const userDocs = await usersRef.get();
     userDocs.forEach((doc) => {
@@ -147,11 +148,11 @@ export async function getServerUserIds(serverId) {
     return userIds;
 }
 
-export async function getLeaderboardData(type) {
+export async function getLeaderboardData(type): Promise<Leaderboard> {
     const leaderboardRef =
         workflow === 'development' ? db.collection('testing-leaderboards') : db.collection('leaderboards');
     const leaderboardDoc = await leaderboardRef.doc(type).get();
-    return leaderboardDoc.exists ? leaderboardDoc.data() : null;
+    return leaderboardDoc.exists ? (leaderboardDoc.data() as Leaderboard) : null;
 }
 export async function setPrefix(serverId, newPrefix) {
     const serversRef = getServersRef();
@@ -173,9 +174,10 @@ export async function setOwnedPlayer(serverId, userId, playerId) {
 }
 
 export async function getOwnedPlayers(serverId, userId, perPage) {
-    const userDoc = await getServerUserRef(serverId, userId);
-    const user = await userDoc.get();
-    return user.data() ? user.data().ownedPlayers : null;
+    const userRef = await getServerUserRef(serverId, userId);
+    const userDoc = await userRef.get();
+    const user = userDoc.data() as ServerUser;
+    return user?.ownedPlayers;
 }
 
 // PINNING FUNCTIONS
@@ -184,9 +186,10 @@ export async function setPinnedPlayer(serverId, userId, pinnedUserId) {
     await userRef.set({ pinnedPlayers: admin.firestore.FieldValue.arrayUnion(pinnedUserId) }, { merge: true });
 }
 export async function getPinnedPlayers(serverId, userId, perPage) {
-    const userDoc = await getServerUserRef(serverId, userId);
-    const user = await userDoc.get();
-    return user.data() ? user.data().pinnedPlayers : null;
+    const userRef = await getServerUserRef(serverId, userId);
+    const userDoc = await userRef.get();
+    const user = userDoc.data() as ServerUser;
+    return user?.pinnedPlayers;
 }
 export async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
     const userRef = await getServerUserRef(serverId, userId);
@@ -275,7 +278,7 @@ export async function getDatabaseStatistics() {
     const statisticsRef =
         workflow === 'development' ? db.collection('testing-statistics') : db.collection('statistics');
     const doc = await statisticsRef.doc('global').get();
-    return doc.data();
+    return doc.data() as DatabaseStatistics;
 }
 export async function setServerStatistics(serverId, stats) {
     const serversRef = getServersRef();
