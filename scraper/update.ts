@@ -1,16 +1,18 @@
-require('dotenv').config();
-const { getUser } = require('./api');
-const { setPlayer, initializeDatabase, setDatabaseStatistics, getDatabaseStatistics } = require('../db/database');
-const fs = require('fs')
-const { requestClientCredentialsToken } = require('./api');
-const { createImage } = require('../image/jimp');
+import dotenv from 'dotenv'
+import { getUser } from './api'
+import { setPlayer, initializeDatabase, setDatabaseStatistics, getDatabaseStatistics } from '../db/database'
+import * as fs from 'fs'
+import { requestClientCredentialsToken } from './api'
+import { createPlayerCard } from '../image/jimp'
+dotenv.config()
+
 const db = initializeDatabase();
 let apiToken;
 
 async function updateDatabase() {
     const playersSnapshot = await db.collection('players').get();
     apiToken = await requestClientCredentialsToken();
-    let simplifiedPlayers = {};
+    const simplifiedPlayers = {};
     for (let i = 0; i < playersSnapshot.size; i++) {
         try {
             // get player object
@@ -20,7 +22,7 @@ async function updateDatabase() {
             if (updatedPlayer) { // if the user exists in the osu database
                 await setPlayer(player.apiv2);
                 console.log(`${updatedPlayer.username.padEnd(16, ' ')} has been updated from rank ${player.apiv2.statistics.global_rank.toString().padEnd(4, ' ')} to ${updatedPlayer.statistics.global_rank}`);
-                // await createImage(updatedPlayer, player.claimCounter);
+                // await createPlayerCard(updatedPlayer, player.claimCounter);
                 simplifiedPlayers[updatedPlayer.id] = [updatedPlayer.username.toLowerCase(), updatedPlayer.statistics.global_rank];
             }
             else { // if the user was banned since the last update
@@ -36,7 +38,7 @@ async function updateDatabase() {
         if (err) throw err;
     })
     // update player count in the database statistics
-    let currentStats = await getDatabaseStatistics();
+    const currentStats = await getDatabaseStatistics();
     currentStats.players = playersSnapshot.size;
     await setDatabaseStatistics(currentStats);
 }

@@ -1,5 +1,5 @@
-const { initializeDatabase } = require('./database');
-const fs = require('fs')
+import { initializeDatabase } from './database'
+import * as fs from 'fs'
 
 // this module sorts the top 10,000 players by any api data field and prints out the result to a neatly formatted txt 
 

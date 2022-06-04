@@ -21,9 +21,9 @@
     "winston": "^3.2.1"
   },
   "scripts": {
-    "start": "tsc && node dist/index.js",
-    "scrape": "tsc && node dist/scraper/scrape.js",
-    "update": "tsc && node dist/scraper/update.js"
+    "start": "ts-node index.ts",
+    "scrape": "ts-node scraper/scrape.ts",
+    "update": "ts-node scraper/update.ts"
   },
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
   },
   "homepage": "https://github.com/mahloola/osuCards#readme",
   "devDependencies": {
-    "@types/node": "^17.0.39",
+    "@types/node": "14.18.3",
     "@typescript-eslint/eslint-plugin": "^5.27.0",
     "@typescript-eslint/parser": "^5.27.0",
     "eslint": "^8.14.0"
