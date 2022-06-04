@@ -174,7 +174,7 @@ export async function setPrefix(serverId, newPrefix) {
 
 // this is when a user claims a card
 export async function setOwnedPlayer(serverId, userId, playerId) {
-    const serversRef = getServersRef();
+  const serversRef = getServersRef();
   const serverDoc = serversRef.doc(serverId.toString());
   const serverUsersRef = serverDoc.collection("users");
   const userRef = serverUsersRef.doc(userId.toString());
