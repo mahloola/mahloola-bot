@@ -1,13 +1,11 @@
 import pageScraper from './pageScraper';
-export default async function scrapeAll(browserInstance){
+export default async function scrapeAll(browserInstance) {
     let browser;
-    try{
+    try {
         browser = await browserInstance;
         await pageScraper.scraper(browser);
-
-    }
-    catch(err){
+    } catch (err) {
         console.trace();
-        console.log("Could not resolve the browser instance => ", err);
+        console.log('Could not resolve the browser instance => ', err);
     }
 }
