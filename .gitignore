@@ -11,3 +11,4 @@ app.yaml
 db/sortedPlayers.txt
 db/simplifiedPlayers.json
 db/getSortedPlayers.js
+dist
