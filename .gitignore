@@ -1,10 +1,13 @@
 /node_modules
 /auth.json
 /image/cache
+/image/scrapped-designs
+/image/pdn
 .env
 .gcloudignore
 .vscode
 api.js
 app.yaml
 db/sortedPlayers.txt
+db/simplifiedPlayers.json
 db/getSortedPlayers.js
