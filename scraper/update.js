@@ -20,7 +20,7 @@ async function updateDatabase() {
             if (updatedPlayer) { // if the user exists in the osu database
                 await setPlayer(player.apiv2);
                 console.log(`${updatedPlayer.username.padEnd(16, ' ')} has been updated from rank ${player.apiv2.statistics.global_rank.toString().padEnd(4, ' ')} to ${updatedPlayer.statistics.global_rank}`);
-                await createImage(updatedPlayer);
+                // await createImage(updatedPlayer, player.claimCounter);
                 simplifiedPlayers[updatedPlayer.id] = [updatedPlayer.username.toLowerCase(), updatedPlayer.statistics.global_rank];
             }
             else { // if the user was banned since the last update

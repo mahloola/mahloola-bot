@@ -5,7 +5,7 @@ var text2png = require('text2png');
 // const { ClientRequest } = require('http');
 // const { getEnvironmentData } = require('worker_threads');
 
-async function createPlayerCard(player) {
+async function createPlayerCard(player, claimCount) {
     // make sure image/cache directory exists
     // eslint-disable-next-line no-empty
     try { await fs.mkdir('image/cache') } catch { }
@@ -30,7 +30,7 @@ async function createPlayerCard(player) {
         lineSpacing: 10,
         padding: 20,
     })));
-    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-right.png`, text2png(`${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${player.statistics.play_count}\n${player.claimedCount ? player.claimedCount : 0}`, {
+    writePromises.push(fs.writeFile(`image/cache/text2png-${player.username}-statistics-right.png`, text2png(`${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${player.statistics.play_count}\n${claimCount ? claimCount : 0}`, {
         font: '24px Akshar',
         localFontName: 'Akshar',
         localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
