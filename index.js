@@ -45,7 +45,9 @@ client.on("ready", async function () {
 
         const commandMapping = {
             ['roll']: roll,
+            ['r']: roll,
             ['rolls']: rolls,
+            ['claim']: claim,
             ['cards']: cards,
             ['stats']: stats,
             ['trade']: trade,
@@ -76,8 +78,6 @@ client.login(token);
 
 const roll = async (inboundMessage, db, databaseStatistics) => {
 
-    console.log(prefix);
-    console.log("rolling")
     let player;
     const timestamp = new Date();
     let currentTime = timestamp.getTime();
@@ -143,7 +143,7 @@ const roll = async (inboundMessage, db, databaseStatistics) => {
     setDatabaseStatistics(statistics);
     // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
     player.claimCounter === undefined ? await setPlayerRollCounter(player, 1) : await setPlayerRollCounter(player, player.claimCounter + 1);
-    // await createImage(player.apiv2);
+
     const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] })
     outboundMessage.react('👍');
@@ -247,14 +247,43 @@ const rolls = async (inboundMessage) => {
     }
 
 };
-
+const claim = async (inboundMessage) => {
+    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+    let resetTime;
+    const currentTime = new Date().getTime();
+    if (user) { // if user exists in the database
+        resetTime = user.claimResetTime;
+    }
+    else { // if user doesn't exist yet 
+        await setClaimResetTime(inboundMessage.channel.guildId, inboundMessage.author.id, currentTime);
+        resetTime = currentTime;
+    }
+    if (currentTime > resetTime) { // if user is past their cooldown
+        await setClaimResetTime(inboundMessage.channel.guildId, inboundMessage.author.id, currentTime); // set their reset time to 'now'
+        resetTime = currentTime;
+    }
+    let timeRemaining = resetTime - currentTime;
+    let timeRemainingInMinutes = (timeRemaining / 60000).toFixed(0);
+    if (timeRemainingInMinutes > 1) {
+        inboundMessage.channel.send(`${inboundMessage.author} You have **${timeRemainingInMinutes}** minutes left until you can claim again.`);
+    }
+    else if (timeRemainingInMinutes === 1) {
+        inboundMessage.channel.send(`${inboundMessage.author} You can claim again in one minute.`);
+    }
+    else if (timeRemainingInMinutes < 1 && timeRemainingInMinutes > 0) {
+        inboundMessage.channel.send(`${inboundMessage.author} You have less than a minute left until you can claim again.`);
+    }
+    else {
+        inboundMessage.channel.send(`${inboundMessage.author} You can claim now.`);
+    }
+}
 const cards = async (inboundMessage) => {
     let discordUserId;
     let discordUser;
     if (inboundMessage.content.length > (6 + serverPrefix.length)) {
         let discordUsername;
         if (discordUsername === '@everyone' || discordUsername === '@here') {
-            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         }
         else {
@@ -368,11 +397,11 @@ const stats = async (inboundMessage) => {
     let statistics = await getDatabaseStatistics();
     //inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
     const description = `
-        **Users**: ${statistics.users}
-        **Servers**: ${statistics.servers}   
-        **Rolls**: ${statistics.rolls}
-        **Players**: ${statistics.players}
-        `;
+**Users**: ${statistics.users}
+**Servers**: ${statistics.servers}
+**Rolls**: ${statistics.rolls}
+**Players**: ${statistics.players}
+`;
     let embed = new Discord.MessageEmbed();
 
     embed.setTitle(`mahloola BOT Global Stats`)
@@ -421,7 +450,7 @@ const pin = async (inboundMessage) => {
     let username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
         if (username === '@everyone' || username === '@here') {
-            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         }
         else {
@@ -453,7 +482,7 @@ const unpin = async (inboundMessage) => {
     let username = inboundMessage.content.substring(6 + serverPrefix.length);
     if (username) {
         if (username === '@everyone' || username === '@here') {
-            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         }
         else {
@@ -485,7 +514,7 @@ const claimed = async (inboundMessage) => {
     if (inboundMessage.content.length > (8 + serverPrefix.length)) {
         let username = inboundMessage.content.substring(8 + serverPrefix.length);
         if (username === '@everyone' || username === '@here') {
-            inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         }
         else {
@@ -693,24 +722,25 @@ const help = async (inboundMessage) => {
 
 
     const description = `
-    **Card-Related**
-        \t\`roll:\` Roll for a top 10,000 player. Claim by reacting with 👍
-        \t\`rolls:\` Check your available rolls.
-        \t\`cards:\` Display all of your owned cards.
-        \t\`pin(username):\` Pin cards to the top of your cards page.
-        \t\`unpin(username):\` Remove pins from your cards page.
-        \t\`claimed(username):\` Display the times a user has been claimed.
-        \t\`claimed:\` Display the most claimed players.
-        \t\`rolled(username):\` Display the times a user has been rolled.
-        \t\`rolled:\` Display the most rolled players.
-        \t\`avg:\` Display the average rank in your top 10 cards.
-        \t\`lb:\` Display server leaderboard based on top 10 card rankings.\n 
-    **General**
-        \t\`help:\` Display all commands.
-        \t\`prefix:\` Change the bot prefix (must be an administrator).
-        \t\`stats:\` Display global bot stats.\n
-    **Discord**
-    https://discord.gg/DGdzyapHkW
+**Card-Related**
+\`roll:\` Roll for a top 10,000 player. Claim by reacting with 👍
+\`rolls:\` Check your available rolls.
+\`claim:\` Check when your next claim is available.
+\`cards:\` Display all of your owned cards.
+\`pin(username):\` Pin cards to the top of your cards page.
+\`unpin(username):\` Remove pins from your cards page.
+\`claimed(username):\` Display the times a user has been claimed.
+\`claimed:\` Display the most claimed players.
+\`rolled(username):\` Display the times a user has been rolled.
+\`rolled:\` Display the most rolled players.
+\`avg:\` Display the average rank in your top 10 cards.
+\`lb:\` Display server leaderboard based on top 10 card rankings.\n 
+**General**
+\`help:\` Display all commands.
+\`prefix:\` Change the bot prefix (must be an administrator).
+\`stats:\` Display global bot stats.\n
+**Discord**
+https://discord.gg/DGdzyapHkW
     `;
     let embed = new Discord.MessageEmbed();
 
