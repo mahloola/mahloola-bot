@@ -278,6 +278,7 @@ module.exports.updateUserElo = async function (serverId, userId) {
 // gets Top-10-Average for a particular user, but doesn't need to get player documents first
 module.exports.updateUserEloByPlayers = async function (serverId, userId, ownedPlayers) {
   if (ownedPlayers.length < 10) {
+    await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: null }, { merge: true });
     return null;
   }
   ownedPlayers.sort((a, b) => {
