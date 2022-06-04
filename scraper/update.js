@@ -1,14 +1,14 @@
 require('dotenv').config();
 const { getUser } = require('./api');
-const { setPlayer, initializeDatabase, getServerStatistics, setDatabaseStatistics, getDatabaseStatistics } = require('../db/database');
-// const { sleep } = require('../util/sleep');
+const { setPlayer, initializeDatabase, setDatabaseStatistics, getDatabaseStatistics } = require('../db/database');
+const fs = require('fs')
 const { requestClientCredentialsToken } = require('./api');
 const { createImage } = require('../image/jimp');
 const db = initializeDatabase();
 let apiToken;
 
 async function updateDatabase() {
-    const playersSnapshot = await db.collection('players').limit(10).get();
+    const playersSnapshot = await db.collection('players').get();
     apiToken = await requestClientCredentialsToken();
     let simplifiedPlayers = {};
     for (let i = 0; i < playersSnapshot.size; i++) {
@@ -19,7 +19,7 @@ async function updateDatabase() {
             const updatedPlayer = await getUser(apiToken, player.apiv2.id);
             if (updatedPlayer) { // if the user exists in the osu database
                 await setPlayer(player.apiv2);
-                console.log(`${updatedPlayer.username.padEnd(15, ' ')} has been updated from rank ${player.apiv2.statistics.global_rank.toString().padEnd(4, ' ')} to ${updatedPlayer.statistics.global_rank}`);
+                console.log(`${updatedPlayer.username.padEnd(16, ' ')} has been updated from rank ${player.apiv2.statistics.global_rank.toString().padEnd(4, ' ')} to ${updatedPlayer.statistics.global_rank}`);
                 await createImage(updatedPlayer);
                 simplifiedPlayers[updatedPlayer.id] = [updatedPlayer.username.toLowerCase(), updatedPlayer.statistics.global_rank];
             }
@@ -32,7 +32,9 @@ async function updateDatabase() {
         }
     }
     // update players-simplified
-    await db.collection("players-simplified").doc("playerList").set(simplifiedPlayers);
+    fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
+        if (err) throw err;
+    })
     // update player count in the database statistics
     let currentStats = await getDatabaseStatistics();
     currentStats.players = playersSnapshot.size;
