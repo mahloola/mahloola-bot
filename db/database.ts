@@ -2,6 +2,8 @@ import admin from 'firebase-admin';
 import { firestoreKey, workflow } from '../auth.json';
 import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
 
+const millisecondsPerHour = 3600000;
+
 admin.initializeApp({
     // @ts-ignore
     credential: admin.credential.cert(firestoreKey),
@@ -133,7 +135,7 @@ export async function getServerUserDoc(serverId, userId): Promise<ServerUser> {
     const userDoc = await usersRef.doc(userId.toString()).get();
     return userDoc.exists ? (userDoc.data() as ServerUser) : null;
 }
-export async function getServerUserRef(serverId, userId) {
+export function getServerUserRef(serverId, userId) {
     const usersRef = getServerUsersRef(serverId);
     const userRef = usersRef.doc(userId.toString());
     return userRef;
@@ -211,6 +213,49 @@ export async function setRollResetTime(serverId, userId) {
 export async function setClaimResetTime(serverId, userId, time) {
     const userRef = await getServerUserRef(serverId, userId);
     await userRef.set({ claimResetTime: time }, { merge: true });
+}
+
+// If roll succeeds returns true, otherwise returns false
+export async function attemptRoll(serverId, userId): Promise<boolean> {
+    // everything involving rolls and roll reset times happens inside this transaction to prevent race conditions
+    return await db.runTransaction(async (t) => {
+        const userRef = getServerUserRef(serverId, userId);
+        const userDoc = await t.get(userRef);
+        const user = userDoc.data() as ServerUser;
+        let dataToSet: ServerUser = null;
+        let rollSuccess;
+
+        if (!user || user.rollResetTime === undefined) {
+            // user doesn't exist yet
+            rollSuccess = true;
+            dataToSet = {
+                rollResetTime: Date.now() + 1 * millisecondsPerHour,
+                rolls: 10 - 1,
+            };
+        } else if (Date.now() > user.rollResetTime) {
+            // user is past their cooldown
+            rollSuccess = true;
+            dataToSet = {
+                rollResetTime: Date.now() + 1 * millisecondsPerHour,
+                rolls: 10 - 1,
+            };
+        } else if (user.rolls > 0) {
+            // user has rolled recently but still has enough rolls
+            rollSuccess = true;
+            dataToSet = {
+                rolls: user.rolls - 1,
+            };
+        } else {
+            // roll failed: user does not have enough rolls
+            rollSuccess = false;
+        }
+
+        // perform writes and end transaction
+        if (dataToSet) {
+            t.update(userRef, dataToSet);
+        }
+        return rollSuccess;
+    });
 }
 
 // this is the number of current rolls available to the user
