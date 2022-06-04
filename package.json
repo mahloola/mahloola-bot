@@ -21,7 +21,7 @@
     "winston": "^3.2.1"
   },
   "scripts": {
-    "start": "ts-node index.ts",
+    "start": "nodemon index.ts",
     "scrape": "ts-node scraper/scrape.ts",
     "update": "ts-node scraper/update.ts"
   },
@@ -39,6 +39,8 @@
     "@types/node": "14.18.3",
     "@typescript-eslint/eslint-plugin": "^5.27.0",
     "@typescript-eslint/parser": "^5.27.0",
-    "eslint": "^8.14.0"
+    "eslint": "^8.14.0",
+    "nodemon": "^2.0.16",
+    "ts-node": "^10.8.1"
   }
 }
