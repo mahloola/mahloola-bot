@@ -1,9 +1,7 @@
 import * as Jimp from 'jimp';
 import * as fs from 'fs';
 import text2png from 'text2png';
-// import { download } from '../util/downloadImage'
-// import { ClientRequest } from 'http'
-// import { getEnvironmentData } from 'worker_threads'
+let userTitle = false; // enable this flag if the user has a title
 
 export async function createPlayerCard(player, claimCount) {
     // make sure image/cache directory exists
@@ -32,7 +30,7 @@ export async function createPlayerCard(player, claimCount) {
     writePromises.push(
         fs.promises.writeFile(
             `image/cache/text2png-${player.username}-statistics-left.png`,
-            text2png(`Global\n\npp\nPlaycount\nClaims`, {
+            text2png(`Global\nCountry\npp\nFollowers\nClaims`, {
                 font: '24px Akshar',
                 localFontName: 'Akshar',
                 localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
@@ -48,7 +46,7 @@ export async function createPlayerCard(player, claimCount) {
             `image/cache/text2png-${player.username}-statistics-right.png`,
             text2png(
                 `${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${
-                    player.statistics.play_count
+                    player.follower_count
                 }\n${claimCount ? claimCount : 0}`,
                 {
                     font: '24px Akshar',
@@ -62,20 +60,38 @@ export async function createPlayerCard(player, claimCount) {
             )
         )
     );
+    if (player.title !== null) {
+        userTitle = true;
+        writePromises.push(
+            fs.promises.writeFile(
+                `image/cache/text2png-${player.username}-title.png`,
+                text2png(`${player.title}`, {
+                    font: '24px Akshar',
+                    localFontName: 'Akshar',
+                    localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
+                    color: '#414141',
+                    textAlign: 'center',
+                    lineSpacing: 16,
+                    padding: 20,
+                })
+            )
+        );
+    }
+
     await Promise.all(writePromises);
 
     // base image
     const readPromises = [];
-    if (player.statistics.global_rank > 7500) {
-        readPromises.push(Jimp.read('image/osuCard.png')); // const osuCard
-    } else if (player.statistics.global_rank > 5000) {
-        readPromises.push(Jimp.read('image/osuCard-blue.png'));
-    } else if (player.statistics.global_rank > 2500) {
-        readPromises.push(Jimp.read('image/osuCard-purple.png'));
+    if (player.statistics.global_rank > 5000) {
+        readPromises.push(Jimp.read('image/osuCard-common.png')); // const osuCard
     } else if (player.statistics.global_rank > 1000) {
-        readPromises.push(Jimp.read('image/osuCard-red.png'));
+        readPromises.push(Jimp.read('image/osuCard-uncommon.png'));
+    } else if (player.statistics.global_rank > 300) {
+        readPromises.push(Jimp.read('image/osuCard-rare.png'));
+    } else if (player.statistics.global_rank > 50) {
+        readPromises.push(Jimp.read('image/osuCard-legendary.png'));
     } else {
-        readPromises.push(Jimp.read('image/osuCard-yellow.png'));
+        readPromises.push(Jimp.read('image/osuCard-master.png'));
     }
 
     readPromises.push(Jimp.read(`image/cache/text2png-${player.username}.png`));
@@ -92,13 +108,24 @@ export async function createPlayerCard(player, claimCount) {
     readPromises.push(Jimp.read('image/osuCard-circle.png'));
 
     // perform all reads in parallel
-    const [osuCard, textImage, textImageStatisticsLeft, textImageStatisticsRight, avatar, flag, mask, mask2, circle] =
-        await Promise.all(readPromises);
+    const [
+        osuCard,
+        textImageUsername,
+        textImageStatisticsLeft,
+        textImageStatisticsRight,
+        avatar,
+        flag,
+        mask,
+        mask2,
+        circle,
+    ] = await Promise.all(readPromises);
+    let textImageTitle = userTitle ? await Jimp.read(`image/cache/text2png-${player.username}-title.png`) : null;
+
     // overlay text images onto the card
     osuCard.composite(
-        textImage, // src
-        (400 - textImage.getWidth()) / 2, // x
-        293, // y
+        textImageUsername, // src
+        (400 - textImageUsername.getWidth()) / 2, // x
+        296, // y
         {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacityDest: 1,
@@ -107,10 +134,12 @@ export async function createPlayerCard(player, claimCount) {
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         }
     );
+    const statisticsHeight = userTitle ? 368 : 348;
+    // left statistics
     osuCard.composite(
         textImageStatisticsLeft, // src
         (280 - textImageStatisticsLeft.getWidth()) / 2, // x
-        338, // y
+        statisticsHeight, // y (push up statistics if the user doesn't have a title)
         {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacityDest: 1,
@@ -119,10 +148,12 @@ export async function createPlayerCard(player, claimCount) {
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         }
     );
+
+    // right statistics
     osuCard.composite(
         textImageStatisticsRight, // src
         (520 - textImageStatisticsRight.getWidth()) / 2, // x
-        338, // y
+        statisticsHeight, // y
         {
             mode: Jimp.BLEND_SOURCE_OVER,
             opacityDest: 1,
@@ -131,6 +162,22 @@ export async function createPlayerCard(player, claimCount) {
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         }
     );
+
+    // user title if it exists
+    if (userTitle) {
+        osuCard.composite(
+            textImageTitle, // src
+            (400 - textImageTitle.getWidth()) / 2, // x
+            330, // y
+            {
+                mode: Jimp.BLEND_SOURCE_OVER,
+                opacityDest: 1,
+                opacitySource: 1,
+                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+                alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+            }
+        );
+    }
 
     // cover
     try {
@@ -188,21 +235,6 @@ export async function createPlayerCard(player, claimCount) {
         alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
     });
 
-    flag.resize(42, 29);
-    // overlay the flag
-    osuCard.composite(
-        flag, // src
-        (235 - flag.getWidth()) / 2, // x
-        386, // y
-        {
-            mode: Jimp.BLEND_SOURCE_OVER,
-            opacityDest: 1,
-            opacitySource: 1,
-            alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
-            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
-        }
-    );
-
     //img.mask(mask, 0, 0).write(`image/cache/osuCard-${user.username}.png`);
 
     // circle border
@@ -215,6 +247,21 @@ export async function createPlayerCard(player, claimCount) {
             opacityDest: 1,
             opacitySource: 1,
             alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+        }
+    );
+
+    flag.resize(42, 29);
+    // overlay the flag
+    osuCard.composite(
+        flag, // src
+        (400 - flag.getWidth()) / 2, // x
+        263, // y
+        {
+            mode: Jimp.BLEND_SOURCE_OVER,
+            opacityDest: 1,
+            opacitySource: 1,
+            alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         }
     );

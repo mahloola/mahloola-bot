@@ -109,12 +109,6 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
 
-    // const serversRef = (workflow === 'development') ? db.collection("testing-servers") : db.collection("servers");
-    // const serverDoc = serversRef.doc(inboundMessage.guild.id.toString());
-    // const usersRef = serverDoc.collection(inboundMessage.guild.id);
-    // const userDoc = await usersRef.doc(inboundMessage.author.id.toString()).get();
-    // let user = userDoc.exists ? await userDoc.data() : null;
-
     const user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
 
     // exit if user does not have enough rolls
