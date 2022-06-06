@@ -290,13 +290,13 @@ const claim = async (inboundMessage) => {
     }
     const timeRemaining = resetTime - currentTime;
     const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
-    if (timeRemainingInMinutes > 1) {
+    if (timeRemainingInMinutes > 0) {
         inboundMessage.channel.send(
             `${inboundMessage.author} You have **${timeRemainingInMinutes}** minutes left until you can claim again.`
         );
     } else if (timeRemainingInMinutes === 1) {
         inboundMessage.channel.send(`${inboundMessage.author} You can claim again in one minute.`);
-    } else if (timeRemainingInMinutes < 1 && timeRemainingInMinutes > 0) {
+    } else if (timeRemainingInMinutes === 0) {
         inboundMessage.channel.send(
             `${inboundMessage.author} You have less than a minute left until you can claim again.`
         );
