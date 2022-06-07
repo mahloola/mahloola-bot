@@ -33,7 +33,7 @@ If you have any issues or suggestions, or just want a place to chat, please <a h
 ## Gallery
 <p align="center">
   <img src="https://user-images.githubusercontent.com/61226619/171373850-69299274-09a0-4edf-b504-b3781a481380.png"/>
-  <img src="https://user-images.githubusercontent.com/61226619/171369919-4c376fb8-b297-45c5-9e22-8759a56030c8.png"/>
+  <img src="https://user-images.githubusercontent.com/61226619/172303440-159221a4-75e0-4877-811f-c997a3ab40d9.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171368644-e0be6b1a-29f0-4668-a4d0-12f48f18fa20.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171368658-97ad4d68-82bf-4c11-a2fc-286ebb12ab69.png"/>
   <img src="https://user-images.githubusercontent.com/61226619/171373403-ce8c6ae9-e83c-4377-88e8-4d2a5624a4db.png"/>
