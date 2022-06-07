@@ -252,7 +252,7 @@ export async function attemptRoll(serverId, userId): Promise<boolean> {
 
         // perform writes and end transaction
         if (dataToSet) {
-            t.update(userRef, dataToSet);
+            t.set(userRef, dataToSet, { merge: true });
         }
         return rollSuccess;
     });
