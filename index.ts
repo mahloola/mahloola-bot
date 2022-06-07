@@ -686,7 +686,7 @@ const rolled = async (inboundMessage) => {
 };
 const prefix = async (inboundMessage) => {
     const newPrefix = inboundMessage.member.permissionsIn(inboundMessage.channel).has('ADMINISTRATOR')
-        ? inboundMessage.content.substring(7 + serverPrefix.length)
+        ? inboundMessage.content.substring(7 + serverPrefix.length).trim()
         : null;
     if (newPrefix) {
         await setPrefix(inboundMessage.guild.id, newPrefix);
@@ -716,10 +716,10 @@ const leaderboard = async (inboundMessage) => {
             const userDiscordInfoJSON = userDiscordInfo.toJSON();
 
             // fix these fields because they can't be defined
-            // userDiscordInfoJSON.banner = "";
-            // userDiscordInfoJSON.accentColor = "";
-            // userDiscordInfoJSON.hexAccentColor = "";
-            // userDiscordInfoJSON.bannerURL = "";
+            // userDiscordInfoJSON.banner = '';
+            // userDiscordInfoJSON.accentColor = '';
+            // userDiscordInfoJSON.hexAccentColor = '';
+            // userDiscordInfoJSON.bannerURL = '';
 
             const userRef = await getServerUserRef(inboundMessage.channel.guildId, userIds[i]);
 
