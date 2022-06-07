@@ -302,22 +302,22 @@ const cards = async (inboundMessage) => {
     let discordUserId;
     let discordUser;
     if (inboundMessage.content.length > 6 + serverPrefix.length) {
-        let discordUsername;
-        if (discordUsername === '@everyone' || discordUsername === '@here') {
+        const username = inboundMessage.content.substring(6 + serverPrefix.length);
+        if (username === '@everyone' || username === '@here') {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
             if (inboundMessage.mentions.users.first()) {
                 discordUser = inboundMessage.mentions.users.first();
             } else {
-                discordUsername = inboundMessage.content.substring(6 + serverPrefix.length);
-                discordUser = await client.users.cache.find((user) => user.username == discordUsername);
+                const username = inboundMessage.content.substring(6 + serverPrefix.length);
+                discordUser = await client.users.cache.find((user) => user.username == username);
             }
             if (discordUser) {
                 discordUserId = discordUser.id;
             } else {
                 inboundMessage.channel.send(
-                    `${inboundMessage.author} User "${discordUsername}" was not found. (check capitalization)`
+                    `${inboundMessage.author} User "${username}" was not found. (check capitalization)`
                 );
                 return;
             }
