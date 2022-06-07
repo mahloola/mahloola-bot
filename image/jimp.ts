@@ -1,9 +1,9 @@
 import * as Jimp from 'jimp';
 import * as fs from 'fs';
 import text2png from 'text2png';
-let userTitle = false; // enable this flag if the user has a title
 
 export async function createPlayerCard(player, claimCount) {
+    let userTitle = false; // enable this flag if the user has a title
     // make sure image/cache directory exists
     // eslint-disable-next-line no-empty
     try {

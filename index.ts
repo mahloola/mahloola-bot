@@ -303,7 +303,7 @@ const cards = async (inboundMessage) => {
     let discordUser;
     if (inboundMessage.content.length > 6 + serverPrefix.length) {
         const username = inboundMessage.content.substring(6 + serverPrefix.length);
-        if (username === '@everyone' || username === '@here') {
+        if (username.includes('@everyone') || username.includes('@here')) {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
@@ -427,7 +427,6 @@ const stats = async (inboundMessage) => {
 **Users**: ${statistics.users}
 **Servers**: ${statistics.servers}
 **Rolls**: ${statistics.rolls}
-**Players**: ${statistics.players}
 `;
     const embed = new Discord.MessageEmbed();
 
@@ -443,7 +442,7 @@ const stats = async (inboundMessage) => {
     );
     embed.setDescription(description);
     embed.setFooter({
-        text: `'players' refers to cards you can roll`,
+        text: `update server + user count with ;updatestats`,
         iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png`,
     });
     embed.setTimestamp(Date.now());
@@ -487,7 +486,7 @@ const avg = async (inboundMessage) => {
 const pin = async (inboundMessage) => {
     const username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
-        if (username === '@everyone' || username === '@here') {
+        if (username.includes('@everyone') || username.includes('@here')) {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
@@ -523,7 +522,7 @@ const pin = async (inboundMessage) => {
 const unpin = async (inboundMessage) => {
     const username = inboundMessage.content.substring(6 + serverPrefix.length);
     if (username) {
-        if (username === '@everyone' || username === '@here') {
+        if (username.includes('@everyone') || username.includes('@here')) {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
@@ -560,7 +559,7 @@ const claimed = async (inboundMessage) => {
     const lbData = await getLeaderboardData('claimed');
     if (inboundMessage.content.length > 8 + serverPrefix.length) {
         const username = inboundMessage.content.substring(8 + serverPrefix.length);
-        if (username === '@everyone' || username === '@here') {
+        if (username.includes('@everyone') || username.includes('@here')) {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
@@ -633,7 +632,7 @@ const rolled = async (inboundMessage) => {
     // const lbData = await getLeaderboardData("rolled");
     // if (inboundMessage.content.length > (8 + serverPrefix.length)) {
     //     let username = inboundMessage.content.substring(7 + serverPrefix.length);
-    //     if (username === '@everyone' || username === '@here') {
+    //     if (username.includes('@everyone') || username.includes('@here')) {
     //         inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
     //         return;
     //     }
