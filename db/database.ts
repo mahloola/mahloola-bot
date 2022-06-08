@@ -84,7 +84,7 @@ export async function getPlayer(userId): Promise<Player> {
 //
 export async function getPlayerByUsername(username): Promise<Player> {
     const playersRef = db.collection('players');
-    const snapshot = await playersRef.where('apiv2.username', '==', username).get(); // doc(userId.toString())
+    const snapshot = await playersRef.where('usernameLowercase', '==', username.toLowerCase()).get(); // doc(userId.toString())
 
     let latestDate = new Date(0);
     let playerDoc;
