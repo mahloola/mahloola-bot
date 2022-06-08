@@ -32,11 +32,13 @@ import {
     getLeaderboardData,
     setPrefix,
     attemptRoll,
+    setPlayer,
 } from './db/database';
 import { createPlayerCard } from './image/jimp';
 // import paginationEmbed from 'discord.js-pagination';
 import { defaultPrefix, token, workflow } from './auth.json';
 import { NonDmChannel, Player } from './types';
+import { getUser, requestClientCredentialsToken } from './scraper/api';
 
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
@@ -46,7 +48,7 @@ let serverPrefix;
 
 client.on('ready', async function () {
     const db = initializeDatabase();
-
+    db.settings({ ignoreUndefinedProperties: true });
     const databaseStatistics = await getDatabaseStatistics();
     const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
     console.log(
@@ -88,6 +90,9 @@ client.on('ready', async function () {
             ['commands']: help,
             ['leaderboard']: leaderboard,
             ['lb']: leaderboard,
+            ['add']: add,
+            ['view']: view,
+            ['kick']: kick,
             ['prefix']: prefix,
             ['updatestats']: updatestats,
         };
@@ -343,15 +348,33 @@ const cards = async (inboundMessage) => {
     for (const id of playerIds) {
         ownedPlayerPromises.push(getPlayer(id));
     }
-    const ownedPlayers = await Promise.all(ownedPlayerPromises);
-
+    const ownedP = [];
+    let ownedPlayerPromiseResults = Promise.allSettled(ownedPlayerPromises).then((players) => {
+        players.forEach((player) => {
+            if (player.status == 'fulfilled') {
+                ownedP.push(player.value);
+            }
+        });
+    });
+    const playeurs = [];
+    ownedP.forEach((player) => {
+        if (player) {
+            playeurs.push(player);
+        })
+    const ownedPlayers = [];
+    for (const id of playerIds) {
+        const player = await getPlayer(id);
+        if (player !== null) {
+            ownedPlayers.push(player);
+        }
+    }
     // sort players by rank
     ownedPlayers.sort((a, b) => {
         return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
     });
 
     // store names and ranks into arrays for easier use
-    for (let i = 0; i < playerIds.length; i++) {
+    for (let i = 0; i < ownedPlayers.length; i++) {
         ownedPlayersNames.push(ownedPlayers[i].apiv2.username);
         ownedPlayersRanks.push(ownedPlayers[i].apiv2.statistics.global_rank);
     }
@@ -407,8 +430,8 @@ const cards = async (inboundMessage) => {
     embed.setThumbnail(discordUser.avatarURL());
     embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);
     if (pinnedPlayerIds?.length > 0) {
-        embed.addField(`Pinned`, pinnedDescription);
-        embed.addField(`All`, embedDescription);
+        embed.addField(`Pinned (${pinnedPlayerIds.length})`, pinnedDescription);
+        embed.addField(`Top`, embedDescription);
     } else {
         embed.addField(`Players`, embedDescription);
     }
@@ -417,7 +440,6 @@ const cards = async (inboundMessage) => {
     // send the message
     inboundMessage.channel.send({ embeds: [embed] });
 };
-
 const stats = async (inboundMessage) => {
     // create the embed message
 
@@ -442,7 +464,7 @@ const stats = async (inboundMessage) => {
     );
     embed.setDescription(description);
     embed.setFooter({
-        text: `update server + user count with ;updatestats`,
+        text: `;updatestats to update`,
         iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png`,
     });
     embed.setTimestamp(Date.now());
@@ -486,13 +508,17 @@ const avg = async (inboundMessage) => {
 const pin = async (inboundMessage) => {
     const username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
-        if (username.includes('@everyone') || username.includes('@here')) {
+        if (username === '@everyone' || username === '@here') {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
             const player = await getPlayerByUsername(username);
             if (player) {
                 const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+                if (user?.pinnedPlayers?.length > 9) {
+                    inboundMessage.channel.send(`${inboundMessage.author} You cannot pin more than 10 players.`);
+                    return;
+                }
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
                 if (validFlag) {
                     await setPinnedPlayer(
@@ -683,6 +709,28 @@ const rolled = async (inboundMessage) => {
     //     inboundMessage.channel.send({ embeds: [embed] });
     // }
 };
+const view = async (inboundMessage) => {
+    if (inboundMessage.content.length > 5 + serverPrefix.length) {
+        const username = inboundMessage.content.substring(5 + serverPrefix.length);
+        if (username.includes('@everyone') || username.includes('@here')) {
+            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+            return;
+        } else {
+            const player = await getPlayerByUsername(username);
+            if (player) {
+                await createPlayerCard(player.apiv2, player.claimCounter);
+                const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
+                await inboundMessage.channel.send({ files: [file] });
+            } else {
+                inboundMessage.channel.send(
+                    `${inboundMessage.author} Player "${username}" was not found. (check capitalization)`
+                );
+            }
+        }
+    } else {
+        inboundMessage.channel.send('Please enter a username.');
+    }
+};
 const prefix = async (inboundMessage) => {
     const newPrefix = inboundMessage.member.permissionsIn(inboundMessage.channel).has('ADMINISTRATOR')
         ? inboundMessage.content.substring(7 + serverPrefix.length).trim()
@@ -708,17 +756,13 @@ const leaderboard = async (inboundMessage) => {
         // get a specific user (to check if they have 10+ cards)
         const user = await getServerUserDoc(inboundMessage.channel.guildId, userIds[i]);
 
+        await updateUserElo(inboundMessage.channel.guildId, userIds[i]);
+
         // if the user has 10+ cards
         if (user.elo != undefined) {
             // get their discord info
             const userDiscordInfo = await client.users.fetch(userIds[i]);
             const userDiscordInfoJSON = userDiscordInfo.toJSON();
-
-            // fix these fields because they can't be defined
-            // userDiscordInfoJSON.banner = '';
-            // userDiscordInfoJSON.accentColor = '';
-            // userDiscordInfoJSON.hexAccentColor = '';
-            // userDiscordInfoJSON.bannerURL = '';
 
             const userRef = await getServerUserRef(inboundMessage.channel.guildId, userIds[i]);
 
@@ -776,6 +820,58 @@ const leaderboard = async (inboundMessage) => {
 
     // send the message
     inboundMessage.channel.send({ embeds: [embed] });
+};
+const add = async (inboundMessage) => {
+    // check if user is an administrator
+    if (inboundMessage.member.permissionsIn(inboundMessage.channel).has('ADMINISTRATOR')) {
+        const userId = inboundMessage.content.substring(4 + serverPrefix.length);
+        // check if user entered a parameter
+        if (userId) {
+            if (userId === '@everyone' || userId === '@here') {
+                inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+                return;
+            } else {
+                const apiToken = await requestClientCredentialsToken();
+                const player = await getUser(apiToken, userId);
+                if (player) {
+                    await setPlayer(player);
+
+                    if (getPlayerByUsername(player.username)) {
+                        const timestamp = new Date();
+                        console.log(
+                            `${timestamp.toLocaleTimeString().slice(0, 5)} | ${
+                                (inboundMessage.channel as NonDmChannel).guild.name
+                            }: ${inboundMessage.author.username} added ${player.username} to the database successfully.`
+                        );
+                        inboundMessage.channel.send(
+                            `${inboundMessage.author} ${player.username} was successfully added to the database.`
+                        );
+                    }
+                } else {
+                    inboundMessage.channel.send(`${inboundMessage.author} User ${userId} was not found.`);
+                }
+            }
+        } else {
+            inboundMessage.channel.send(`${inboundMessage.author} Please enter an osu! User ID.`);
+        }
+    } else {
+        inboundMessage.channel.send(`${inboundMessage.author} You must be an administrator.`);
+    }
+};
+const kick = async (inboundMessage) => {
+    if (inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+        return;
+    } else {
+        const serverId = inboundMessage.content.substring(5 + serverPrefix.length);
+        const server = await client.guilds.fetch(`${serverId}`);
+        if (server) {
+            console.log(server.name);
+            await server.leave();
+            inboundMessage.channel.send(`Successfully left ${server.name}.`);
+        } else {
+            inboundMessage.channel.send(`Server was not found.`);
+        }
+    }
 };
 const updatestats = async (inboundMessage) => {
     inboundMessage.channel.send(`${inboundMessage.author} Updating database statistics...`);
