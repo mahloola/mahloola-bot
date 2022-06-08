@@ -21,7 +21,8 @@ async function updateDatabase() {
             const updatedPlayer = await getUser(apiToken, player.apiv2.id);
             if (updatedPlayer) {
                 // if the user exists in the osu database
-                await setPlayer(player.apiv2);
+                await setPlayer(updatedPlayer);
+                await createPlayerCard(updatedPlayer, player.claimCount);
                 console.log(
                     `${updatedPlayer.username.padEnd(
                         16,
