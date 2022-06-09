@@ -801,7 +801,7 @@ const leaderboard = async (inboundMessage) => {
 };
 const add = async (inboundMessage) => {
     // check if user is an administrator
-    if (inboundMessage.member.permissionsIn(inboundMessage.channel).has('ADMINISTRATOR')) {
+    if (inboundMessage.author.id === ADMIN_DISCORD_ID) {
         const userId = inboundMessage.content.substring(4 + serverPrefix.length);
         // check if user entered a parameter
         if (userId) {
@@ -833,7 +833,7 @@ const add = async (inboundMessage) => {
             inboundMessage.channel.send(`${inboundMessage.author} Please enter an osu! User ID.`);
         }
     } else {
-        inboundMessage.channel.send(`${inboundMessage.author} You must be an administrator.`);
+        inboundMessage.channel.send(`${inboundMessage.author} You need to be premium to use this command.`);
     }
 };
 const kick = async (inboundMessage) => {
