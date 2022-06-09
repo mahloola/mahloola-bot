@@ -119,19 +119,14 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     // exit if user does not have enough rolls
     const rollSuccess = await attemptRoll(inboundMessage.guild.id, inboundMessage.author.id);
     const isAdmin = inboundMessage.author.id === ADMIN_DISCORD_ID;
-    if (!rollSuccess && !isAdmin) {
-        const resetTimeMs = user.rollResetTime;
-        const timeRemaining = resetTimeMs - currentTime;
-        const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
-        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-            inboundMessage.channel.send(
-                `${inboundMessage.author} You've run out of rolls. Your rolls will restock in less than a minute.`
-            );
-        } else {
-            inboundMessage.channel.send(
-                `${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`
-            );
-        }
+    if (!rollSuccess) {
+        // && !isAdmin
+        const resetTime = user.rollResetTime;
+        inboundMessage.channel.send(
+            `${inboundMessage.author} You've run out of rolls. Your rolls will restock <t:${resetTime
+                .toString()
+                .slice(0, -3)}:R>.`
+        );
         return;
     }
 
@@ -155,8 +150,7 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
         ? await setPlayerRollCounter(player, 1)
         : await setPlayerRollCounter(player, player.claimCounter + 1);
 
-    await createPlayerCard(player.apiv2, player.claimCounter);
-    const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
+    const file = new MessageAttachment(`E:/osuMudae/image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] });
     outboundMessage.react('👍');
 
@@ -174,7 +168,7 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
             if (userId !== outboundMessage.author.id) {
                 const claimingUserDoc = await getServerUserDoc(outboundMessage.guild.id, userId);
                 const claimResetTime = claimingUserDoc.claimResetTime ? claimingUserDoc.claimResetTime : 0;
-                if (currentTime > claimResetTime || inboundMessage.author.id === ADMIN_DISCORD_ID) {
+                if (currentTime > claimResetTime) {
                     claimingUser = userObject;
                     await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id).then(async () => {
                         player.claimCounter === undefined
@@ -205,15 +199,9 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
                         }: ${claimingUser.username} claimed ${player.apiv2.username}.`
                     );
                 } else {
-                    const timeRemaining = claimResetTime - currentTime;
-                    const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
-                    if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-                        outboundMessage.channel.send(`${userObject} You may claim again in **one** minute!`);
-                    } else {
-                        outboundMessage.channel.send(
-                            `${userObject} You may claim again in **${timeRemainingInMinutes}** minutes!`
-                        );
-                    }
+                    outboundMessage.channel.send(
+                        `${userObject} You may claim again <t:${claimResetTime.toString().slice(0, -3)}:R>.`
+                    );
                 }
             }
         }
@@ -245,29 +233,25 @@ const rolls = async (inboundMessage) => {
         await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
         currentRolls = 10;
     }
-
     const timeRemaining = resetTime - currentTime;
-    const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
     if (currentRolls === 1) {
         inboundMessage.channel.send(
-            `You have 1 final roll remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`
+            `You have 1 final roll remaining. Your rolls will restock <t:${resetTime.toString().slice(0, -3)}:R>.`
         );
     } else if (currentRolls === 10 || resetTime === null) {
         inboundMessage.channel.send(`You have 10 rolls remaining.`);
     } else if (currentRolls > 0 && resetTime != null) {
         inboundMessage.channel.send(
-            `You have ${currentRolls} rolls remaining. Your restock is in **${timeRemainingInMinutes}** minutes.`
+            `You have ${currentRolls} rolls remaining. Your rolls will restock <t:${resetTime
+                .toString()
+                .slice(0, -3)}:R>.`
         );
     } else {
-        if (timeRemainingInMinutes == 1 || timeRemainingInMinutes == 0) {
-            inboundMessage.channel.send(
-                `${inboundMessage.author} You've run out of rolls. Your rolls will restock in less than a minute.`
-            );
-        } else {
-            inboundMessage.channel.send(
-                `${inboundMessage.author} You've run out of rolls. Your rolls will restock in **${timeRemainingInMinutes} minutes**.`
-            );
-        }
+        inboundMessage.channel.send(
+            `${inboundMessage.author} You've run out of rolls. Your rolls will restock <t:${resetTime
+                .toString()
+                .slice(0, -3)}:R>.`
+        );
     }
 };
 const claim = async (inboundMessage) => {
@@ -288,19 +272,13 @@ const claim = async (inboundMessage) => {
         resetTime = currentTime;
     }
     const timeRemaining = resetTime - currentTime;
-    const timeRemainingInMinutes = Number((timeRemaining / 60000).toFixed(0));
-    if (timeRemainingInMinutes > 0) {
+    console.log(resetTime);
+    if (timeRemaining > 0) {
         inboundMessage.channel.send(
-            `${inboundMessage.author} You have **${timeRemainingInMinutes}** minutes left until you can claim again.`
-        );
-    } else if (timeRemainingInMinutes === 1) {
-        inboundMessage.channel.send(`${inboundMessage.author} You can claim again in one minute.`);
-    } else if (timeRemainingInMinutes === 0) {
-        inboundMessage.channel.send(
-            `${inboundMessage.author} You have less than a minute left until you can claim again.`
+            `${inboundMessage.author} You may claim again <t:${resetTime.toString().slice(0, -3)}:R>.`
         );
     } else {
-        inboundMessage.channel.send(`${inboundMessage.author} You can claim now.`);
+        inboundMessage.channel.send(`${inboundMessage.author} You may claim now.`);
     }
 };
 const cards = async (inboundMessage) => {
@@ -360,7 +338,8 @@ const cards = async (inboundMessage) => {
     ownedP.forEach((player) => {
         if (player) {
             playeurs.push(player);
-        })
+        }
+    });
     const ownedPlayers = [];
     for (const id of playerIds) {
         const player = await getPlayer(id);
@@ -718,8 +697,7 @@ const view = async (inboundMessage) => {
         } else {
             const player = await getPlayerByUsername(username);
             if (player) {
-                await createPlayerCard(player.apiv2, player.claimCounter);
-                const file = new MessageAttachment(`image/cache/osuCard-${player.apiv2.username}.png`);
+                const file = new MessageAttachment(`E:/osuMudae/image/cache/osuCard-${player.apiv2.username}.png`);
                 await inboundMessage.channel.send({ files: [file] });
             } else {
                 inboundMessage.channel.send(
