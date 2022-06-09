@@ -697,6 +697,7 @@ const view = async (inboundMessage) => {
         } else {
             const player = await getPlayerByUsername(username);
             if (player) {
+                await createPlayerCard(player.apiv2, player.claimCounter);
                 const file = new MessageAttachment(`E:/osuMudae/image/cache/osuCard-${player.apiv2.username}.png`);
                 await inboundMessage.channel.send({ files: [file] });
             } else {
