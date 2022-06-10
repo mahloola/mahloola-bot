@@ -15,7 +15,7 @@ export async function createPlayerCard(player, claimCount) {
     const writePromises = [];
     writePromises.push(
         fs.promises.writeFile(
-            `image/cache/text2png-${player.username}.png`,
+            `E:/osuMudae/image/cache/text2png-${player.username}.png`,
             text2png(`${player.username}`, {
                 font: '36px Akshar',
                 localFontName: 'Akshar',
@@ -29,7 +29,7 @@ export async function createPlayerCard(player, claimCount) {
     );
     writePromises.push(
         fs.promises.writeFile(
-            `image/cache/text2png-${player.username}-statistics-left.png`,
+            `E:/osuMudae/image/cache/text2png-${player.username}-statistics-left.png`,
             text2png(`Global\nCountry\npp\nFollowers\nClaims`, {
                 font: '24px Akshar',
                 localFontName: 'Akshar',
@@ -43,11 +43,13 @@ export async function createPlayerCard(player, claimCount) {
     );
     writePromises.push(
         fs.promises.writeFile(
-            `image/cache/text2png-${player.username}-statistics-right.png`,
+            `E:/osuMudae/image/cache/text2png-${player.username}-statistics-right.png`,
             text2png(
-                `${player.statistics.global_rank}\n${player.statistics.country_rank}\n${player.statistics.pp}\n${
-                    player.follower_count
-                }\n${claimCount ? claimCount : 0}`,
+                `${player.statistics.global_rank ? player.statistics.global_rank : '-'}\n${
+                    player.statistics.country_rank ? player.statistics.country_rank : '-'
+                }\n${player.statistics.pp ? player.statistics.pp : '-'}\n${player.follower_count}\n${
+                    claimCount ? claimCount : 0
+                }`,
                 {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
@@ -64,7 +66,7 @@ export async function createPlayerCard(player, claimCount) {
         userTitle = true;
         writePromises.push(
             fs.promises.writeFile(
-                `image/cache/text2png-${player.username}-title.png`,
+                `E:/osuMudae/image/cache/text2png-${player.username}-title.png`,
                 text2png(`${player.title}`, {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
@@ -82,21 +84,32 @@ export async function createPlayerCard(player, claimCount) {
 
     // base image
     const readPromises = [];
-    if (player.statistics.global_rank > 5000) {
-        readPromises.push(Jimp.read('image/osuCard-common.png')); // const osuCard
-    } else if (player.statistics.global_rank > 1000) {
-        readPromises.push(Jimp.read('image/osuCard-uncommon.png'));
-    } else if (player.statistics.global_rank > 300) {
-        readPromises.push(Jimp.read('image/osuCard-rare.png'));
-    } else if (player.statistics.global_rank > 50) {
-        readPromises.push(Jimp.read('image/osuCard-legendary.png'));
-    } else {
-        readPromises.push(Jimp.read('image/osuCard-master.png'));
-    }
+    const rank = player.statistics.global_rank;
+    const followers = player.follower_count;
+    const baseImageFile = rank
+        ? rank < 50
+            ? 'image/osuCard-master.png'
+            : rank < 300
+            ? 'image/osuCard-legendary.png'
+            : rank < 1000
+            ? 'image/osuCard-rare.png'
+            : rank < 5000
+            ? 'image/osuCard-uncommon.png'
+            : 'image/osuCard-common.png'
+        : followers > 4000
+        ? 'image/osuCard-master.png'
+        : followers > 1750
+        ? 'image/osuCard-legendary.png'
+        : followers > 750
+        ? 'image/osuCard-rare.png'
+        : followers > 400
+        ? 'image/osuCard-uncommon.png'
+        : 'image/osuCard-common.png';
+    readPromises.push(Jimp.read(baseImageFile));
 
-    readPromises.push(Jimp.read(`image/cache/text2png-${player.username}.png`));
-    readPromises.push(Jimp.read(`image/cache/text2png-${player.username}-statistics-left.png`));
-    readPromises.push(Jimp.read(`image/cache/text2png-${player.username}-statistics-right.png`));
+    readPromises.push(Jimp.read(`E:/osuMudae/image/cache/text2png-${player.username}.png`));
+    readPromises.push(Jimp.read(`E:/osuMudae/image/cache/text2png-${player.username}-statistics-left.png`));
+    readPromises.push(Jimp.read(`E:/osuMudae/image/cache/text2png-${player.username}-statistics-right.png`));
     readPromises.push(Jimp.read(`https://a.ppy.sh/${player.id}`));
     readPromises.push(
         Jimp.read(
@@ -119,7 +132,9 @@ export async function createPlayerCard(player, claimCount) {
         mask2,
         circle,
     ] = await Promise.all(readPromises);
-    let textImageTitle = userTitle ? await Jimp.read(`image/cache/text2png-${player.username}-title.png`) : null;
+    let textImageTitle = userTitle
+        ? await Jimp.read(`E:/osuMudae/image/cache/text2png-${player.username}-title.png`)
+        : null;
 
     // overlay text images onto the card
     osuCard.composite(
@@ -235,8 +250,6 @@ export async function createPlayerCard(player, claimCount) {
         alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
     });
 
-    //img.mask(mask, 0, 0).write(`image/cache/osuCard-${user.username}.png`);
-
     // circle border
     osuCard.composite(
         circle, // src
@@ -268,7 +281,7 @@ export async function createPlayerCard(player, claimCount) {
 
     // write image
     try {
-        await osuCard.writeAsync(`image/cache/osuCard-${player.username}.png`);
+        await osuCard.writeAsync(`E:/osuMudae/image/cache/osuCard-${player.username}.png`);
     } catch (err) {
         console.trace();
         console.log(err);
