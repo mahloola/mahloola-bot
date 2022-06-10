@@ -35,7 +35,7 @@ import {
     setPlayer,
 } from './db/database';
 import { createPlayerCard } from './image/jimp';
-// import paginationEmbed from 'discord.js-pagination';
+import paginationEmbed from 'discord.js-pagination';
 import { defaultPrefix, token, workflow } from './auth.json';
 import { NonDmChannel, Player } from './types';
 import { getUser, requestClientCredentialsToken } from './scraper/api';
@@ -299,9 +299,7 @@ const cards = async (inboundMessage) => {
             if (discordUser) {
                 discordUserId = discordUser.id;
             } else {
-                inboundMessage.channel.send(
-                    `${inboundMessage.author} User "${username}" was not found. (check capitalization)`
-                );
+                inboundMessage.channel.send(`${inboundMessage.author} User "${username}" was not found.`);
                 return;
             }
         }
@@ -344,7 +342,9 @@ const cards = async (inboundMessage) => {
     for (const id of playerIds) {
         const player = await getPlayer(id);
         if (player !== null) {
-            ownedPlayers.push(player);
+            if (player.apiv2.statistics.global_rank !== null) {
+                ownedPlayers.push(player);
+            }
         }
     }
     // sort players by rank
@@ -508,13 +508,11 @@ const pin = async (inboundMessage) => {
                     inboundMessage.channel.send(`${inboundMessage.author} pinned ${username} successfully.`);
                 } else {
                     inboundMessage.channel.send(
-                        `${inboundMessage.author} You do not own a player with the username "${username}". (check capitalization)`
+                        `${inboundMessage.author} You do not own a player with the username "${username}".`
                     );
                 }
             } else {
-                inboundMessage.channel.send(
-                    `${inboundMessage.author} Player "${username}" was not found. (check capitalization)`
-                );
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
             }
         }
     } else {
@@ -548,9 +546,7 @@ const unpin = async (inboundMessage) => {
                     );
                 }
             } else {
-                inboundMessage.channel.send(
-                    `${inboundMessage.author} Player "${username}" was not found. (check capitalization)`
-                );
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
             }
         }
     } else {
@@ -584,9 +580,7 @@ const claimed = async (inboundMessage) => {
                           `${inboundMessage.author} ${player.apiv2.username} has never been claimed.`
                       );
             } else {
-                inboundMessage.channel.send(
-                    `${inboundMessage.author} Player "${username}" was not found. (check capitalization)`
-                );
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
             }
         }
     } else {
@@ -634,37 +628,50 @@ const claimed = async (inboundMessage) => {
 };
 const rolled = async (inboundMessage) => {
     inboundMessage.channel.send(`This feature is temporarily disabled until the data is fixed.`);
-    // const lbData = await getLeaderboardData("rolled");
-    // if (inboundMessage.content.length > (8 + serverPrefix.length)) {
+    // const lbData = await getLeaderboardData('rolled');
+    // if (inboundMessage.content.length > 8 + serverPrefix.length) {
     //     let username = inboundMessage.content.substring(7 + serverPrefix.length);
     //     if (username.includes('@everyone') || username.includes('@here')) {
-    //         inboundMessage.channel.send(`${inboundMessage.author} u think ur sneaky`);
+    //         inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
     //         return;
-    //     }
-    //     else {
+    //     } else {
     //         const player = await getPlayerByUsername(username);
     //         if (player) {
-    //             lbData.players[player.apiv2.id] === 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled once.`)
-    //                 : lbData.players[player.apiv2.id] > 1 ? inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has been rolled ${lbData.players[player.apiv2.id]} times.`)
-    //                     : inboundMessage.channel.send(`${inboundMessage.author} ${player.apiv2.username} has never been rolled.`);
-    //         }
-    //         else {
-    //             inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found. (check capitalization)`);
+    //             lbData.players[player.apiv2.id] === 1
+    //                 ? inboundMessage.channel.send(
+    //                       `${inboundMessage.author} ${player.apiv2.username} has been rolled once.`
+    //                   )
+    //                 : lbData.players[player.apiv2.id] > 1
+    //                 ? inboundMessage.channel.send(
+    //                       `${inboundMessage.author} ${player.apiv2.username} has been rolled ${
+    //                           lbData.players[player.apiv2.id]
+    //                       } times.`
+    //                   )
+    //                 : inboundMessage.channel.send(
+    //                       `${inboundMessage.author} ${player.apiv2.username} has never been rolled.`
+    //                   );
+    //         } else {
+    //             inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
     //         }
     //     }
-    // }
-    // else {
-    //     const lb = await getLeaderboardData("rolled");
+    // } else {
+    //     const lb = await getLeaderboardData('rolled');
     //     let players = lb.players;
-    //     let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1])
+    //     let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
     //     // create the embed message
     //     let embed = new Discord.MessageEmbed();
 
     //     // populate the embed message
-    //     embed.setTitle(`Global Rolled Leaderboard`)
-    //     embed.setColor('#D9A6BD')
-    //     embed.setAuthor({ name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`, iconURL: inboundMessage.author.avatarURL(), url: inboundMessage.author.avatarURL() })
-    //     embed.setThumbnail(`https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`);
+    //     embed.setTitle(`Global Rolled Leaderboard`);
+    //     embed.setColor('#D9A6BD');
+    //     embed.setAuthor({
+    //         name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
+    //         iconURL: inboundMessage.author.avatarURL(),
+    //         url: inboundMessage.author.avatarURL(),
+    //     });
+    //     embed.setThumbnail(
+    //         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
+    //     );
     //     let embedDescription = `\`\`\`Player          | Times Rolled\n`;
     //     embedDescription += `---------------------\n`;
     //     //console.log(sortedPlayerIds);
@@ -673,16 +680,15 @@ const rolled = async (inboundMessage) => {
     //         const playerObject = await getPlayer(sortedPlayerIds[i]);
     //         const username = playerObject.apiv2.username;
     //         let spaces = '';
-    //         for (let i = 0; i < (16 - username.length); i++) {
+    //         for (let i = 0; i < 16 - username.length; i++) {
     //             spaces += ' ';
     //         }
     //         //console.log(players[sortedPlayerIds[i]]);
     //         embedDescription += `${username}${spaces}| ${players[sortedPlayerIds[i]]}\n`;
     //     }
-    //     embedDescription += `\`\`\``
-    //     embed.setDescription(`${embedDescription}`)
-    //     embed.setFooter({ text: `this command may take a while`, iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png` })
-    //     embed.setTimestamp(Date.now())
+    //     embedDescription += `\`\`\``;
+    //     embed.setDescription(`${embedDescription}`);
+    //     embed.setTimestamp(Date.now());
 
     //     // send the message
     //     inboundMessage.channel.send({ embeds: [embed] });
@@ -697,13 +703,13 @@ const view = async (inboundMessage) => {
         } else {
             const player = await getPlayerByUsername(username);
             if (player) {
+                // update their card
                 await createPlayerCard(player.apiv2, player.claimCounter);
+                // send the image
                 const file = new MessageAttachment(`E:/osuMudae/image/cache/osuCard-${player.apiv2.username}.png`);
                 await inboundMessage.channel.send({ files: [file] });
             } else {
-                inboundMessage.channel.send(
-                    `${inboundMessage.author} Player "${username}" was not found. (check capitalization)`
-                );
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
             }
         }
     } else {
@@ -867,11 +873,12 @@ const help = async (inboundMessage) => {
 \`rolls:\` Check your available rolls.
 \`claim:\` Check when your next claim is available.
 \`cards:\` Display all of your owned cards.
-\`pin(username):\` Pin cards to the top of your cards page.
-\`unpin(username):\` Remove pins from your cards page.
-\`claimed(username):\` Display the times a user has been claimed.
+\`pin *username*:\` Pin cards to the top of your cards page.
+\`unpin *username*:\` Remove pins from your cards page.
+\`view *username*:\` View a player card.
+\`claimed *username*:\` Display the times a user has been claimed.
 \`claimed:\` Display the most claimed players.
-\`rolled(username):\` Display the times a user has been rolled.
+\`rolled *username*:\` Display the times a user has been rolled.
 \`rolled:\` Display the most rolled players.
 \`avg:\` Display the average rank in your top 10 cards.
 \`lb:\` Display server leaderboard based on top 10 card rankings.\n 
@@ -879,6 +886,8 @@ const help = async (inboundMessage) => {
 \`help:\` Display all commands.
 \`prefix:\` Change the bot prefix (must be an administrator).
 \`stats:\` Display global bot stats.\n
+**Premium**
+\`add:\` Add a new player to the database (out of top 10k/inactive).\n
 **Discord**
 https://discord.gg/DGdzyapHkW
     `;
