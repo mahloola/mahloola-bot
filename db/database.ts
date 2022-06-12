@@ -21,7 +21,12 @@ export async function setPlayer(player) {
     if (player) {
         const docRef = db.collection('players').doc(player.id.toString());
         await docRef.set(
-            { apiv2: player, dateUpdated: new Date(), usernameLowercase: player.username.toLowerCase() },
+            {
+                apiv2: player,
+                dateUpdated: new Date(),
+                usernameLowercase: player.username.toLowerCase(),
+                rollIndex: Math.random() * 9_223_372_036_854,
+            },
             { merge: true }
         );
     } else {

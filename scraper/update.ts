@@ -31,7 +31,7 @@ async function updateDatabase() {
                         updatedPlayer.statistics.global_rank
                     }`
                 );
-                // await createPlayerCard(updatedPlayer, player.claimCounter);
+                await createPlayerCard(updatedPlayer, player.claimCounter);
                 simplifiedPlayers[updatedPlayer.id] = [
                     updatedPlayer.username.toLowerCase(),
                     updatedPlayer.statistics.global_rank,
