@@ -132,8 +132,12 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
 
     // get a random player (rank 1 - 10,000)
     while (!player) {
-        const rank = Math.floor(Math.random() * databaseStatistics.players) + 1;
-        player = await getPlayerByRank(rank);
+        const querySnapshot = await db
+            .collection('players')
+            .where('rollIndex', '>', Math.floor(Math.random() * 9_223_372_036_854))
+            .limit(1)
+            .get();
+        player = querySnapshot.size > 0 ? querySnapshot.docs[0].data() : null;
     }
     console.log(
         `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(inboundMessage.channel as NonDmChannel).guild.name}: ${
