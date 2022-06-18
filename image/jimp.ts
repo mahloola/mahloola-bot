@@ -129,7 +129,7 @@ export async function createPlayerCard(player, claimCount) {
         avatar,
         flag,
         mask,
-        mask2,
+        cardMask,
         circle,
     ] = await Promise.all(readPromises);
     let textImageTitle = userTitle
@@ -225,31 +225,6 @@ export async function createPlayerCard(player, claimCount) {
         console.log(`Failed to read cover URL for user ${player.username}.`);
     }
 
-    // avatar
-
-    // resize the avatar
-    avatar.scaleToFit(256, 256);
-
-    // smooth the edges using a circle mask
-    avatar.mask(mask, 0, 0);
-    // await Promise.all([avatar, mask]).then((images) => {
-    //     var avatar = images[0];
-    //     var mask = images[1];
-    // });
-
-    osuCard.mask(mask2, 0, 0);
-
-    avatar.scaleToFit(200, 200);
-
-    // overlay the avatar
-    osuCard.composite(avatar, (400 - avatar.getWidth()) / 2, 78, {
-        mode: Jimp.BLEND_SOURCE_OVER,
-        opacityDest: 1,
-        opacitySource: 1,
-        alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-        alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
-    });
-
     // circle border
     osuCard.composite(
         circle, // src
@@ -263,6 +238,24 @@ export async function createPlayerCard(player, claimCount) {
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         }
     );
+
+    // avatar
+    // resize the avatar
+    avatar.scaleToFit(256, 256);
+    console.log(avatar.getWidth());
+    // smooth the edges using a circle mask // TODO: handle cases with width less than 200 and very tall aspect ratio
+    avatar.mask(mask);
+    // fit the avatar
+    avatar.scaleToFit(200, 200);
+
+    // overlay the avatar
+    osuCard.composite(avatar, (400 - avatar.getWidth()) / 2, 78, {
+        mode: Jimp.BLEND_SOURCE_OVER,
+        opacityDest: 1,
+        opacitySource: 1,
+        alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+        alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+    });
 
     flag.resize(42, 29);
     // overlay the flag
@@ -278,6 +271,8 @@ export async function createPlayerCard(player, claimCount) {
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
         }
     );
+
+    osuCard.mask(cardMask, 0, 0);
 
     // write image
     try {
