@@ -10,8 +10,23 @@ export interface DatabaseStatistics {
 export interface Player {
     apiv2: OsuUser;
     claimCounter?: number;
+    rollCounter?: number;
 }
 
+export interface DiscordUser {
+    avatar?: string;
+    avatarURL?: string;
+    bot?: boolean;
+    createdTimestamp?: number;
+    defaultAvatarURL?: string;
+    discriminator?: string;
+    displayAvatarURL?: string;
+    flags?: number;
+    id?: string;
+    system?: boolean;
+    tag?: string;
+    username?: string;
+}
 export interface Server {
     ownedPlayers?: number[];
     serverName?: string;
@@ -25,6 +40,7 @@ export interface ServerUser {
     rollResetTime?: number;
     rolls?: number;
     elo?: number;
+    discord?: DiscordUser;
 }
 
 export interface Leaderboard {
