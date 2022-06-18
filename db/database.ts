@@ -1,6 +1,11 @@
 import admin from 'firebase-admin';
 import { firestoreKey, workflow } from '../auth.json';
 import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
+import Discord from 'discord.js';
+import { Intents } from 'discord.js';
+const client = new Discord.Client({
+    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
+});
 
 const millisecondsPerHour = 3600000;
 
@@ -31,6 +36,75 @@ export async function setPlayer(player) {
         );
     } else {
         console.log(`Failed to set player ${player.id}`);
+    }
+}
+// set discord user in the database
+export async function setDiscordUser(discordUser) {
+    if (discordUser) {
+        const docRef = db.collection('users').doc(discordUser.id.toString());
+        await docRef.set(
+            {
+                discord: discordUser,
+                dateUpdated: new Date(),
+            },
+            { merge: true }
+        );
+    } else {
+        console.log(`Failed to set user ${discordUser.id}`);
+    }
+}
+export async function setPremium(user, months) {
+    const currentDateMs = new Date().getTime();
+    const premiumExpiryMs = currentDateMs + months * 2629800000;
+    if (user) {
+        console.log(user);
+        const docRef = db.collection('users').doc(user.discord.id.toString());
+        await docRef.set(
+            {
+                premium: premiumExpiryMs,
+            },
+            { merge: true }
+        );
+    } else {
+        console.log(`Failed to set premium date for user ${user.discord.username}`);
+    }
+}
+export async function populateUsers() {
+    const serversRef = db.collection('servers');
+    const serversSnapshot = await serversRef.limit(3).get();
+    const serverCount = serversSnapshot.size;
+    const serverIds = [];
+    serversSnapshot.docs.forEach((doc) => {
+        console.log(doc.id);
+        serverIds.push(doc.id);
+    });
+    for (let i = 0; i < serverCount; i++) {
+        console.log(`Now entering server ${serverIds[i]}`);
+        const serverRef = serversRef.doc(serverIds[i].toString());
+        const usersSnapshot = await serverRef.collection('users').get();
+        const userCount = usersSnapshot.size;
+        const userIds = [];
+        for (let i = 0; i < userCount; i++) {
+            const userDoc = await usersSnapshot.docs[i].data();
+            let userDiscord;
+            if (!userDoc.discord) {
+                userDiscord = await client.users.fetch(userIds[i]);
+                console.log(`Found user ${userDiscord.username}.`);
+            }
+            if (!userIds.includes(userDiscord.id)) {
+                userIds.push(userDiscord.id);
+                await setDiscordUser(userDiscord);
+                console.log(`User ${userDiscord.username} has been set in the users collection.`);
+            }
+        }
+    }
+}
+export async function setUserRollCounter(discordUser, count) {
+    if (discordUser) {
+        const userRef = db.collection('users').doc(discordUser.id);
+        await userRef.set({ discord: discordUser, rollCounter: count }, { merge: true });
+    } else {
+        console.log(`Failed to set user roll counter for ${discordUser.id}`);
     }
 }
 
@@ -154,7 +228,10 @@ export async function getServerUserIds(serverId) {
     });
     return userIds;
 }
-
+export async function getDiscordUser(discordId) {
+    const userDoc = await db.collection('users').doc(discordId).get();
+    return userDoc.data();
+}
 export async function getLeaderboardData(type): Promise<Leaderboard> {
     const leaderboardRef =
         workflow === 'development' ? db.collection('testing-leaderboards') : db.collection('leaderboards');
@@ -343,22 +420,32 @@ export async function updateDatabaseStatistics() {
     const statistics = await getDatabaseStatistics();
     let serverCount = 0;
     const serverIds = [];
-    let userCount = 0;
-    const serversSnapshot = await db.collection('servers').get();
+    const serversSnapshot =
+        workflow === 'development'
+            ? await db.collection('testing-servers').get()
+            : await db.collection('servers').get();
     const serversRef = getServersRef();
     serverCount = serversSnapshot.size; // will return the collection size
     statistics.servers = serverCount;
     serversSnapshot.docs.forEach((doc) => {
         serverIds.push(doc.id);
     });
+    const totalUsers = [];
     for (let i = 0; i < serverCount; i++) {
         const serverRef = serversRef.doc(serverIds[i].toString());
         const usersSnapshot = await serverRef.collection('users').get();
-        userCount += usersSnapshot.size;
+        const userIds = [];
+        usersSnapshot.docs.forEach((doc) => {
+            userIds.push(doc.id);
+            if (!totalUsers.includes(doc.id)) {
+                totalUsers.push(doc.id);
+            }
+        });
     }
 
-    statistics.users = userCount;
+    statistics.users = totalUsers.length;
     statistics.servers = serverCount;
+    console.log(statistics);
     setDatabaseStatistics(statistics);
     return statistics;
 }
