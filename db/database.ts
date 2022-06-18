@@ -41,7 +41,9 @@ export async function setPlayer(player) {
 // set discord user in the database
 export async function setDiscordUser(discordUser) {
     if (discordUser) {
-        const docRef = db.collection('users').doc(discordUser.id.toString());
+        const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
+        console.log(discordUser.id.toString());
+        const docRef = usersRef.doc(discordUser.id.toString());
         await docRef.set(
             {
                 discord: discordUser,
@@ -58,7 +60,8 @@ export async function setPremium(user, months) {
     const premiumExpiryMs = currentDateMs + months * 2629800000;
     if (user) {
         console.log(user);
-        const docRef = db.collection('users').doc(user.discord.id.toString());
+        const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
+        const docRef = usersRef.doc(user.discord.id.toString());
         await docRef.set(
             {
                 premium: premiumExpiryMs,
@@ -99,15 +102,24 @@ export async function populateUsers() {
         }
     }
 }
-export async function setUserRollCounter(discordUser, count) {
-    if (discordUser) {
-        const userRef = db.collection('users').doc(discordUser.id);
-        await userRef.set({ discord: discordUser, rollCounter: count }, { merge: true });
+export async function setUserRollCounter(discord, count) {
+    if (discord) {
+        const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
+        const userRef = usersRef.doc(discord.id);
+        await userRef.set({ discord: discord, rollCounter: count }, { merge: true });
     } else {
-        console.log(`Failed to set user roll counter for ${discordUser.id}`);
+        console.log(`Failed to set user roll counter.`);
     }
 }
-
+export async function setUserClaimCounter(discord, count) {
+    if (discord) {
+        const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
+        const userRef = usersRef.doc(discord.id);
+        await userRef.set({ discord: discord, claimCounter: count }, { merge: true });
+    } else {
+        console.log(`Failed to set user claim counter.`);
+    }
+}
 // set the counter for how many times a player has been claimed
 export async function setPlayerClaimCounter(player, count) {
     if (player) {
@@ -229,8 +241,9 @@ export async function getServerUserIds(serverId) {
     return userIds;
 }
 export async function getDiscordUser(discordId) {
-    const userDoc = await db.collection('users').doc(discordId).get();
-    return userDoc.data();
+    const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
+    const userDoc = await usersRef.doc(discordId).get();
+    return userDoc.exists ? userDoc.data() : null;
 }
 export async function getLeaderboardData(type): Promise<Leaderboard> {
     const leaderboardRef =

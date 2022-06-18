@@ -38,11 +38,12 @@ import {
     setPremium,
     populateUsers,
     setDiscordUser,
+    setUserClaimCounter,
 } from './db/database';
 import { createPlayerCard } from './image/jimp';
 import paginationEmbed from 'discord.js-pagination';
 import { defaultPrefix, token, workflow } from './auth.json';
-import { NonDmChannel, Player } from './types';
+import { DiscordUser, NonDmChannel, Player } from './types';
 import { getUser, requestClientCredentialsToken } from './scraper/api';
 
 const client = new Discord.Client({
@@ -129,7 +130,13 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     const currentTime = timestamp.getTime();
 
     const user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-    const discordUser = await getDiscordUser(user.discord.id);
+    let discordUser;
+    if ((await getDiscordUser(inboundMessage.author.id)) == null) {
+        discordUser = (await client.users.fetch(inboundMessage.author.id)).toJSON();
+        await setDiscordUser(discordUser);
+    } else {
+        discordUser = await getDiscordUser(inboundMessage.author.id);
+    }
     // exit if user does not have enough rolls
     const rollSuccess = await attemptRoll(inboundMessage.guild.id, inboundMessage.author.id);
     const isAdmin = inboundMessage.author.id === ADMIN_DISCORD_ID;
@@ -163,7 +170,7 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     const statistics = await getDatabaseStatistics();
     statistics.rolls++;
     setDatabaseStatistics(statistics);
-    setUserRollCounter(discordUser.discord, discordUser.rollCounter + 1);
+    setUserRollCounter(discordUser.discord ?? discordUser, discordUser.rollCounter ? discordUser.rollCounter + 1 : 1);
     // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
     player.claimCounter === undefined
         ? await setPlayerRollCounter(player, 1)
@@ -189,10 +196,20 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
                 const claimResetTime = claimingUserDoc.claimResetTime ? claimingUserDoc.claimResetTime : 0;
                 if (currentTime > claimResetTime) {
                     claimingUser = userObject;
+                    discordUser = await getDiscordUser(claimingUser.id);
+                    if (!discordUser) {
+                        const discordUserObject = await client.users.fetch(inboundMessage.author.id);
+                        discordUser = discordUserObject.toJSON();
+                        await setDiscordUser(discordUser);
+                    }
                     await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id).then(async () => {
                         player.claimCounter === undefined
                             ? await setPlayerClaimCounter(player, 1)
                             : await setPlayerClaimCounter(player, player.claimCounter + 1);
+                        discordUser.claimCounter === undefined
+                            ? await setUserClaimCounter(discordUser.discord, 1)
+                            : await setUserClaimCounter(discordUser.discord, discordUser.claimCounter + 1);
+
                         if (claimingUserDoc.ownedPlayers === undefined) {
                             outboundMessage.channel.send(
                                 `**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **9** more cards with no cooldown.`
@@ -474,7 +491,8 @@ const stats = async (inboundMessage) => {
 const mystats = async (inboundMessage) => {
     const user = await getDiscordUser(inboundMessage.author.id);
     const description = `
-**Rolls**: ${user.rollCounter}
+**Rolls**: ${user.rollCounter ?? 0}
+**Claims**: ${user.claimCounter ?? 0}
 `;
     const embed = new Discord.MessageEmbed();
 
@@ -841,7 +859,10 @@ const leaderboard = async (inboundMessage) => {
     inboundMessage.channel.send({ embeds: [embed] });
 };
 const premium = async (inboundMessage) => {
-    const discordId = inboundMessage.content.substring(8 + serverPrefix.length);
+    let discordId = inboundMessage.content.substring(8 + serverPrefix.length);
+    if (!discordId) {
+        discordId = inboundMessage.author.id;
+    }
     if (discordId.includes('@everyone') || discordId.includes('@here')) {
         inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
         return;
@@ -851,9 +872,11 @@ const premium = async (inboundMessage) => {
             const currentDate = new Date().getTime();
             if (user.premium > currentDate) {
                 inboundMessage.channel.send(
-                    `${inboundMessage.author} ${
-                        user.discord.username
-                    } currently has premium valid until <t:${user.premium.toString().slice(0, -3)}:f>.`
+                    `${
+                        inboundMessage.author.id === discordId
+                            ? 'You currently have'
+                            : `${inboundMessage.author} currently has`
+                    } premium valid until <t:${user.premium.toString().slice(0, -3)}:f>.`
                 );
             } else {
                 inboundMessage.channel.send(
@@ -861,7 +884,7 @@ const premium = async (inboundMessage) => {
                 );
             }
         } else {
-            inboundMessage.channel.send(`${inboundMessage.author} Discord user ${discordId} was not found.`);
+            inboundMessage.channel.send(`${inboundMessage.author} User ${discordId} was not found in the database.`);
         }
     }
 };
@@ -918,6 +941,8 @@ const kick = async (inboundMessage) => {
     }
 };
 const donate = async (inboundMessage) => {
+    const user = await client.users.fetch(inboundMessage.author.id);
+    await setDiscordUser(user.toJSON());
     const embed = new Discord.MessageEmbed();
     embed.setThumbnail(
         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
