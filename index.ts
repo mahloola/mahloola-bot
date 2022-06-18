@@ -1,4 +1,4 @@
-import Discord from 'discord.js';
+import Discord, { Message } from 'discord.js';
 import { MessageAttachment, Intents } from 'discord.js';
 import {
     initializeDatabase,
@@ -33,6 +33,11 @@ import {
     setPrefix,
     attemptRoll,
     setPlayer,
+    setUserRollCounter,
+    getDiscordUser,
+    setPremium,
+    populateUsers,
+    setDiscordUser,
 } from './db/database';
 import { createPlayerCard } from './image/jimp';
 import paginationEmbed from 'discord.js-pagination';
@@ -78,8 +83,10 @@ client.on('ready', async function () {
             ['r']: roll,
             ['rolls']: rolls,
             ['claim']: claim,
+            ['claims']: claim,
             ['cards']: cards,
             ['stats']: stats,
+            ['mystats']: mystats,
             ['trade']: trade,
             ['avg']: avg,
             ['pin']: pin,
@@ -92,9 +99,16 @@ client.on('ready', async function () {
             ['lb']: leaderboard,
             ['add']: add,
             ['view']: view,
-            ['kick']: kick,
+            ['premium']: premium,
+            ['donate']: donate,
             ['prefix']: prefix,
             ['updatestats']: updatestats,
+
+            // ADMIN
+            ['kick']: kick, // kick mahloola bot from a server (serverId)
+            ['populate']: populate, // populate the 'users' db collection with users from every server
+            ['givepremium']: givepremium, // give somebody a month of premium (discordId)
+            ['givecard']: givecard, // give a card to somebody (userId, (optional: serverId), osu username)
         };
         const command = commandMapping[commandText];
         if (command) {
@@ -115,7 +129,7 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     const currentTime = timestamp.getTime();
 
     const user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
-
+    const discordUser = await getDiscordUser(user.discord.id);
     // exit if user does not have enough rolls
     const rollSuccess = await attemptRoll(inboundMessage.guild.id, inboundMessage.author.id);
     const isAdmin = inboundMessage.author.id === ADMIN_DISCORD_ID;
@@ -149,10 +163,11 @@ const roll = async (inboundMessage: Discord.Message<boolean>, db, databaseStatis
     const statistics = await getDatabaseStatistics();
     statistics.rolls++;
     setDatabaseStatistics(statistics);
+    setUserRollCounter(discordUser.discord, discordUser.rollCounter + 1);
     // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
     player.claimCounter === undefined
         ? await setPlayerRollCounter(player, 1)
-        : await setPlayerRollCounter(player, player.claimCounter + 1);
+        : await setPlayerRollCounter(player, player.rollCounter + 1);
 
     const file = new MessageAttachment(`E:/osuMudae/image/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] });
@@ -456,7 +471,26 @@ const stats = async (inboundMessage) => {
     inboundMessage.channel.send({ embeds: [embed] });
     //updateStatistics();
 };
+const mystats = async (inboundMessage) => {
+    const user = await getDiscordUser(inboundMessage.author.id);
+    const description = `
+**Rolls**: ${user.rollCounter}
+`;
+    const embed = new Discord.MessageEmbed();
 
+    embed.setTitle(`${user.discord.username}'s Stats`);
+    embed.setColor('#D9A6BD');
+    embed.setAuthor({
+        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
+        iconURL: inboundMessage.author.avatarURL(),
+        url: inboundMessage.author.avatarURL(),
+    });
+    embed.setThumbnail(inboundMessage.author.avatarURL());
+    embed.setDescription(description);
+    embed.setTimestamp(Date.now());
+
+    inboundMessage.channel.send({ embeds: [embed] });
+};
 const trade = async (inboundMessage) => {
     const user = inboundMessage.author;
     const serverId = inboundMessage.guild.id;
@@ -631,72 +665,68 @@ const claimed = async (inboundMessage) => {
     }
 };
 const rolled = async (inboundMessage) => {
-    inboundMessage.channel.send(`This feature is temporarily disabled until the data is fixed.`);
-    // const lbData = await getLeaderboardData('rolled');
-    // if (inboundMessage.content.length > 8 + serverPrefix.length) {
-    //     let username = inboundMessage.content.substring(7 + serverPrefix.length);
-    //     if (username.includes('@everyone') || username.includes('@here')) {
-    //         inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
-    //         return;
-    //     } else {
-    //         const player = await getPlayerByUsername(username);
-    //         if (player) {
-    //             lbData.players[player.apiv2.id] === 1
-    //                 ? inboundMessage.channel.send(
-    //                       `${inboundMessage.author} ${player.apiv2.username} has been rolled once.`
-    //                   )
-    //                 : lbData.players[player.apiv2.id] > 1
-    //                 ? inboundMessage.channel.send(
-    //                       `${inboundMessage.author} ${player.apiv2.username} has been rolled ${
-    //                           lbData.players[player.apiv2.id]
-    //                       } times.`
-    //                   )
-    //                 : inboundMessage.channel.send(
-    //                       `${inboundMessage.author} ${player.apiv2.username} has never been rolled.`
-    //                   );
-    //         } else {
-    //             inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
-    //         }
-    //     }
-    // } else {
-    //     const lb = await getLeaderboardData('rolled');
-    //     let players = lb.players;
-    //     let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
-    //     // create the embed message
-    //     let embed = new Discord.MessageEmbed();
+    const lbData = await getLeaderboardData('rolled');
+    if (inboundMessage.content.length > 8 + serverPrefix.length) {
+        let username = inboundMessage.content.substring(7 + serverPrefix.length);
+        if (username.includes('@everyone') || username.includes('@here')) {
+            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+            return;
+        } else {
+            const player = await getPlayerByUsername(username);
+            if (player) {
+                lbData.players[player.apiv2.id] === 1
+                    ? inboundMessage.channel.send(
+                          `${inboundMessage.author} ${player.apiv2.username} has been rolled once.`
+                      )
+                    : lbData.players[player.apiv2.id] > 1
+                    ? inboundMessage.channel.send(
+                          `${inboundMessage.author} ${player.apiv2.username} has been rolled ${
+                              lbData.players[player.apiv2.id]
+                          } times.`
+                      )
+                    : inboundMessage.channel.send(
+                          `${inboundMessage.author} ${player.apiv2.username} has never been rolled.`
+                      );
+            } else {
+                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+            }
+        }
+    } else {
+        const lb = await getLeaderboardData('rolled');
+        let players = lb.players;
+        let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
+        // create the embed message
+        let embed = new Discord.MessageEmbed();
 
-    //     // populate the embed message
-    //     embed.setTitle(`Global Rolled Leaderboard`);
-    //     embed.setColor('#D9A6BD');
-    //     embed.setAuthor({
-    //         name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
-    //         iconURL: inboundMessage.author.avatarURL(),
-    //         url: inboundMessage.author.avatarURL(),
-    //     });
-    //     embed.setThumbnail(
-    //         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
-    //     );
-    //     let embedDescription = `\`\`\`Player          | Times Rolled\n`;
-    //     embedDescription += `---------------------\n`;
-    //     //console.log(sortedPlayerIds);
-    //     sortedPlayerIds = sortedPlayerIds.slice(0, 10);
-    //     for (let i = 0; i < sortedPlayerIds.length; i++) {
-    //         const playerObject = await getPlayer(sortedPlayerIds[i]);
-    //         const username = playerObject.apiv2.username;
-    //         let spaces = '';
-    //         for (let i = 0; i < 16 - username.length; i++) {
-    //             spaces += ' ';
-    //         }
-    //         //console.log(players[sortedPlayerIds[i]]);
-    //         embedDescription += `${username}${spaces}| ${players[sortedPlayerIds[i]]}\n`;
-    //     }
-    //     embedDescription += `\`\`\``;
-    //     embed.setDescription(`${embedDescription}`);
-    //     embed.setTimestamp(Date.now());
+        embed.setTitle(`Global Rolled Leaderboard`);
+        embed.setColor('#D9A6BD');
+        embed.setAuthor({
+            name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
+            iconURL: inboundMessage.author.avatarURL(),
+            url: inboundMessage.author.avatarURL(),
+        });
+        embed.setThumbnail(
+            `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
+        );
+        let embedDescription = `\`\`\`Player          | Times Rolled\n`;
+        embedDescription += `---------------------\n`;
 
-    //     // send the message
-    //     inboundMessage.channel.send({ embeds: [embed] });
-    // }
+        sortedPlayerIds = sortedPlayerIds.slice(0, 10);
+        for (let i = 0; i < sortedPlayerIds.length; i++) {
+            const playerObject = await getPlayer(sortedPlayerIds[i]);
+            const username = playerObject.apiv2.username;
+            let spaces = '';
+            for (let i = 0; i < 16 - username.length; i++) {
+                spaces += ' ';
+            }
+            embedDescription += `${username}${spaces}| ${players[sortedPlayerIds[i]]}\n`;
+        }
+        embedDescription += `\`\`\``;
+        embed.setDescription(`${embedDescription}`);
+        embed.setTimestamp(Date.now());
+        // send the message
+        inboundMessage.channel.send({ embeds: [embed] });
+    }
 };
 const view = async (inboundMessage) => {
     if (inboundMessage.content.length > 5 + serverPrefix.length) {
@@ -810,6 +840,31 @@ const leaderboard = async (inboundMessage) => {
     // send the message
     inboundMessage.channel.send({ embeds: [embed] });
 };
+const premium = async (inboundMessage) => {
+    const discordId = inboundMessage.content.substring(8 + serverPrefix.length);
+    if (discordId.includes('@everyone') || discordId.includes('@here')) {
+        inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+        return;
+    } else {
+        const user = await getDiscordUser(discordId);
+        if (user) {
+            const currentDate = new Date().getTime();
+            if (user.premium > currentDate) {
+                inboundMessage.channel.send(
+                    `${inboundMessage.author} ${
+                        user.discord.username
+                    } currently has premium valid until <t:${user.premium.toString().slice(0, -3)}:f>.`
+                );
+            } else {
+                inboundMessage.channel.send(
+                    `${inboundMessage.author} ${user.discord.username} does not currently have mahloola BOT premium.`
+                );
+            }
+        } else {
+            inboundMessage.channel.send(`${inboundMessage.author} Discord user ${discordId} was not found.`);
+        }
+    }
+};
 const add = async (inboundMessage) => {
     // check if user is an administrator
     if (inboundMessage.author.id === ADMIN_DISCORD_ID) {
@@ -862,6 +917,63 @@ const kick = async (inboundMessage) => {
         }
     }
 };
+const donate = async (inboundMessage) => {
+    const embed = new Discord.MessageEmbed();
+    embed.setThumbnail(
+        `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
+    );
+    embed.setAuthor({
+        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
+        iconURL: inboundMessage.author.avatarURL(),
+        url: inboundMessage.author.avatarURL(),
+    });
+    embed.setDescription(
+        `${inboundMessage.author.username}, here's your donation link:\nhttps://www.paypal.com/donate/?hosted_button_id=98KA8SY4NNL8U`
+    );
+    embed.setTimestamp();
+    embed.setColor('#D9A6BD');
+    inboundMessage.channel.send({ embeds: [embed] });
+};
+const givepremium = async (inboundMessage) => {
+    if (inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+        inboundMessage.channel.send('You need to be mahloola to use this command.');
+        return;
+    } else {
+        const discordId = inboundMessage.content.substring(12 + serverPrefix.length);
+        const user = await getDiscordUser(discordId);
+        if (user) {
+            setPremium(user, 1).then(() => {
+                inboundMessage.channel.send(
+                    `${inboundMessage.author} Successfully gave **${user.discord.username}** one month of mahloola BOT premium.`
+                );
+            });
+        } else {
+            inboundMessage.channel.send(`${inboundMessage.author} Discord user was not found.`);
+        }
+    }
+};
+const givecard = async (inboundMessage) => {
+    const words = inboundMessage.content.split(' ');
+    if (inboundMessage.author.id !== ADMIN_DISCORD_ID) {
+        inboundMessage.channel.send('You need to be mahloola to use this command.');
+        return;
+    } else {
+        const userId = words[1];
+        const serverId = words.length >= 4 ? words[2] : inboundMessage.guild.id;
+        const username = words.length >= 4 ? words[3] : words[2];
+        const player = await getPlayerByUsername(username);
+        if (player !== null) {
+            await setOwnedPlayer(serverId, userId, player.apiv2.id);
+            const user = await client.users.fetch(userId);
+            inboundMessage.channel.send(`Successfully gave ${user} ${player.apiv2.username}.`);
+        } else {
+            inboundMessage.channel.send(`Could not find a player called ${username}`);
+        }
+    }
+};
+const populate = async (inboundMessage) => {
+    await populateUsers();
+};
 const updatestats = async (inboundMessage) => {
     inboundMessage.channel.send(`${inboundMessage.author} Updating database statistics...`);
     updateDatabaseStatistics().then(async () => {
@@ -891,6 +1003,8 @@ const help = async (inboundMessage) => {
 \`prefix:\` Change the bot prefix (must be an administrator).
 \`stats:\` Display global bot stats.\n
 **Premium**
+\`donate:\` Support mahloola BOT through Paypal. Premium costs $3.
+\`premium:\` Check your current premium status.
 \`add:\` Add a new player to the database (out of top 10k/inactive).\n
 **Discord**
 https://discord.gg/DGdzyapHkW
