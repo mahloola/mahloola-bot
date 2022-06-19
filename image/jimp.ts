@@ -12,6 +12,7 @@ export async function createPlayerCard(player, claimCount) {
     } catch {}
 
     // create all text images in parallel using text2png
+    const rank = player.statistics.global_rank;
     const writePromises = [];
     writePromises.push(
         fs.promises.writeFile(
@@ -20,7 +21,7 @@ export async function createPlayerCard(player, claimCount) {
                 font: '36px Akshar',
                 localFontName: 'Akshar',
                 localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                color: '#383838',
+                color: rank > 50 ? '#383838' : '#eeeeee',
                 textAlign: 'center',
                 lineSpacing: 10,
                 padding: 20,
@@ -34,7 +35,7 @@ export async function createPlayerCard(player, claimCount) {
                 font: '24px Akshar',
                 localFontName: 'Akshar',
                 localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                color: '#4f4f4f',
+                color: rank > 50 ? '#4f4f4f' : '#afafaf',
                 textAlign: 'left',
                 lineSpacing: 10,
                 padding: 20,
@@ -54,7 +55,7 @@ export async function createPlayerCard(player, claimCount) {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
                     localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                    color: '#4f4f4f',
+                    color: rank > 50 ? '#4f4f4f' : '#afafaf',
                     textAlign: 'right',
                     lineSpacing: 16,
                     padding: 20,
@@ -71,7 +72,7 @@ export async function createPlayerCard(player, claimCount) {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
                     localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                    color: '#414141',
+                    color: rank > 50 ? '#414141' : '#cfcfcf',
                     textAlign: 'center',
                     lineSpacing: 16,
                     padding: 20,
@@ -84,11 +85,11 @@ export async function createPlayerCard(player, claimCount) {
 
     // base image
     const readPromises = [];
-    const rank = player.statistics.global_rank;
+
     const followers = player.follower_count;
     const baseImageFile = rank
         ? rank < 50
-            ? 'image/osuCard-master.png'
+            ? 'image/osuCard-master-2.png'
             : rank < 300
             ? 'image/osuCard-legendary.png'
             : rank < 1000
@@ -97,7 +98,7 @@ export async function createPlayerCard(player, claimCount) {
             ? 'image/osuCard-uncommon.png'
             : 'image/osuCard-common.png'
         : followers > 4000
-        ? 'image/osuCard-master.png'
+        ? 'image/osuCard-master-2.png'
         : followers > 1750
         ? 'image/osuCard-legendary.png'
         : followers > 750
