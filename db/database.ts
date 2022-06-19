@@ -42,7 +42,6 @@ export async function setPlayer(player) {
 export async function setDiscordUser(discordUser) {
     if (discordUser) {
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
-        console.log(discordUser.id.toString());
         const docRef = usersRef.doc(discordUser.id.toString());
         await docRef.set(
             {
@@ -59,7 +58,6 @@ export async function setPremium(user, months) {
     const currentDateMs = new Date().getTime();
     const premiumExpiryMs = currentDateMs + months * 2629800000;
     if (user) {
-        console.log(user);
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
         const docRef = usersRef.doc(user.discord.id.toString());
         await docRef.set(
@@ -459,7 +457,7 @@ export async function updateDatabaseStatistics() {
     statistics.users = totalUsers.length;
     statistics.servers = serverCount;
     console.log(statistics);
-    setDatabaseStatistics(statistics);
+    await setDatabaseStatistics(statistics);
     return statistics;
 }
 
