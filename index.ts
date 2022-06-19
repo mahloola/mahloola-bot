@@ -102,6 +102,9 @@ client.on('ready', async function () {
             ['view']: view,
             ['premium']: premium,
             ['donate']: donate,
+            ['perks']: perks,
+            ['message']: msg,
+            ['msg']: msg,
             ['prefix']: prefix,
             ['updatestats']: updatestats,
 
@@ -888,6 +891,48 @@ const premium = async (inboundMessage) => {
         }
     }
 };
+const perks = async (inboundMessage) => {
+    const embed = new Discord.MessageEmbed();
+    embed.setTitle('Donation Perks');
+    embed.setThumbnail(
+        `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
+    );
+    embed.setAuthor({
+        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
+        iconURL: inboundMessage.author.avatarURL(),
+        url: inboundMessage.author.avatarURL(),
+    });
+    const description = `
+**For $3 a month**:
+• 12 rolls instead of 10 per hour
+• Add 3 custom users to the database per week
+
+**One-time Purchases**:
+• $5 - Customize your card
+• $5 - Add 3 players to the database (no limit)
+`;
+    embed.setDescription(description);
+    embed.setColor('#D9A6BD');
+    inboundMessage.channel.send({ embeds: [embed] });
+};
+const msg = async (inboundMessage) => {
+    const msg = inboundMessage.content.substring(serverPrefix.length + inboundMessage.content.split(' ')[0].length);
+    const mahloola = client.users.cache.get(ADMIN_DISCORD_ID);
+    const embed = new Discord.MessageEmbed();
+    embed.setTitle(`${inboundMessage.author.username} from *${inboundMessage.guild.name}* says:`);
+    embed.setColor('#D9A6BD');
+    embed.setAuthor({
+        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
+        iconURL: inboundMessage.author.avatarURL(),
+        url: inboundMessage.author.avatarURL(),
+    });
+    embed.setThumbnail(inboundMessage.guild.iconURL());
+    embed.setDescription(msg);
+    embed.setTimestamp(Date.now());
+
+    // send the message
+    await mahloola.send({ embeds: [embed] });
+};
 const add = async (inboundMessage) => {
     // check if user is an administrator
     if (inboundMessage.author.id === ADMIN_DISCORD_ID) {
@@ -953,9 +998,12 @@ const donate = async (inboundMessage) => {
         url: inboundMessage.author.avatarURL(),
     });
     embed.setDescription(
-        `${inboundMessage.author.username}, here's your donation link:\nhttps://www.paypal.com/donate/?hosted_button_id=98KA8SY4NNL8U`
+        `${inboundMessage.author}, here's your donation link:\nhttps://www.paypal.com/donate/?hosted_button_id=98KA8SY4NNL8U`
     );
-    embed.setTimestamp();
+    embed.setFooter({
+        text: 'donation perks can be seen in ;perks',
+        iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png`,
+    });
     embed.setColor('#D9A6BD');
     inboundMessage.channel.send({ embeds: [embed] });
 };
