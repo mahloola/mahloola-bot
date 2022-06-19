@@ -89,7 +89,7 @@ export async function createPlayerCard(player, claimCount) {
     const followers = player.follower_count;
     const baseImageFile = rank
         ? rank < 50
-            ? 'image/osuCard-master-2.png'
+            ? 'image/osuCard-master.png'
             : rank < 300
             ? 'image/osuCard-legendary.png'
             : rank < 1000
@@ -98,7 +98,7 @@ export async function createPlayerCard(player, claimCount) {
             ? 'image/osuCard-uncommon.png'
             : 'image/osuCard-common.png'
         : followers > 4000
-        ? 'image/osuCard-master-2.png'
+        ? 'image/osuCard-master.png'
         : followers > 1750
         ? 'image/osuCard-legendary.png'
         : followers > 750
