@@ -932,6 +932,7 @@ const msg = async (inboundMessage) => {
 
     // send the message
     await mahloola.send({ embeds: [embed] });
+    inboundMessage.channel.send(`${inboundMessage.author} Your message has been delivered to mahloola.`);
 };
 const add = async (inboundMessage) => {
     // check if user is an administrator
