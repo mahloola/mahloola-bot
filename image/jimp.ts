@@ -21,7 +21,7 @@ export async function createPlayerCard(player, claimCount) {
                 font: '36px Akshar',
                 localFontName: 'Akshar',
                 localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                color: rank > 50 ? '#383838' : '#eeeeee',
+                color: rank ? (rank >= 50 ? '#383838' : '#eeeeee') : '#383838',
                 textAlign: 'center',
                 lineSpacing: 10,
                 padding: 20,
@@ -35,7 +35,7 @@ export async function createPlayerCard(player, claimCount) {
                 font: '24px Akshar',
                 localFontName: 'Akshar',
                 localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                color: rank > 50 ? '#4f4f4f' : '#afafaf',
+                color: rank ? (rank >= 50 ? '#4f4f4f' : '#afafaf') : '#4f4f4f',
                 textAlign: 'left',
                 lineSpacing: 10,
                 padding: 20,
@@ -55,7 +55,7 @@ export async function createPlayerCard(player, claimCount) {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
                     localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                    color: rank > 50 ? '#4f4f4f' : '#afafaf',
+                    color: rank ? (rank >= 50 ? '#4f4f4f' : '#afafaf') : '#4f4f4f',
                     textAlign: 'right',
                     lineSpacing: 16,
                     padding: 20,
@@ -72,7 +72,7 @@ export async function createPlayerCard(player, claimCount) {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
                     localFontPath: 'fonts/Akshar-VariableFont_wght.ttf',
-                    color: rank > 50 ? '#414141' : '#cfcfcf',
+                    color: rank ? (rank >= 50 ? '#414141' : '#cfcfcf') : '#414141',
                     textAlign: 'center',
                     lineSpacing: 16,
                     padding: 20,
@@ -97,13 +97,13 @@ export async function createPlayerCard(player, claimCount) {
             : rank < 5000
             ? 'image/osuCard-uncommon.png'
             : 'image/osuCard-common.png'
-        : followers > 4000
+        : followers > 5000
         ? 'image/osuCard-master.png'
-        : followers > 1750
+        : followers > 2500
         ? 'image/osuCard-legendary.png'
-        : followers > 750
+        : followers > 1200
         ? 'image/osuCard-rare.png'
-        : followers > 400
+        : followers > 500
         ? 'image/osuCard-uncommon.png'
         : 'image/osuCard-common.png';
     readPromises.push(Jimp.read(baseImageFile));
