@@ -7,16 +7,15 @@ import { createPlayerCard } from '../image/jimp';
 dotenv.config();
 
 const db = initializeDatabase();
-let apiToken;
 
 async function updateDatabase() {
-    const playersSnapshot = await db.collection('players').get();
-    apiToken = await requestClientCredentialsToken();
+    const apiToken = await requestClientCredentialsToken();
+    const playersStream = await db.collection('players').stream();
     const simplifiedPlayers = {};
-    for (let i = 0; i < playersSnapshot.size; i++) {
+    playersStream.on('data', async (doc) => {
         try {
             // get player object
-            const player = playersSnapshot.docs[i].data();
+            const player = doc.data();
             // osu api call with the user id
             const updatedPlayer = await getUser(apiToken, player.apiv2.id);
             if (updatedPlayer) {
@@ -44,15 +43,18 @@ async function updateDatabase() {
         } catch (err) {
             console.log(err);
         }
-    }
-    // update players-simplified
-    fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
-        if (err) throw err;
     });
-    // update player count in the database statistics
-    const currentStats = await getDatabaseStatistics();
-    currentStats.players = playersSnapshot.size;
-    await setDatabaseStatistics(currentStats);
+
+    playersStream.on('end', async () => {
+        // update players-simplified
+        fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
+            if (err) throw err;
+        });
+        // update player count in the database statistics
+        const currentStats = await getDatabaseStatistics();
+        currentStats.players = Object.keys(simplifiedPlayers).length;
+        await setDatabaseStatistics(currentStats);
+    });
 }
 
 updateDatabase();
