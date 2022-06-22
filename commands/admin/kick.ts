@@ -5,6 +5,7 @@ const client = new Discord.Client({
 });
 export async function kick(inboundMessage, serverPrefix) {
     if (inboundMessage.author.id !== adminDiscordId) {
+        inboundMessage.channel.send('You need to be mahloola to use this command.');
         return;
     } else {
         const serverId = inboundMessage.content.substring(5 + serverPrefix.length);

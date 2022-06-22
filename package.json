@@ -13,6 +13,7 @@
         "dotenv": "^10.0.0",
         "fetch": "^1.1.0",
         "firebase-admin": "^10.0.0",
+        "firestore-size": "^2.0.7",
         "jimp": "^0.16.1",
         "node-fetch": "^2.6.1",
         "puppeteer": "^11.0.0",

@@ -31,7 +31,6 @@ import { givepremium } from './commands/admin/givepremium';
 import { kick } from './commands/admin/kick';
 import { updatestats } from './commands/admin/updatestats';
 import { populate } from './commands/admin/populate';
-import { trimdb } from './commands/admin/trimdb';
 
 import { initializeDatabase, getDatabaseStatistics, getServerDoc } from './db/database';
 const client = new Discord.Client({

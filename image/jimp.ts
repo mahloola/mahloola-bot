@@ -244,7 +244,6 @@ export async function createPlayerCard(player, claimCount) {
     // avatar
     // resize the avatar
     avatar.scaleToFit(256, 256);
-    console.log(avatar.getWidth());
     // smooth the edges using a circle mask // TODO: handle cases with width less than 200 and very tall aspect ratio
     avatar.mask(mask);
     // fit the avatar

@@ -4,31 +4,47 @@ import { setPlayer, initializeDatabase, setDatabaseStatistics, getDatabaseStatis
 import * as fs from 'fs';
 import { requestClientCredentialsToken } from './api';
 import { createPlayerCard } from '../image/jimp';
+import sizeof from 'firestore-size';
 dotenv.config();
 
 const db = initializeDatabase();
 
+function trimPlayerDocument(user) {
+    const dataFieldsToDelete = [
+        'groups',
+        'kudosu',
+        'default_group',
+        'monthly_playcounts',
+        'page',
+        'previous_usernames',
+        'profile_order',
+        'rankHistory',
+        'rank_history',
+        'replays_watched_counts',
+        'user_achievements',
+    ];
+    for (let i = 0; i < dataFieldsToDelete.length; i++) {
+        delete user[dataFieldsToDelete[i]];
+    }
+    return user;
+}
 async function updateDatabase() {
+    const playersSnapshot = await db.collection('players').get();
     const apiToken = await requestClientCredentialsToken();
-    const playersStream = await db.collection('players').stream();
     const simplifiedPlayers = {};
-    playersStream.on('data', async (doc) => {
+    for (let i = 0; i < playersSnapshot.size; i++) {
         try {
             // get player object
-            const player = doc.data();
+            const player = playersSnapshot.docs[i].data();
             // osu api call with the user id
-            const updatedPlayer = await getUser(apiToken, player.apiv2.id);
+            let updatedPlayer = await getUser(apiToken, player.apiv2.id);
             if (updatedPlayer) {
+                updatedPlayer = trimPlayerDocument(updatedPlayer);
                 // if the user exists in the osu database
                 await setPlayer(updatedPlayer);
                 await createPlayerCard(updatedPlayer, player.claimCount);
                 console.log(
-                    `${updatedPlayer.username.padEnd(
-                        16,
-                        ' '
-                    )} has been updated from rank ${player.apiv2.statistics.global_rank.toString().padEnd(4, ' ')} to ${
-                        updatedPlayer.statistics.global_rank
-                    }`
+                    `${i}. ${updatedPlayer.username} has been updated from rank ${player.apiv2.statistics.global_rank} to ${updatedPlayer.statistics.global_rank}`
                 );
                 await createPlayerCard(updatedPlayer, player.claimCounter);
                 simplifiedPlayers[updatedPlayer.id] = [
@@ -43,18 +59,16 @@ async function updateDatabase() {
         } catch (err) {
             console.log(err);
         }
-    });
+    }
 
-    playersStream.on('end', async () => {
-        // update players-simplified
-        fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
-            if (err) throw err;
-        });
-        // update player count in the database statistics
-        const currentStats = await getDatabaseStatistics();
-        currentStats.players = Object.keys(simplifiedPlayers).length;
-        await setDatabaseStatistics(currentStats);
+    // update players-simplified
+    fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
+        if (err) throw err;
     });
+    // update player count in the database statistics
+    const currentStats = await getDatabaseStatistics();
+    currentStats.players = Object.keys(simplifiedPlayers).length;
+    await setDatabaseStatistics(currentStats);
 }
 
 updateDatabase();
