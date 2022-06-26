@@ -66,39 +66,53 @@ client.on('ready', async function () {
         const commandText = args.shift().toLowerCase(); // make lowercase work too
 
         const commandMapping = {
+            // GENERAL
+            ['help']: help,
+            ['commands']: help,
+            ['message']: msg,
+            ['msg']: msg,
+            ['mystats']: mystats,
+            ['s']: mystats,
+            ['stats']: stats,
+            ['sg']: stats,
+            ['prefix']: prefix,
+            // CARD-RELATED
             ['roll']: roll,
             ['r']: roll,
             ['rolls']: rolls,
             ['claim']: claim,
+            ['c']: claim,
             ['claims']: claim,
             ['cards']: cards,
-            ['stats']: stats,
-            ['mystats']: mystats,
             ['trade']: trade,
+            ['t']: trade,
             ['avg']: avg,
             ['pin']: pin,
+            ['p']: pin,
             ['unpin']: unpin,
+            ['up']: unpin,
             ['claimed']: claimed,
+            ['cmd']: claimed,
             ['rolled']: rolled,
-            ['help']: help,
-            ['commands']: help,
+            ['rd']: rolled,
             ['leaderboard']: lb,
             ['lb']: lb,
-            ['add']: add,
             ['view']: view,
+            ['v']: view,
+            // PREMIUM
+            ['add']: add,
             ['premium']: premium,
             ['donate']: donate,
             ['perks']: perks,
-            ['message']: msg,
-            ['msg']: msg,
-            ['prefix']: prefix,
-            ['updatestats']: updatestats,
-
             // ADMIN
             ['kick']: kick, // kick mahloola bot from a server (serverId)
             ['populate']: populate, // populate the 'users' db collection with users from every server
-            ['givepremium']: givepremium, // give somebody a month of premium (discordId)
-            ['givecard']: givecard, // give a card to somebody (userId, (optional: serverId), osu username)
+            ['givepremium']: givepremium,
+            ['gp']: givepremium, // give somebody a month of premium (discordId)
+            ['givecard']: givecard,
+            ['gc']: givecard, // give a card to somebody (userId, (optional: serverId), osu username)
+            ['updatestats']: updatestats,
+            ['update']: updatestats,
         };
         const command = commandMapping[commandText];
         if (command) {
