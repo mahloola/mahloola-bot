@@ -1,12 +1,12 @@
 import admin from 'firebase-admin';
+import Discord from 'discord.js';
+import simplifiedPlayers from './simplifiedPlayers.json';
 import { firestoreKey, workflow } from '../auth.json';
 import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
-import Discord from 'discord.js';
 import { Intents } from 'discord.js';
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
-
 const millisecondsPerHour = 3600000;
 
 admin.initializeApp({
@@ -268,23 +268,10 @@ export async function setOwnedPlayer(serverId, userId, playerId) {
     await userRef.set({ ownedPlayers: admin.firestore.FieldValue.arrayUnion(playerId) }, { merge: true });
 }
 
-export async function getOwnedPlayers(serverId, userId, perPage) {
-    const userRef = await getServerUserRef(serverId, userId);
-    const userDoc = await userRef.get();
-    const user = userDoc.data() as ServerUser;
-    return user?.ownedPlayers;
-}
-
 // PINNING FUNCTIONS
 export async function setPinnedPlayer(serverId, userId, pinnedUserId) {
     const userRef = await getServerUserRef(serverId, userId);
     await userRef.set({ pinnedPlayers: admin.firestore.FieldValue.arrayUnion(pinnedUserId) }, { merge: true });
-}
-export async function getPinnedPlayers(serverId, userId, perPage) {
-    const userRef = await getServerUserRef(serverId, userId);
-    const userDoc = await userRef.get();
-    const user = userDoc.data() as ServerUser;
-    return user?.pinnedPlayers;
 }
 export async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
     const userRef = await getServerUserRef(serverId, userId);
@@ -365,18 +352,24 @@ export async function updateUserElo(serverId, userId) {
         return null;
     }
     const playerIds = user.ownedPlayers;
-    const ownedPlayerPromises = [];
-    for (const id of playerIds) {
-        ownedPlayerPromises.push(getPlayer(id));
+    for (let i = 0; i < playerIds.length; i++) {
+        if (simplifiedPlayers[playerIds[i]] === undefined || simplifiedPlayers[playerIds[i][1]] === null) {
+            playerIds.splice(i, 1);
+        }
     }
-    const ownedPlayers = await Promise.all(ownedPlayerPromises);
-
-    ownedPlayers.sort((a, b) => {
-        return a.apiv2.statistics.global_rank - b.apiv2.statistics.global_rank;
+    playerIds.sort((a, b) => {
+        return simplifiedPlayers[a][1] - simplifiedPlayers[b][1];
+    });
+    playerIds.forEach((playerId) => {
+        console.log(`${simplifiedPlayers[playerId][0]} - ${simplifiedPlayers[playerId][1]}`);
     });
     let totalRanks = 0;
     for (let i = 0; i < 10; i++) {
-        totalRanks += ownedPlayers[i].apiv2.statistics.global_rank;
+        if (simplifiedPlayers[playerIds[i]]) {
+            if (simplifiedPlayers[playerIds[i]][1]) {
+                totalRanks += simplifiedPlayers[playerIds[i]][1];
+            }
+        }
     }
     const avgRanks = totalRanks / 10;
     // update elo in the db
