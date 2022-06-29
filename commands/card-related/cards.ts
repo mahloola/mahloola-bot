@@ -1,11 +1,11 @@
 const paginationEmbed = import('discordjs-button-pagination');
 import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
 import Discord, { Intents } from 'discord.js';
-import { getServerUserDoc, updateUserEloByPlayers } from '../../db/database';
+import { getServerUserDoc, updateUserElo, updateUserEloByPlayers } from '../../db/database';
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
-import simplifiedPlayers from '../../db/simplifiedPlayers.json';
+import simplifiedPlayers from '../../db/simplifiedPlayersLowercase.json';
 
 export async function cards(inboundMessage, serverPrefix) {
     let discordUserId;
@@ -84,7 +84,7 @@ export async function cards(inboundMessage, serverPrefix) {
     }
 
     // get the top 10 average
-    const elo = player.elo ?? null;
+    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
     const eloDisplay = elo == null ? 'N/A' : elo;
 
     // create embed body
