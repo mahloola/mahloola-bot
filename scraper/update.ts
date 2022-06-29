@@ -31,7 +31,8 @@ function trimPlayerDocument(user) {
 async function updateDatabase() {
     const playersSnapshot = await db.collection('players').get();
     const apiToken = await requestClientCredentialsToken();
-    const simplifiedPlayers = {};
+    const simplifiedPlayers = {},
+        simplifiedPlayersLowercase = {};
     for (let i = 0; i < playersSnapshot.size; i++) {
         try {
             // get player object
@@ -47,7 +48,8 @@ async function updateDatabase() {
                     `${i}. ${updatedPlayer.username} has been updated from rank ${player.apiv2.statistics.global_rank} to ${updatedPlayer.statistics.global_rank}`
                 );
                 await createPlayerCard(updatedPlayer, player.claimCounter);
-                simplifiedPlayers[updatedPlayer.id] = [
+                simplifiedPlayers[updatedPlayer.id] = [updatedPlayer.username, updatedPlayer.statistics.global_rank];
+                simplifiedPlayersLowercase[updatedPlayer.id] = [
                     updatedPlayer.username.toLowerCase(),
                     updatedPlayer.statistics.global_rank,
                 ];
@@ -63,6 +65,9 @@ async function updateDatabase() {
 
     // update players-simplified
     fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
+        if (err) throw err;
+    });
+    fs.writeFile('db/simplifiedPlayersLowercase.json', JSON.stringify(simplifiedPlayersLowercase), (err) => {
         if (err) throw err;
     });
     // update player count in the database statistics
