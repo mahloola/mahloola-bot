@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 import Discord from 'discord.js';
-import simplifiedPlayers from './simplifiedPlayers.json';
+import simplifiedPlayers from './simplifiedPlayersLowercase.json';
 import { firestoreKey, workflow } from '../auth.json';
 import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
 import { Intents } from 'discord.js';
