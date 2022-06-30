@@ -15,7 +15,7 @@ import {
     setUserRollCounter,
 } from '../../db/database';
 import { NonDmChannel, Player } from '../../types';
-import { adminDiscordId } from '../../auth.json';
+import { adminDiscordId, imageDirectory } from '../../auth.json';
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
@@ -72,7 +72,7 @@ export async function roll(inboundMessage, serverPrefix, db, databaseStatistics)
         ? await setPlayerRollCounter(player, 1)
         : await setPlayerRollCounter(player, player.rollCounter + 1);
 
-    const file = new MessageAttachment(`E:/osuMudae/image/cache/osuCard-${player.apiv2.username}.png`);
+    const file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
     const outboundMessage = await inboundMessage.channel.send({ files: [file] });
     outboundMessage.react('👍');
 
