@@ -1,6 +1,7 @@
 /node_modules
 /auth.json
 /image/scrapped-designs
+/image/cache
 /image/pdn
 .env
 .gcloudignore
