@@ -8,7 +8,6 @@
 api.js
 app.yaml
 db/sortedPlayers.txt
-db/simplifiedPlayers.json
 db/getSortedPlayers.js
 db/test.js
 dist
