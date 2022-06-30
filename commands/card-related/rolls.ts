@@ -24,21 +24,21 @@ export async function rolls(inboundMessage) {
     const timeRemaining = resetTime - currentTime;
     if (currentRolls === 1) {
         inboundMessage.channel.send(
-            `You have 1 final roll remaining. Your rolls will restock <t:${resetTime.toString().slice(0, -3)}:R>.`
+            `You have 1 final roll remaining. Your roll restock time is <t:${resetTime.toString().slice(0, -3)}:T>.`
         );
     } else if (currentRolls === 10 || resetTime === null) {
         inboundMessage.channel.send(`You have 10 rolls remaining.`);
     } else if (currentRolls > 0 && resetTime != null) {
         inboundMessage.channel.send(
-            `You have ${currentRolls} rolls remaining. Your rolls will restock <t:${resetTime
+            `You have ${currentRolls} rolls remaining. Your roll restock time is <t:${resetTime
                 .toString()
-                .slice(0, -3)}:R>.`
+                .slice(0, -3)}:T>.`
         );
     } else {
         inboundMessage.channel.send(
-            `${inboundMessage.author} You've run out of rolls. Your rolls will restock <t:${resetTime
+            `${inboundMessage.author} You've run out of rolls. Your roll restock time is <t:${resetTime
                 .toString()
-                .slice(0, -3)}:R>.`
+                .slice(0, -3)}:T>.`
         );
     }
 }

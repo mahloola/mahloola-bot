@@ -40,9 +40,9 @@ export async function roll(inboundMessage, serverPrefix, db, databaseStatistics)
         // && !isAdmin
         const resetTime = user.rollResetTime;
         inboundMessage.channel.send(
-            `${inboundMessage.author} You've run out of rolls. Your rolls will restock <t:${resetTime
+            `${inboundMessage.author} You've run out of rolls. Your roll restock time is <t:${resetTime
                 .toString()
-                .slice(0, -3)}:R>.`
+                .slice(0, -3)}:T>.`
         );
         return;
     }
