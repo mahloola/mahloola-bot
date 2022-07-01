@@ -45,24 +45,27 @@ export async function cards(inboundMessage, serverPrefix) {
     }
     // get full list of players
 
-    const ownedPlayers = [];
+    const ownedPlayerObjects = [];
     for (const id of playerIds) {
         if (simplifiedPlayers[id]) {
-            if (simplifiedPlayers[id][1]) {
-                ownedPlayers.push(simplifiedPlayers[id]);
-            }
+            ownedPlayerObjects.push(simplifiedPlayers[id]);
         }
     }
     // sort players by rank
-    ownedPlayers.sort((a, b) => {
+    ownedPlayerObjects.sort((a, b) => {
+        if (a[1] === null) {
+            return 1;
+        }
+        if (b[1] === null) {
+            return -1;
+        }
         return a[1] - b[1];
     });
-
     const ownedPlayersNames = [],
         ownedPlayersRanks = [];
     for (const id of playerIds) {
-        ownedPlayersNames.push(ownedPlayers[0]);
-        ownedPlayersRanks.push(ownedPlayers[1]);
+        ownedPlayersNames.push(ownedPlayerObjects[0]);
+        ownedPlayersRanks.push(ownedPlayerObjects[1]);
     }
 
     const pinnedPlayerIds = player.pinnedPlayers ?? null;
@@ -74,6 +77,12 @@ export async function cards(inboundMessage, serverPrefix) {
     }
     // sort players by rank
     pinnedPlayers.sort((a, b) => {
+        if (a[1] === null) {
+            return 1;
+        }
+        if (b[1] === null) {
+            return -1;
+        }
         return a[1] - b[1];
     });
     const pinnedPlayersNames = [],
@@ -92,16 +101,16 @@ export async function cards(inboundMessage, serverPrefix) {
 
     // add pinned players to embed if the user has any
     if (pinnedPlayers) {
-        pinnedPlayers.forEach((player) => player[1] && (pinnedDescription += `**${player[1]}** • ${player[0]}\n`));
+        pinnedPlayers.forEach((player) => (pinnedDescription += `**${player[1] ?? '----'}** • ${player[0]}\n`));
     }
 
     const embeds = [];
-    for (let i = 0; i < ownedPlayers.length / 10 - 1; i++) {
+    for (let i = 0; i < ownedPlayerObjects.length / 10 - 1; i++) {
         // create the embed message
         const embed = new Discord.MessageEmbed();
 
         // add the rest of the information
-        embed.setTitle(`${discordUser.username}'s cards ${ownedPlayers.length > 9 && `(Page ${i + 1})`}`);
+        embed.setTitle(`${discordUser.username}'s cards ${ownedPlayerObjects.length > 9 && `(Page ${i + 1})`}`);
         embed.setColor('#D9A6BD');
         embed.setAuthor({
             name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
@@ -111,8 +120,8 @@ export async function cards(inboundMessage, serverPrefix) {
         embed.setThumbnail(discordUser.avatarURL());
         // add all players to embed
         let embedDescription = '';
-        console.log(`${i * 10} ${(i + 1) * 10 - 1}`);
-        ownedPlayers.slice(i * 10, (i + 1) * 10).forEach((player) => {
+        // console.log(`${i * 10} ${(i + 1) * 10 - 1}`);
+        ownedPlayerObjects.slice(i * 10, (i + 1) * 10).forEach((player) => {
             player[1] && (embedDescription += `**${player[1]}** • ${player[0]}\n`);
         });
         embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);

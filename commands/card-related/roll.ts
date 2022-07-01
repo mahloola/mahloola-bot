@@ -13,6 +13,7 @@ import {
     setPlayerRollCounter,
     setUserClaimCounter,
     setUserRollCounter,
+    updateUserElo,
 } from '../../db/database';
 import { NonDmChannel, Player } from '../../types';
 import { adminDiscordId, imageDirectory } from '../../auth.json';
@@ -125,6 +126,7 @@ export async function roll(inboundMessage, serverPrefix, db, databaseStatistics)
                             );
                         }
                     });
+                    await updateUserElo(inboundMessage.channel.guildId, inboundMessage.author.id);
                     console.log(
                         `${timestamp.toLocaleTimeString().slice(0, 5)} | ${
                             (inboundMessage.channel as NonDmChannel).guild.name

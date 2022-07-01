@@ -85,7 +85,6 @@ client.on('ready', async function () {
             ['claims']: claim,
             ['cards']: cards,
             ['trade']: trade,
-            ['t']: trade,
             ['avg']: avg,
             ['pin']: pin,
             ['p']: pin,

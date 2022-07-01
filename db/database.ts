@@ -360,9 +360,6 @@ export async function updateUserElo(serverId, userId) {
     playerIds.sort((a, b) => {
         return simplifiedPlayers[a][1] - simplifiedPlayers[b][1];
     });
-    playerIds.forEach((playerId) => {
-        console.log(`${simplifiedPlayers[playerId][0]} - ${simplifiedPlayers[playerId][1]}`);
-    });
     let totalRanks = 0;
     for (let i = 0; i < 10; i++) {
         if (simplifiedPlayers[playerIds[i]]) {
