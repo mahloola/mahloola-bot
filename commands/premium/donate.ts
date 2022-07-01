@@ -5,8 +5,7 @@ const client = new Discord.Client({
 });
 
 export async function donate(inboundMessage) {
-    const user = await client.users.fetch(inboundMessage.author.id);
-    await setDiscordUser(user.toJSON());
+    await setDiscordUser(inboundMessage.author.toJSON());
     const embed = new Discord.MessageEmbed();
     embed.setThumbnail(
         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`

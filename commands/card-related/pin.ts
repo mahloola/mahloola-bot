@@ -3,7 +3,7 @@ import { getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db
 export async function pin(inboundMessage, serverPrefix) {
     const username = inboundMessage.content.substring(4 + serverPrefix.length);
     if (username) {
-        if (username === '@everyone' || username === '@here') {
+        if (username.includes('@everyone') || username.includes('@here')) {
             inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
             return;
         } else {
@@ -21,7 +21,9 @@ export async function pin(inboundMessage, serverPrefix) {
                         inboundMessage.author.id,
                         player.apiv2.id
                     ).catch((err) => console.error(err));
-                    inboundMessage.channel.send(`${inboundMessage.author} pinned ${username} successfully.`);
+                    inboundMessage.channel.send(
+                        `${inboundMessage.author} pinned ${player.apiv2.username} successfully.`
+                    );
                 } else {
                     inboundMessage.channel.send(
                         `${inboundMessage.author} You do not own a player with the username "${username}".`
