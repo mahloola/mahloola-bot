@@ -71,9 +71,9 @@ client.on('ready', async function () {
             ['commands']: help,
             ['message']: msg,
             ['msg']: msg,
-            ['mystats']: mystats,
+            ['stats']: mystats,
             ['s']: mystats,
-            ['stats']: stats,
+            ['statsglobal']: stats,
             ['sg']: stats,
             ['prefix']: prefix,
             // CARD-RELATED

@@ -17,7 +17,9 @@ export async function givecard(inboundMessage) {
         const player = await getPlayerByUsername(username);
         if (player !== null) {
             await setOwnedPlayer(serverId, userId, player.apiv2.id);
-            inboundMessage.channel.send(`${inboundMessage.author} Successfully gave user ${player.apiv2.username}.`);
+            inboundMessage.channel.send(
+                `${inboundMessage.author} Successfully gave **${player.apiv2.username}** to User ${userId}.`
+            );
         } else {
             inboundMessage.channel.send(`Could not find a player called ${username}`);
         }
