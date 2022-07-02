@@ -358,12 +358,18 @@ export async function updateUserElo(serverId, userId) {
         }
     }
     playerIds.sort((a, b) => {
+        if (simplifiedPlayers[a][1] === null) {
+            return 1;
+        }
+        if (simplifiedPlayers[b][1] === null) {
+            return -1;
+        }
         return simplifiedPlayers[a][1] - simplifiedPlayers[b][1];
     });
     let totalRanks = 0;
     for (let i = 0; i < 10; i++) {
         if (simplifiedPlayers[playerIds[i]]) {
-            if (simplifiedPlayers[playerIds[i]][1]) {
+            if (simplifiedPlayers[playerIds[i]][1] !== null) {
                 totalRanks += simplifiedPlayers[playerIds[i]][1];
             }
         }
