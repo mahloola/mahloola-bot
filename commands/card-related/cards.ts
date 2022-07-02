@@ -70,9 +70,11 @@ export async function cards(inboundMessage, serverPrefix) {
 
     const pinnedPlayerIds = player.pinnedPlayers ?? null;
     const pinnedPlayers = [];
-    for (const id of pinnedPlayerIds) {
-        if (simplifiedPlayers[id]) {
-            pinnedPlayers.push(simplifiedPlayers[id]);
+    for (let i = 0; i < pinnedPlayerIds.length; i++) {
+        if (simplifiedPlayers[pinnedPlayerIds[i]]) {
+            pinnedPlayers.push(simplifiedPlayers[pinnedPlayerIds[i]]);
+        } else {
+            pinnedPlayerIds.splice(i, 1);
         }
     }
     // sort players by rank
@@ -136,6 +138,8 @@ export async function cards(inboundMessage, serverPrefix) {
     }
 
     const outboundMessage = await inboundMessage.channel.send({ embeds: [embeds[0]] });
+
+    // pagination
     // outboundMessage.react('⏩');
 
     // const reactions = await outboundMessage.awaitReactions({
@@ -146,7 +150,7 @@ export async function cards(inboundMessage, serverPrefix) {
 
     // let pageCounter = 0;
 
-    // Constants
+    // // Constants
 
     // const backId = 'back';
     // const forwardId = 'forward';
@@ -166,40 +170,16 @@ export async function cards(inboundMessage, serverPrefix) {
     // // Put the following code wherever you want to send the embed pages:
 
     // const { author, channel } = inboundMessage;
-    // const guilds = [...client.guilds.cache.values()];
-
-    // /**
-    //  * Creates an embed with guilds starting from an index.
-    //  * @param {number} start The index to start from.
-    //  * @returns {Promise<MessageEmbed>}
-    //  */
-    // const generateEmbed = async (start) => {
-    //     const current = guilds.slice(start, start + 10);
-
-    //     // You can of course customise this embed however you want
-    //     return new MessageEmbed({
-    //         title: `Showing guilds ${start + 1}-${start + ownedPlayers.length} out of ${ownedPlayers.length}`,
-    //         fields: await Promise.all(
-    //             ownedPlayers.map(async (player) => ({
-    //                 name: 'asdfdsa',
-    //                 value: `**ID:**`,
-    //             }))
-    //         ),
-    //     });
-    // };
 
     // // Send the embed with the first 10 guilds
-    // const canFitOnOnePage = guilds.length <= 10;
-    // const embedMessage = await channel.send({
-    //     embeds: [await generateEmbed(0)],
-    //     components: canFitOnOnePage ? [] : [new MessageActionRow({ components: [forwardButton] })],
-    // });
+    // const canFitOnOnePage = ownedPlayerObjects.length <= 10;
+    // // const embedMessage = inboundMessage;
     // // Exit if there is only one page of guilds (no need for all of this)
     // if (canFitOnOnePage) return;
 
     // // Collect button interactions (when a user clicks a button),
     // // but only when the button as clicked by the original message author
-    // const collector = embedMessage.createMessageComponentCollector({
+    // const collector = outboundMessage.createMessageComponentCollector({
     //     filter: ({ user }) => user.id === author.id,
     // });
 
@@ -209,14 +189,14 @@ export async function cards(inboundMessage, serverPrefix) {
     //     interaction.customId === backId ? (currentIndex -= 10) : (currentIndex += 10);
     //     // Respond to interaction by updating message with new embed
     //     await interaction.update({
-    //         embeds: [await generateEmbed(currentIndex)],
+    //         embeds: [embeds[0]],
     //         components: [
     //             new MessageActionRow({
     //                 components: [
     //                     // back button if it isn't the start
     //                     ...(currentIndex ? [backButton] : []),
     //                     // forward button if it isn't the end
-    //                     ...(currentIndex + 10 < guilds.length ? [forwardButton] : []),
+    //                     ...(currentIndex + 10 < ownedPlayerObjects.length ? [forwardButton] : []),
     //                 ],
     //             }),
     //         ],
@@ -239,5 +219,5 @@ export async function cards(inboundMessage, serverPrefix) {
     //         .catch((error) => console.error('Failed to clear reactions: DiscordAPIError: Missing Permissions'));
     // }
     // send the message
-    //inboundMessage.channel.send({ embeds: pagination });
+    //inboundMessage.channel.send({ embeds: embeds });
 }
