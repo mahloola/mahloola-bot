@@ -29,7 +29,7 @@ export async function roll(inboundMessage, serverPrefix, db, databaseStatistics)
     const user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
     let discordUser;
     if ((await getDiscordUser(inboundMessage.author.id)) == null) {
-        discordUser = (await client.users.fetch(inboundMessage.author.id)).toJSON();
+        discordUser = inboundMessage.author.toJSON();
         await setDiscordUser(discordUser);
     } else {
         discordUser = await getDiscordUser(inboundMessage.author.id);
@@ -95,7 +95,7 @@ export async function roll(inboundMessage, serverPrefix, db, databaseStatistics)
                     claimingUser = userObject;
                     discordUser = await getDiscordUser(claimingUser.id);
                     if (!discordUser) {
-                        const discordUserObject = await client.users.fetch(inboundMessage.author.id);
+                        const discordUserObject = inboundMessage.author;
                         discordUser = discordUserObject.toJSON();
                         await setDiscordUser(discordUser);
                     }
