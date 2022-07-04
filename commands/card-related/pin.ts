@@ -13,7 +13,6 @@ export async function pin(inboundMessage, serverPrefix) {
                 const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
                 let validUsers = 0;
                 for (let i = 0; i < user?.pinnedPlayers.length; i++) {
-                    console.log(simplifiedPlayers[user?.pinnedPlayers[i]]);
                     if (simplifiedPlayers[user?.pinnedPlayers[i]]) {
                         if (simplifiedPlayers[user?.pinnedPlayers[i]][1] !== null) {
                             validUsers++;

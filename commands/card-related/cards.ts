@@ -35,22 +35,26 @@ export async function cards(inboundMessage, serverPrefix) {
     }
 
     const player = await getServerUserDoc(inboundMessage.guild.id, discordUserId);
-    const playerIds = player.ownedPlayers ?? null;
-    // check if user owns anybody first
-    if (!playerIds) {
-        discordUserId == inboundMessage.author.id
-            ? inboundMessage.channel.send("You don't own any players.")
-            : inboundMessage.channel.send(`${discordUser.username} doesn't own any players.`);
-        return;
-    }
-    // get full list of players
 
+    // get owned player ids from user document
+    const playerIds = player.ownedPlayers ?? null;
+
+    // check for valid owned players, store them in ownedPlayerObjects
     const ownedPlayerObjects = [];
     for (const id of playerIds) {
         if (simplifiedPlayers[id]) {
             ownedPlayerObjects.push(simplifiedPlayers[id]);
         }
     }
+
+    // check if user owns anybody first
+    if (!ownedPlayerObjects) {
+        discordUserId == inboundMessage.author.id
+            ? inboundMessage.channel.send("You don't own any players.")
+            : inboundMessage.channel.send(`${discordUser.username} doesn't own any players.`);
+        return;
+    }
+
     // sort players by rank
     ownedPlayerObjects.sort((a, b) => {
         if (a[1] === null) {
@@ -68,43 +72,48 @@ export async function cards(inboundMessage, serverPrefix) {
         ownedPlayersRanks.push(ownedPlayerObjects[1]);
     }
 
+    // get pinned player ids from user document
     const pinnedPlayerIds = player.pinnedPlayers ?? null;
-    const pinnedPlayers = [];
-    for (let i = 0; i < pinnedPlayerIds.length; i++) {
-        if (simplifiedPlayers[pinnedPlayerIds[i]]) {
-            pinnedPlayers.push(simplifiedPlayers[pinnedPlayerIds[i]]);
-        } else {
-            pinnedPlayerIds.splice(i, 1);
-        }
-    }
-    // sort players by rank
-    pinnedPlayers.sort((a, b) => {
-        if (a[1] === null) {
-            return 1;
-        }
-        if (b[1] === null) {
-            return -1;
-        }
-        return a[1] - b[1];
-    });
-    const pinnedPlayersNames = [],
-        pinnedPlayersRanks = [];
-    for (const id of pinnedPlayerIds) {
-        pinnedPlayersNames.push(pinnedPlayers[0]);
-        pinnedPlayersRanks.push(pinnedPlayers[1]);
-    }
 
-    // get the top 10 average
-    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
-    const eloDisplay = elo == null ? 'N/A' : elo;
+    // check for valid pinned players, store them in pinnedPlayerObjects
+    const pinnedPlayerObjects = [];
+    for (const id of pinnedPlayerIds) {
+        if (simplifiedPlayers[id]) {
+            pinnedPlayerObjects.push(simplifiedPlayers[id]);
+        }
+    }
 
     // create embed body
     let pinnedDescription = '';
 
-    // add pinned players to embed if the user has any
-    if (pinnedPlayers) {
-        pinnedPlayers.forEach((player) => (pinnedDescription += `**${player[1] ?? '----'}** • ${player[0]}\n`));
+    if (pinnedPlayerObjects) {
+        // sort players by rank
+        pinnedPlayerObjects.sort((a, b) => {
+            if (a[1] === null) {
+                return 1;
+            }
+            if (b[1] === null) {
+                return -1;
+            }
+            return a[1] - b[1];
+        });
+        const pinnedPlayersNames = [];
+        const pinnedPlayersRanks = [];
+        for (const pinnedPlayerObject of pinnedPlayerObjects) {
+            pinnedPlayersNames.push(pinnedPlayerObject[0]);
+            pinnedPlayersRanks.push(pinnedPlayerObject[1]);
+        }
+
+        // add pinned players to embed if the user has any
+        if (pinnedPlayerObjects) {
+            pinnedPlayerObjects.forEach(
+                (player) => (pinnedDescription += `**${player[1] ?? '----'}** • ${player[0]}\n`)
+            );
+        }
     }
+    // get the top 10 average
+    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
+    const eloDisplay = elo == null ? 'N/A' : elo;
 
     const embeds = [];
     for (let i = 0; i < ownedPlayerObjects.length / 10 - 1; i++) {
@@ -127,8 +136,8 @@ export async function cards(inboundMessage, serverPrefix) {
             player[1] && (embedDescription += `**${player[1]}** • ${player[0]}\n`);
         });
         embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);
-        if (pinnedPlayerIds?.length > 0) {
-            embed.addField(`Pinned (${pinnedPlayerIds.length})`, pinnedDescription);
+        if (pinnedPlayerObjects?.length > 0) {
+            embed.addField(`Pinned (${pinnedPlayerObjects.length})`, pinnedDescription);
             embed.addField(`${`Players ${i * 10 + 1}-${(i + 1) * 10}`}`, embedDescription);
         } else {
             embed.addField(`Players`, embedDescription);
