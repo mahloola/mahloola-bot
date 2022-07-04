@@ -1,14 +1,13 @@
 import { NonDmChannel } from '../../types';
 import { getUser, requestClientCredentialsToken } from '../../scraper/api';
 import { getPlayerByUsername, setPlayer } from '../../db/database';
-import { adminDiscordId } from '../../auth.json';
+import { adminDiscordId, defaultPrefix } from '../../auth.json';
 import Discord, { Intents } from 'discord.js';
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
-let serverPrefix;
 
-export async function add(inboundMessage) {
+export async function add(inboundMessage, serverPrefix) {
     // check if user is an administrator
     if (inboundMessage.author.id === adminDiscordId) {
         const userId = inboundMessage.content.substring(4 + serverPrefix.length);

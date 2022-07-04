@@ -1,4 +1,5 @@
 import { getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db/database';
+import simplifiedPlayers from '../../db/simplifiedPlayers.json';
 
 export async function pin(inboundMessage, serverPrefix) {
     const username = inboundMessage.content.substring(4 + serverPrefix.length);
@@ -10,7 +11,16 @@ export async function pin(inboundMessage, serverPrefix) {
             const player = await getPlayerByUsername(username);
             if (player) {
                 const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
-                if (user?.pinnedPlayers?.length > 9) {
+                let validUsers = 0;
+                for (let i = 0; i < user?.pinnedPlayers.length; i++) {
+                    console.log(simplifiedPlayers[user?.pinnedPlayers[i]]);
+                    if (simplifiedPlayers[user?.pinnedPlayers[i]]) {
+                        if (simplifiedPlayers[user?.pinnedPlayers[i]][1] !== null) {
+                            validUsers++;
+                        }
+                    }
+                }
+                if (validUsers > 9) {
                     inboundMessage.channel.send(`${inboundMessage.author} You cannot pin more than 10 players.`);
                     return;
                 }

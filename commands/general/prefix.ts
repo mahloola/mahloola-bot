@@ -1,7 +1,7 @@
 import Discord from 'discord.js';
 import { setPrefix } from '../../db/database';
 
-export async function prefix(inboundMessage, db, statistics, serverPrefix) {
+export async function prefix(inboundMessage, serverPrefix, db, statistics) {
     const newPrefix = inboundMessage.member.permissionsIn(inboundMessage.channel).has('ADMINISTRATOR')
         ? inboundMessage.content.substring(7 + serverPrefix.length).trim()
         : null;
