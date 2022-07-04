@@ -74,43 +74,46 @@ export async function cards(inboundMessage, serverPrefix) {
 
     // get pinned player ids from user document
     const pinnedPlayerIds = player.pinnedPlayers ?? null;
-
-    // check for valid pinned players, store them in pinnedPlayerObjects
     const pinnedPlayerObjects = [];
-    for (let i = 0; i < pinnedPlayerIds.length; i++) {
-        if (simplifiedPlayers[pinnedPlayerIds[i]]) {
-            pinnedPlayerObjects.push(simplifiedPlayers[pinnedPlayerIds[i]]);
-        }
-    }
 
     // create embed body
     let pinnedDescription = '';
 
-    if (pinnedPlayerObjects) {
-        // sort players by rank
-        pinnedPlayerObjects.sort((a, b) => {
-            if (a[1] === null) {
-                return 1;
+    if (pinnedPlayerIds) {
+        // check for valid pinned players, store them in pinnedPlayerObjects
+        for (let i = 0; i < pinnedPlayerIds.length; i++) {
+            if (simplifiedPlayers[pinnedPlayerIds[i]]) {
+                pinnedPlayerObjects.push(simplifiedPlayers[pinnedPlayerIds[i]]);
             }
-            if (b[1] === null) {
-                return -1;
-            }
-            return a[1] - b[1];
-        });
-        const pinnedPlayersNames = [];
-        const pinnedPlayersRanks = [];
-        for (const pinnedPlayerObject of pinnedPlayerObjects) {
-            pinnedPlayersNames.push(pinnedPlayerObject[0]);
-            pinnedPlayersRanks.push(pinnedPlayerObject[1]);
         }
 
-        // add pinned players to embed if the user has any
         if (pinnedPlayerObjects) {
-            pinnedPlayerObjects.forEach(
-                (player) => (pinnedDescription += `**${player[1] ?? '----'}** • ${player[0]}\n`)
-            );
+            // sort players by rank
+            pinnedPlayerObjects.sort((a, b) => {
+                if (a[1] === null) {
+                    return 1;
+                }
+                if (b[1] === null) {
+                    return -1;
+                }
+                return a[1] - b[1];
+            });
+            const pinnedPlayersNames = [];
+            const pinnedPlayersRanks = [];
+            for (const pinnedPlayerObject of pinnedPlayerObjects) {
+                pinnedPlayersNames.push(pinnedPlayerObject[0]);
+                pinnedPlayersRanks.push(pinnedPlayerObject[1]);
+            }
+
+            // add pinned players to embed if the user has any
+            if (pinnedPlayerObjects) {
+                pinnedPlayerObjects.forEach(
+                    (player) => (pinnedDescription += `**${player[1] ?? '----'}** • ${player[0]}\n`)
+                );
+            }
         }
     }
+
     // get the top 10 average
     const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
     const eloDisplay = elo == null ? 'N/A' : elo;
