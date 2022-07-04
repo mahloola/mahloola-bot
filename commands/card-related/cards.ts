@@ -77,9 +77,9 @@ export async function cards(inboundMessage, serverPrefix) {
 
     // check for valid pinned players, store them in pinnedPlayerObjects
     const pinnedPlayerObjects = [];
-    for (const id of pinnedPlayerIds) {
-        if (simplifiedPlayers[id]) {
-            pinnedPlayerObjects.push(simplifiedPlayers[id]);
+    for (let i = 0; i < pinnedPlayerIds.length; i++) {
+        if (simplifiedPlayers[pinnedPlayerIds[i]]) {
+            pinnedPlayerObjects.push(simplifiedPlayers[pinnedPlayerIds[i]]);
         }
     }
 
