@@ -1,9 +1,5 @@
-import Discord, { Intents } from 'discord.js';
 import { adminDiscordId } from '../../auth.json';
-const client = new Discord.Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-});
-export async function kick(inboundMessage, serverPrefix) {
+export async function kick(inboundMessage, serverPrefix, db, databaseStatistics, client) {
     if (inboundMessage.author.id !== adminDiscordId) {
         inboundMessage.channel.send('You need to be mahloola to use this command.');
         return;

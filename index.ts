@@ -116,7 +116,7 @@ client.on('ready', async function () {
         const command = commandMapping[commandText];
         if (command) {
             try {
-                await command(inboundMessage, serverPrefix, db, databaseStatistics);
+                await command(inboundMessage, serverPrefix, db, databaseStatistics, client);
             } catch (err) {
                 console.trace();
                 console.log(err);
