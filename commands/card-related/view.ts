@@ -24,3 +24,4 @@ export async function view(inboundMessage, serverPrefix) {
         inboundMessage.channel.send('Please enter a username.');
     }
 }
+

@@ -283,3 +283,4 @@ export async function createPlayerCard(player, claimCount) {
         console.log(err);
     }
 }
+
