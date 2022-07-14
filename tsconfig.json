@@ -6,8 +6,7 @@
         "esModuleInterop": true,
         "sourceMap": true,
         "resolveJsonModule": true,
-        "outDir": "dist",
-	"allowSyntheticDefaultImports": "true"
+        "outDir": "dist"
     },
     "lib": ["es2015"]
 }

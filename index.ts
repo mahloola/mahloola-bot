@@ -1,5 +1,5 @@
 import Discord, { Intents } from 'discord.js';
-import { defaultPrefix, adminDiscordId, token, workflow } from './auth.json';
+import { defaultPrefix, adminDiscordId, token, tokenDevelopment, workflow } from './auth.json';
 
 // general
 import { help } from './commands/general/help';
@@ -124,4 +124,5 @@ client.on('ready', async function () {
         }
     });
 });
-client.login(token);
+// token-development if testing, 'token' on live bot
+client.login(workflow == 'production' ? token : tokenDevelopment);
