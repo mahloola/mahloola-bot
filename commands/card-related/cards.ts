@@ -117,7 +117,7 @@ export async function cards(inboundMessage, serverPrefix) {
     }
 
     // get the top 10 average
-    const elo = await updateUserElo(inboundMessage.guild.id, inboundMessage.author.id);
+    const elo = await updateUserElo(inboundMessage.guild.id, discordUserId);
     const eloDisplay = (elo === null ? 'N/A' : elo);
 
     const embeds = [];
