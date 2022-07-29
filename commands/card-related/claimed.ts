@@ -56,7 +56,6 @@ export async function claimed(inboundMessage, serverPrefix) {
             for (let i = 0; i < 16 - username.length; i++) {
                 spaces += ' ';
             }
-            //console.log(players[sortedPlayerIds[i]]);
             embedDescription += `${username}${spaces}| ${players[sortedPlayerIds[i]]}\n`;
         }
         embedDescription += `\`\`\``;

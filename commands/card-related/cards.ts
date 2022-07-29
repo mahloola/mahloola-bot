@@ -138,11 +138,8 @@ export async function cards(inboundMessage, serverPrefix) {
         embed.setThumbnail(discordUser.avatarURL());
         // add all players to embed
         let embedDescription = '';
-        console.log(`${i * 10} ${(i + 1) * 10}`);
         ownedPlayerObjects.slice(i * 10, (i + 1) * 10 - 1).forEach((player) => {
-            console.log(i);
             player[1] && (embedDescription += `**${player[1]}** • ${player[0]}\n`);
-            console.log(player[1]);
         });
         embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);
         if (pinnedPlayerObjects?.length > 0) {
@@ -226,7 +223,6 @@ export async function cards(inboundMessage, serverPrefix) {
     //     while (!reactionUsers) {
     //         reactionUsers = await reaction.users.fetch();
     //         for (const [userId, userObject] of reactionUsers) {
-    //             console.log('adsffdsa');
     //             outboundMessage.edit({ embeds: [embeds[pageCounter]] });
     //             pageCounter++;
     //         }
