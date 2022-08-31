@@ -31,7 +31,7 @@ export async function rolled(inboundMessage, serverPrefix) {
     } else {
         const lb = await getLeaderboardData('rolled');
         let players = lb.players;
-        let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
+        let sortedPlayerIds = Object.keys(players ?? {}).sort((id1, id2) => players[id2] - players[id1]);
         // create the embed message
         let embed = new Discord.MessageEmbed();
 

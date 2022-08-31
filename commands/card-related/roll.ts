@@ -22,7 +22,7 @@ const client = new Discord.Client({
 });
 
 export async function roll(inboundMessage, serverPrefix, db, databaseStatistics) {
-    let player: Player;
+    let player: Player | undefined = undefined;
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
 
