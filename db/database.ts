@@ -74,7 +74,7 @@ export async function populateUsers() {
     const serversRef = db.collection('servers');
     const serversSnapshot = await serversRef.limit(3).get();
     const serverCount = serversSnapshot.size;
-    const serverIds = [];
+    const serverIds: string[] = [];
     serversSnapshot.docs.forEach((doc) => {
         console.log(doc.id);
         serverIds.push(doc.id);
@@ -84,7 +84,7 @@ export async function populateUsers() {
         const serverRef = serversRef.doc(serverIds[i].toString());
         const usersSnapshot = await serverRef.collection('users').get();
         const userCount = usersSnapshot.size;
-        const userIds = [];
+        const userIds: string[] = [];
         for (let i = 0; i < userCount; i++) {
             const userDoc = await usersSnapshot.docs[i].data();
             let userDiscord;
@@ -426,7 +426,7 @@ export async function getServerStatistics(serverId) {
 export async function updateDatabaseStatistics() {
     const statistics = await getDatabaseStatistics();
     let serverCount = 0;
-    const serverIds = [];
+    const serverIds: string[] = [];
     const serversSnapshot =
         workflow === 'development'
             ? await db.collection('testing-servers').get()
@@ -437,11 +437,11 @@ export async function updateDatabaseStatistics() {
     serversSnapshot.docs.forEach((doc) => {
         serverIds.push(doc.id);
     });
-    const totalUsers = [];
+    const totalUsers: string[] = [];
     for (let i = 0; i < serverCount; i++) {
         const serverRef = serversRef.doc(serverIds[i].toString());
         const usersSnapshot = await serverRef.collection('users').get();
-        const userIds = [];
+        const userIds: string[] = [];
         usersSnapshot.docs.forEach((doc) => {
             userIds.push(doc.id);
             if (!totalUsers.includes(doc.id)) {

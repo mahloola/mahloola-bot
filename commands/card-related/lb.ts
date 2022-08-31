@@ -1,5 +1,6 @@
 import Discord, { Intents } from 'discord.js';
 import { getServerUserDoc, getServerUserIds, getServerUserRef, updateUserElo } from '../../db/database';
+import { ServerUser } from '../../types';
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
@@ -7,7 +8,7 @@ const client = new Discord.Client({
 export async function lb(inboundMessage) {
     // get every user ID in the server
     const userIds = await getServerUserIds(inboundMessage.channel.guildId);
-    const users = [];
+    const users: ServerUser[] = [];
 
     console.log(`${inboundMessage.author.username} used ;leaderboard in ${inboundMessage.guild.name}.`);
 

@@ -14,7 +14,7 @@ export async function createPlayerCard(player, claimCount) {
 
     // create all text images in parallel using text2png
     const rank = player.statistics.global_rank;
-    const writePromises = [];
+    const writePromises: Promise<void>[] = [];
     writePromises.push(
         fs.promises.writeFile(
             `${imageDirectory}/cache/text2png-${player.username}.png`,
@@ -85,7 +85,7 @@ export async function createPlayerCard(player, claimCount) {
     await Promise.all(writePromises);
 
     // base image
-    const readPromises = [];
+    const readPromises: Promise<any>[] = [];
 
     const followers = player.follower_count;
     const baseImageFile = rank
@@ -283,4 +283,3 @@ export async function createPlayerCard(player, claimCount) {
         console.log(err);
     }
 }
-
