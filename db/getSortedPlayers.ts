@@ -1,12 +1,13 @@
 import { initializeDatabase } from './database';
 import * as fs from 'fs';
+import { Player } from '../types';
 
 // this is an unrelated module that sorts the top 10,000 players by any api data field and prints out the result to a neatly formatted txt
 
 async function main() {
     const db = initializeDatabase();
     let player;
-    const playerList = [];
+    const playerList: Player[] = [];
     const playersRef = db.collection('players');
     const snapshot = await playersRef.get();
     snapshot.forEach((doc) => {

@@ -48,7 +48,7 @@ client.on('ready', async function () {
     );
 
     client.on('messageCreate', async (inboundMessage) => {
-        const serverDoc = await getServerDoc(inboundMessage.guild.id);
+        const serverDoc = await getServerDoc(inboundMessage.guild?.id);
         if (serverDoc) {
             if (serverDoc.prefix === undefined) {
                 serverPrefix = defaultPrefix;
@@ -63,7 +63,7 @@ client.on('ready', async function () {
         if (!inboundMessage.content.startsWith(serverPrefix) || inboundMessage.author.bot) return;
 
         const args = inboundMessage.content.slice(serverPrefix.length).trim().split(/ +/);
-        const commandText = args.shift().toLowerCase(); // make lowercase work too
+        const commandText = args.shift()?.toLowerCase() ?? ''; // make lowercase work too
 
         const commandMapping = {
             // GENERAL

@@ -30,7 +30,7 @@ export async function claimed(inboundMessage, serverPrefix) {
         }
     } else {
         const players = lbData.players;
-        let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
+        let sortedPlayerIds = Object.keys(players ?? {}).sort((id1, id2) => players[id2] - players[id1]);
         // create the embed message
         const embed = new Discord.MessageEmbed();
 

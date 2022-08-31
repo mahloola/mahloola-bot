@@ -40,7 +40,7 @@ export async function cards(inboundMessage, serverPrefix) {
     const playerIds = player.ownedPlayers ?? null;
 
     // check for valid owned players, store them in ownedPlayerObjects
-    const ownedPlayerObjects = [];
+    const ownedPlayerObjects: [string, number][] = [];
     if (playerIds) {
         for (const id of playerIds) {
             if (simplifiedPlayers[id]) {
@@ -48,7 +48,7 @@ export async function cards(inboundMessage, serverPrefix) {
             }
         }
     }
-    
+
     // check if user owns anybody first
     if (!ownedPlayerObjects.length) {
         discordUserId == inboundMessage.author.id
@@ -67,8 +67,8 @@ export async function cards(inboundMessage, serverPrefix) {
         }
         return a[1] - b[1];
     });
-    const ownedPlayersNames = [],
-        ownedPlayersRanks = [];
+    const ownedPlayersNames: [string, number][] = [],
+        ownedPlayersRanks: [string, number][] = [];
     for (const id of playerIds) {
         ownedPlayersNames.push(ownedPlayerObjects[0]);
         ownedPlayersRanks.push(ownedPlayerObjects[1]);
@@ -76,7 +76,7 @@ export async function cards(inboundMessage, serverPrefix) {
 
     // get pinned player ids from user document
     const pinnedPlayerIds = player.pinnedPlayers ?? null;
-    const pinnedPlayerObjects = [];
+    const pinnedPlayerObjects: [string, number][] = [];
 
     // create embed body
     let pinnedDescription = '';
@@ -100,8 +100,8 @@ export async function cards(inboundMessage, serverPrefix) {
                 }
                 return a[1] - b[1];
             });
-            const pinnedPlayersNames = [];
-            const pinnedPlayersRanks = [];
+            const pinnedPlayersNames: string[] = [];
+            const pinnedPlayersRanks: number[] = [];
             for (const pinnedPlayerObject of pinnedPlayerObjects) {
                 pinnedPlayersNames.push(pinnedPlayerObject[0]);
                 pinnedPlayersRanks.push(pinnedPlayerObject[1]);
@@ -118,17 +118,19 @@ export async function cards(inboundMessage, serverPrefix) {
 
     // get the top 10 average
     const elo = await updateUserElo(inboundMessage.guild.id, discordUserId);
-    const eloDisplay = (elo === null ? 'N/A' : elo);
+    const eloDisplay = elo === null ? 'N/A' : elo;
 
-    const embeds = [];
+    const embeds: MessageEmbed[] = [];
     // ceiling of owned players count divided by 10, then removed decimals, then converted to int
-    const pages = parseInt((Math.ceil(ownedPlayerObjects.length / 10)).toFixed(0));
+    const pages = parseInt(Math.ceil(ownedPlayerObjects.length / 10).toFixed(0));
     for (let i = 0; i < pages; i++) {
         // create the embed message
         const embed = new Discord.MessageEmbed();
 
         // add the rest of the information
-        embed.setTitle(`${discordUser.username}'s cards ${ownedPlayerObjects.length > 10 ? `(Page ${i + 1} of ${pages})` : ``}`);
+        embed.setTitle(
+            `${discordUser.username}'s cards ${ownedPlayerObjects.length > 10 ? `(Page ${i + 1} of ${pages})` : ``}`
+        );
         embed.setColor('#D9A6BD');
         embed.setAuthor({
             name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
@@ -144,7 +146,12 @@ export async function cards(inboundMessage, serverPrefix) {
         embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);
         if (pinnedPlayerObjects?.length > 0) {
             embed.addField(`Pinned (${pinnedPlayerObjects.length})`, pinnedDescription);
-            embed.addField(`${`Players ${i * 10 + 1}-${ownedPlayerObjects.length > 10 ? (i + 1) * 10 : ownedPlayerObjects.length}`}`, embedDescription);
+            embed.addField(
+                `${`Players ${i * 10 + 1}-${
+                    ownedPlayerObjects.length > 10 ? (i + 1) * 10 : ownedPlayerObjects.length
+                }`}`,
+                embedDescription
+            );
         } else {
             embed.addField(`Players`, embedDescription);
         }

@@ -74,7 +74,7 @@ export async function populateUsers() {
     const serversRef = db.collection('servers');
     const serversSnapshot = await serversRef.limit(3).get();
     const serverCount = serversSnapshot.size;
-    const serverIds = [];
+    const serverIds: string[] = [];
     serversSnapshot.docs.forEach((doc) => {
         console.log(doc.id);
         serverIds.push(doc.id);
@@ -84,7 +84,7 @@ export async function populateUsers() {
         const serverRef = serversRef.doc(serverIds[i].toString());
         const usersSnapshot = await serverRef.collection('users').get();
         const userCount = usersSnapshot.size;
-        const userIds = [];
+        const userIds: string[] = [];
         for (let i = 0; i < userCount; i++) {
             const userDoc = await usersSnapshot.docs[i].data();
             let userDiscord;
@@ -165,13 +165,13 @@ export async function setPlayerRollCounter(player, count) {
 }
 
 // get document in player database (osu apiv2)
-export async function getPlayer(userId): Promise<Player> {
+export async function getPlayer(userId): Promise<Player | null> {
     const playerDoc = await db.collection('players').doc(userId.toString()).get();
     return playerDoc.exists ? (playerDoc.data() as Player) : null;
 }
 
 //
-export async function getPlayerByUsername(username): Promise<Player> {
+export async function getPlayerByUsername(username): Promise<Player | null> {
     const playersRef = db.collection('players');
     const snapshot = await playersRef.where('usernameLowercase', '==', username.toLowerCase()).get(); // doc(userId.toString())
 
@@ -187,7 +187,7 @@ export async function getPlayerByUsername(username): Promise<Player> {
 }
 
 // the main function used for retrieving from roll
-export async function getPlayerByRank(rank): Promise<Player> {
+export async function getPlayerByRank(rank): Promise<Player | null> {
     const playersRef = db.collection('players');
     const snapshot = await playersRef.where('apiv2.statistics.global_rank', '==', rank).get(); // doc(userId.toString())
 
@@ -208,7 +208,8 @@ export function getServersRef() {
     const serversRef = workflow === 'development' ? db.collection('testing-servers') : db.collection('servers');
     return serversRef;
 }
-export async function getServerDoc(serverId): Promise<Server> {
+export async function getServerDoc(serverId): Promise<Server | null> {
+    if (!serverId) return null;
     const serversRef = getServersRef();
     const serverDoc = await serversRef.doc(serverId.toString()).get();
     return serverDoc.exists ? (serverDoc.data() as Server) : null;
@@ -219,7 +220,7 @@ export function getServerUsersRef(serverId) {
     const usersRef = serverDoc.collection('users');
     return usersRef;
 }
-export async function getServerUserDoc(serverId, userId): Promise<ServerUser> {
+export async function getServerUserDoc(serverId, userId): Promise<ServerUser | null> {
     const usersRef = getServerUsersRef(serverId);
     const userDoc = await usersRef.doc(userId.toString()).get();
     return userDoc.exists ? (userDoc.data() as ServerUser) : null;
@@ -243,7 +244,7 @@ export async function getDiscordUser(discordId) {
     const userDoc = await usersRef.doc(discordId).get();
     return userDoc.exists ? userDoc.data() : null;
 }
-export async function getLeaderboardData(type): Promise<Leaderboard> {
+export async function getLeaderboardData(type): Promise<Leaderboard | null> {
     const leaderboardRef =
         workflow === 'development' ? db.collection('testing-leaderboards') : db.collection('leaderboards');
     const leaderboardDoc = await leaderboardRef.doc(type).get();
@@ -278,7 +279,7 @@ export async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
     const userSnapshot = await userRef.get();
     const user = userSnapshot.data();
 
-    const updatedOwnedUsers = user.pinnedPlayers.filter((id) => id !== pinnedUserId);
+    const updatedOwnedUsers = user!.pinnedPlayers.filter((id) => id !== pinnedUserId);
     await userRef.update({ pinnedPlayers: updatedOwnedUsers });
 }
 
@@ -302,7 +303,7 @@ export async function attemptRoll(serverId, userId): Promise<boolean> {
         const userRef = getServerUserRef(serverId, userId);
         const userDoc = await t.get(userRef);
         const user = userDoc.data() as ServerUser;
-        let dataToSet: ServerUser = null;
+        let dataToSet: ServerUser | null = null;
         let rollSuccess;
 
         if (!user || user.rollResetTime === undefined) {
@@ -319,7 +320,7 @@ export async function attemptRoll(serverId, userId): Promise<boolean> {
                 rollResetTime: Date.now() + 1 * millisecondsPerHour,
                 rolls: 10 - 1,
             };
-        } else if (user.rolls > 0) {
+        } else if (user.rolls !== undefined && user.rolls > 0) {
             // user has rolled recently but still has enough rolls
             rollSuccess = true;
             dataToSet = {
@@ -426,7 +427,7 @@ export async function getServerStatistics(serverId) {
 export async function updateDatabaseStatistics() {
     const statistics = await getDatabaseStatistics();
     let serverCount = 0;
-    const serverIds = [];
+    const serverIds: string[] = [];
     const serversSnapshot =
         workflow === 'development'
             ? await db.collection('testing-servers').get()
@@ -437,11 +438,11 @@ export async function updateDatabaseStatistics() {
     serversSnapshot.docs.forEach((doc) => {
         serverIds.push(doc.id);
     });
-    const totalUsers = [];
+    const totalUsers: string[] = [];
     for (let i = 0; i < serverCount; i++) {
         const serverRef = serversRef.doc(serverIds[i].toString());
         const usersSnapshot = await serverRef.collection('users').get();
-        const userIds = [];
+        const userIds: string[] = [];
         usersSnapshot.docs.forEach((doc) => {
             userIds.push(doc.id);
             if (!totalUsers.includes(doc.id)) {
