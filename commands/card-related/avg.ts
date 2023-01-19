@@ -1,10 +1,10 @@
 import { updateUserElo } from '../../db/database';
 
-export async function avg(inboundMessage) {
-    const elo = await updateUserElo(inboundMessage.channel.guildId, inboundMessage.author.id);
+export async function avg(interaction) {
+    const elo = await updateUserElo(interaction.channel.guildId, interaction.user.id);
     if (elo == null) {
-        inboundMessage.channel.send('You are unranked; you need to own at least 10 players.');
+        interaction.reply('You are unranked; you need to own at least 10 players.');
     } else {
-        inboundMessage.channel.send(`${inboundMessage.author} Your top 10 average is **${elo.toString()}**.`);
+        interaction.reply(`${interaction.user} Your top 10 average is **${elo.toString()}**.`);
     }
 }

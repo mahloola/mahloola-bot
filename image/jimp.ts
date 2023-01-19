@@ -134,7 +134,7 @@ export async function createPlayerCard(player, claimCount) {
         cardMask,
         circle,
     ] = await Promise.all(readPromises);
-    let textImageTitle = userTitle
+    const textImageTitle = userTitle
         ? await Jimp.read(`${imageDirectory}/cache/text2png-${player.username}-title.png`)
         : null;
 
@@ -283,4 +283,3 @@ export async function createPlayerCard(player, claimCount) {
         console.log(err);
     }
 }
-

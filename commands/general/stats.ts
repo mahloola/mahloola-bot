@@ -1,7 +1,7 @@
 import Discord, { Message } from 'discord.js';
 import { getDatabaseStatistics } from '../../db/database';
 
-export async function stats(inboundMessage) {
+export async function stats(interaction) {
     // create the embed message
 
     const statistics = await getDatabaseStatistics();
@@ -16,9 +16,9 @@ export async function stats(inboundMessage) {
     embed.setTitle(`mahloola BOT Global Stats`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
-        iconURL: inboundMessage.author.avatarURL(),
-        url: inboundMessage.author.avatarURL(),
+        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        iconURL: interaction.user.avatarURL(),
+        url: interaction.user.avatarURL(),
     });
     embed.setThumbnail(
         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
@@ -31,6 +31,6 @@ export async function stats(inboundMessage) {
     embed.setTimestamp(Date.now());
 
     // send the message
-    inboundMessage.channel.send({ embeds: [embed] });
+    interaction.reply({ embeds: [embed] });
     //updateStatistics();
 }

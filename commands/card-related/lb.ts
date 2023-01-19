@@ -1,22 +1,19 @@
 import Discord, { Intents } from 'discord.js';
 import { getServerUserDoc, getServerUserIds, getServerUserRef, updateUserElo } from '../../db/database';
-const client = new Discord.Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-});
 
-export async function lb(inboundMessage) {
+export async function lb(interaction, serverPrefix, db, databaseStatistics, client) {
     // get every user ID in the server
-    const userIds = await getServerUserIds(inboundMessage.channel.guildId);
+    const userIds = await getServerUserIds(interaction.channel.guildId);
     const users = [];
 
-    console.log(`${inboundMessage.author.username} used ;leaderboard in ${inboundMessage.guild.name}.`);
+    console.log(`${interaction.user.username} used ;leaderboard in ${interaction.guild.name}.`);
 
     //
     for (let i = 0; i < userIds.length; i++) {
         // get a specific user (to check if they have 10+ cards)
-        const user = await getServerUserDoc(inboundMessage.channel.guildId, userIds[i]);
+        const user = await getServerUserDoc(interaction.channel.guildId, userIds[i]);
 
-        await updateUserElo(inboundMessage.channel.guildId, userIds[i]);
+        await updateUserElo(interaction.channel.guildId, userIds[i]);
 
         // if the user has 10+ cards
         if (user.elo != undefined) {
@@ -24,7 +21,7 @@ export async function lb(inboundMessage) {
             const userDiscordInfo = await client.users.fetch(userIds[i]);
             const userDiscordInfoJSON = userDiscordInfo.toJSON();
 
-            const userRef = await getServerUserRef(inboundMessage.channel.guildId, userIds[i]);
+            const userRef = await getServerUserRef(interaction.channel.guildId, userIds[i]);
 
             // set discord info in the database
             await userRef.set({ discord: userDiscordInfoJSON }, { merge: true });
@@ -42,14 +39,14 @@ export async function lb(inboundMessage) {
     const embed = new Discord.MessageEmbed();
 
     // populate the embed message
-    embed.setTitle(`${inboundMessage.guild.name} Leaderboard`);
+    embed.setTitle(`${interaction.guild.name} Leaderboard`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
-        iconURL: inboundMessage.author.avatarURL(),
-        url: inboundMessage.author.avatarURL(),
+        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        iconURL: interaction.user.avatarURL(),
+        url: interaction.user.avatarURL(),
     });
-    embed.setThumbnail(inboundMessage.guild.iconURL());
+    embed.setThumbnail(interaction.guild.iconURL());
     let embedDescription = `\`\`\`#    | User\n`;
     embedDescription += `----------------\n`;
     sortedUsers.slice(0, 10).forEach((player) => {
@@ -79,5 +76,5 @@ export async function lb(inboundMessage) {
     embed.setTimestamp(Date.now());
 
     // send the message
-    inboundMessage.channel.send({ embeds: [embed] });
+    interaction.reply({ embeds: [embed] });
 }

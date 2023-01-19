@@ -1,8 +1,8 @@
 import Discord from 'discord.js';
 import { getDiscordUser } from '../../db/database';
 
-export async function mystats(inboundMessage) {
-    const user = await getDiscordUser(inboundMessage.author.id);
+export async function profile(interaction) {
+    const user = await getDiscordUser(interaction.user.id);
     const description = `
 **Rolls**: ${user.rollCounter ?? 0}
 **Claims**: ${user.claimCounter ?? 0}
@@ -12,13 +12,13 @@ export async function mystats(inboundMessage) {
     embed.setTitle(`${user.discord.username}'s Stats`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
-        iconURL: inboundMessage.author.avatarURL(),
-        url: inboundMessage.author.avatarURL(),
+        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        iconURL: interaction.user.avatarURL(),
+        url: interaction.user.avatarURL(),
     });
-    embed.setThumbnail(inboundMessage.author.avatarURL());
+    embed.setThumbnail(interaction.author.avatarURL());
     embed.setDescription(description);
     embed.setTimestamp(Date.now());
 
-    inboundMessage.channel.send({ embeds: [embed] });
+    interaction.reply({ embeds: [embed] });
 }

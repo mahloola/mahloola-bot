@@ -1,35 +1,34 @@
 import { deletePinnedPlayer, getPlayerByUsername, getServerUserDoc } from '../../db/database';
 
-export async function unpin(inboundMessage, serverPrefix) {
-    const username = inboundMessage.content.substring(6 + serverPrefix.length);
-    if (username) {
-        if (username.includes('@everyone') || username.includes('@here')) {
-            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+export async function unpin(interaction, serverPrefix, name) {
+    if (name) {
+        if (name.includes('@everyone') || name.includes('@here')) {
+            interaction.reply(`${interaction.user} mahloola knows your tricks`);
             return;
         } else {
-            const player = await getPlayerByUsername(username);
+            const player = await getPlayerByUsername(name);
             if (player) {
-                const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+                const user = await getServerUserDoc(interaction.channel.guildId, interaction.user.id);
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
                 if (validFlag) {
                     await deletePinnedPlayer(
-                        inboundMessage.channel.guildId,
-                        inboundMessage.author.id,
+                        interaction.channel.guildId,
+                        interaction.user.id,
                         player.apiv2.id
                     ).catch((err) => console.error(err));
-                    inboundMessage.channel.send(`${inboundMessage.author} unpinned ${username} successfully.`);
+                    interaction.reply(`${interaction.user} unpinned ${name} successfully.`);
                 } else {
-                    inboundMessage.channel.send(
-                        `${inboundMessage.author} You do not own a player with the username "${username}".`
+                    interaction.reply(
+                        `${interaction.user} You do not own the player "${name}".`
                     );
                 }
             } else {
-                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+                interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }
         }
     } else {
-        inboundMessage.channel.send(
-            `${inboundMessage.author} Please enter the username of the player you want to unpin.`
+        interaction.reply(
+            `${interaction.user} Please enter the username of the player you want to unpin.`
         );
     }
 }

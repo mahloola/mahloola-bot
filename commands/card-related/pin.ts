@@ -1,16 +1,17 @@
-import { getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db/database';
+import { getDiscordUser, getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db/database';
 import simplifiedPlayers from '../../db/simplifiedPlayers.json';
+import { isPremium } from '../../util/isPremium';
 
-export async function pin(inboundMessage, serverPrefix) {
-    const username = inboundMessage.content.substring(4 + serverPrefix.length);
-    if (username) {
-        if (username.includes('@everyone') || username.includes('@here')) {
-            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+export async function pin(interaction, serverPrefix, name) {
+    if (name) {
+        if (name.includes('@everyone') || name.includes('@here')) {
+            interaction.reply(`${interaction.user} mahloola knows your tricks`);
             return;
         } else {
-            const player = await getPlayerByUsername(username);
+            const player = await getPlayerByUsername(name);
+            const discordUser = await getDiscordUser(interaction.user.id);
             if (player) {
-                const user = await getServerUserDoc(inboundMessage.channel.guildId, inboundMessage.author.id);
+                const user = await getServerUserDoc(interaction.channel.guildId, interaction.user.id);
                 let validUsers = 0;
                 for (let i = 0; i < user?.pinnedPlayers?.length; i++) {
                     if (simplifiedPlayers[user?.pinnedPlayers[i]]) {
@@ -19,32 +20,32 @@ export async function pin(inboundMessage, serverPrefix) {
                         }
                     }
                 }
-                if (validUsers > 9) {
-                    inboundMessage.channel.send(`${inboundMessage.author} You cannot pin more than 10 players.`);
+                if (validUsers > (isPremium(discordUser) ? 14 : 9)) {
+                    interaction.reply(`${interaction.user} You cannot pin more than 10 players.`);
                     return;
                 }
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
                 if (validFlag) {
                     await setPinnedPlayer(
-                        inboundMessage.channel.guildId,
-                        inboundMessage.author.id,
+                        interaction.channel.guildId,
+                        interaction.user.id,
                         player.apiv2.id
                     ).catch((err) => console.error(err));
-                    inboundMessage.channel.send(
-                        `${inboundMessage.author} pinned ${player.apiv2.username} successfully.`
+                    interaction.reply(
+                        `${interaction.user} pinned ${player.apiv2.username} successfully.`
                     );
                 } else {
-                    inboundMessage.channel.send(
-                        `${inboundMessage.author} You do not own a player with the username "${username}".`
+                    interaction.channel.send(
+                        `${interaction.user} You do not own the player "${name}".`
                     );
                 }
             } else {
-                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+                interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }
         }
     } else {
-        inboundMessage.channel.send(
-            `${inboundMessage.author} Please enter the username of the player you want to pin.`
+        interaction.reply(
+            `${interaction.user} Please enter the username of the player you want to pin.`
         );
     }
 }

@@ -7,27 +7,28 @@
 
 # mahloola bot
 
-To get started, <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2147609664&scope=applications.commands%20bot">invite the bot</a> to your Discord server. Once joined, type **/help** to learn about all the features.
+To get started, <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=2147609664&scope=applications.commands%20bot">invite the bot</a> to your Discord server. Once joined, type **;help** to learn about all the features.
 
 #### Development Server
+This is a **work in progress**; as such, it's prone many issues.
 
 If you have any issues or suggestions, or just want a place to chat, please <a href="https://discord.gg/DGdzyapHkW">join the Discord server</a>.
 
 ## Features
 
 #### Card-Related
-- **/roll**: Roll 10 times an hour for a random top 10,000 osu! player. Claim by reacting with '👍'
-- **/rolls**: Check your remaining rolls and cooldown.
-- **/cards**: Display all of your owned cards, sorted by rank, with pinned cards at the top. 🃏
-- **/pin**: Pin your favorite cards to the top of your cards by typing ;pin UserID (must provide the osu! ID). 📌
-- **/claimed**: Check the most claimed users across all servers.
-- **/claimed (username)**: Check the number of times a user has been claimed across all servers.
-- **/avg**: Check the average rank of your top 10 cards.
-- **/lb**: Compare your best cards to fellow users in your Discord server. 🥇
+- **;roll**: Roll 10 times an hour for a random top 10,000 osu! player. Claim by reacting with '👍'
+- **;rolls**: Check your remaining rolls and cooldown.
+- **;cards**: Display all of your owned cards, sorted by rank, with pinned cards at the top. 🃏
+- **;pin**: Pin your favorite cards to the top of your cards by typing ;pin UserID (must provide the osu! ID). 📌
+- **;claimed**: Check the most claimed users across all servers.
+- **;claimed (username)**: Check the number of times a user has been claimed across all servers.
+- **;avg**: Check the average rank of your top 10 cards.
+- **;lb**: Compare your best cards to fellow users in your Discord server. 🥇
 #### General
-- **/help**: Display a list of all commands and a Discord invite link.
-- **/prefix**: Change the bot prefix for your server (must be a server administrator).
-- **/stats**: Display global bot stats.
+- **;help**: Display a list of all commands and a Discord invite link.
+- **;prefix**: Change the bot prefix for your server (must be a server administrator).
+- **;stats**: Display global bot stats.
 
 ## Gallery
 <p align="center">

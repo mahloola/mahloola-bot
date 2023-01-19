@@ -1,31 +1,30 @@
 import Discord from 'discord.js';
 import { getLeaderboardData, getPlayer, getPlayerByUsername } from '../../db/database';
 
-export async function claimed(inboundMessage, serverPrefix) {
+export async function claimed(interaction, serverPrefix, name) {
     const lbData = await getLeaderboardData('claimed');
-    if (inboundMessage.content.length > 8 + serverPrefix.length) {
-        const username = inboundMessage.content.substring(8 + serverPrefix.length);
-        if (username.includes('@everyone') || username.includes('@here')) {
-            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+    if (name) {
+        if (name.includes('@everyone') || name.includes('@here')) {
+            interaction.reply(`${interaction.user} mahloola knows your tricks`);
             return;
         } else {
-            const player = await getPlayerByUsername(username);
+            const player = await getPlayerByUsername(name);
             if (player) {
                 lbData.players[player.apiv2.id] === 1
-                    ? inboundMessage.channel.send(
-                          `${inboundMessage.author} ${player.apiv2.username} has been claimed once.`
+                    ? interaction.reply(
+                          `${interaction.user} ${player.apiv2.username} has been claimed once.`
                       )
                     : lbData.players[player.apiv2.id] > 1
-                    ? inboundMessage.channel.send(
-                          `${inboundMessage.author} ${player.apiv2.username} has been claimed ${
+                    ? interaction.reply(
+                          `${interaction.user} ${player.apiv2.username} has been claimed ${
                               lbData.players[player.apiv2.id]
                           } times.`
                       )
-                    : inboundMessage.channel.send(
-                          `${inboundMessage.author} ${player.apiv2.username} has never been claimed.`
+                    : interaction.reply(
+                          `${interaction.user} ${player.apiv2.username} has never been claimed.`
                       );
             } else {
-                inboundMessage.channel.send(`${inboundMessage.author} Player "${username}" was not found.`);
+                interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }
         }
     } else {
@@ -38,9 +37,9 @@ export async function claimed(inboundMessage, serverPrefix) {
         embed.setTitle(`Global Claim Leaderboard`);
         embed.setColor('#D9A6BD');
         embed.setAuthor({
-            name: `${inboundMessage.author.username}#${inboundMessage.author.discriminator}`,
-            iconURL: inboundMessage.author.avatarURL(),
-            url: inboundMessage.author.avatarURL(),
+            name: `${interaction.user.username}#${interaction.user.discriminator}`,
+            iconURL: interaction.user.avatarURL(),
+            url: interaction.user.avatarURL(),
         });
         embed.setThumbnail(
             `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
@@ -67,6 +66,6 @@ export async function claimed(inboundMessage, serverPrefix) {
         embed.setTimestamp(Date.now());
 
         // send the message
-        inboundMessage.channel.send({ embeds: [embed] });
+        interaction.reply({ embeds: [embed] });
     }
 }

@@ -1,16 +1,16 @@
 import Discord from 'discord.js';
 import { setPrefix } from '../../db/database';
 
-export async function prefix(inboundMessage, serverPrefix, db, statistics) {
-    const newPrefix = inboundMessage.member.permissionsIn(inboundMessage.channel).has('ADMINISTRATOR')
-        ? inboundMessage.content.substring(7 + serverPrefix.length).trim()
+export async function prefix(interaction, serverPrefix, db, statistics) {
+    const newPrefix = interaction.member.permissionsIn(interaction.channel).has('ADMINISTRATOR')
+        ? interaction.content.substring(7 + serverPrefix.length).trim()
         : null;
     if (newPrefix) {
-        await setPrefix(inboundMessage.guild.id, newPrefix);
-        inboundMessage.channel.send(
-            `${inboundMessage.author} The mahloola BOT server prefix for ${inboundMessage.guild.name} has been set to \`${newPrefix}\`.`
+        await setPrefix(interaction.guild.id, newPrefix);
+        interaction.reply(
+            `${interaction.user} The mahloola BOT server prefix for ${interaction.guild.name} has been set to \`${newPrefix}\`.`
         );
     } else {
-        inboundMessage.channel.send(`${inboundMessage.author} You must be an administrator to change the prefix.`);
+        interaction.reply(`${interaction.user} You must be an administrator to change the prefix.`);
     }
 }

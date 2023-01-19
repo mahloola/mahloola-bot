@@ -26,6 +26,8 @@ export interface DiscordUser {
     system?: boolean;
     tag?: string;
     username?: string;
+    addResetTime?: number;
+    addCounter?: number;
 }
 export interface Server {
     ownedPlayers?: number[];

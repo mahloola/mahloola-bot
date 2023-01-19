@@ -1,42 +1,45 @@
-import { getServerUserDoc, setRollResetTime, setRolls } from '../../db/database';
+import { getDiscordUser, getServerUserDoc, setRollResetTime, setRolls } from '../../db/database';
+import { isPremium } from '../../util/isPremium';
 
-export async function rolls(inboundMessage) {
-    let user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+export async function rolls(interaction) {
+    let user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
+    let discordUser = await getDiscordUser(interaction.user.id);
     let currentRolls;
     let resetTimestamp;
+    const maxRolls = isPremium(discordUser) ? 12 : 10;
     if (user) {
         currentRolls = user.rolls;
         resetTimestamp = user.rollResetTime;
     } else {
-        await setRolls(inboundMessage.channel.guildId, inboundMessage.author.id, 10);
-        await setRollResetTime(inboundMessage.channel.guildId, inboundMessage.author.id);
-        currentRolls = 10;
+        currentRolls = maxRolls;
+        await setRolls(interaction.channel.guildId, interaction.user.id, maxRolls);
+        await setRollResetTime(interaction.channel.guildId, interaction.user.id);
         resetTimestamp = new Date().getTime();
-        user = await getServerUserDoc(inboundMessage.guild.id, inboundMessage.author.id);
+        user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
     }
 
     const resetTime = new Date(resetTimestamp).getTime();
     const currentTime = new Date().getTime();
     if (currentTime > resetTime) {
-        await setRolls(inboundMessage.guild.id, inboundMessage.author.id, 10);
-        currentRolls = 10;
+        await setRolls(interaction.guild.id, interaction.user.id, maxRolls);
+        currentRolls = maxRolls;
     }
     const timeRemaining = resetTime - currentTime;
     if (currentRolls === 1) {
-        inboundMessage.channel.send(
+        interaction.reply(
             `You have 1 final roll remaining. Your roll restock time is <t:${resetTime.toString().slice(0, -3)}:T>.`
         );
-    } else if (currentRolls === 10 || resetTime === null) {
-        inboundMessage.channel.send(`You have 10 rolls remaining.`);
+    } else if (currentRolls === maxRolls || resetTime === null) {
+        interaction.reply(`You have ${maxRolls} rolls remaining.`);
     } else if (currentRolls > 0 && resetTime != null) {
-        inboundMessage.channel.send(
+        interaction.reply(
             `You have ${currentRolls} rolls remaining. Your roll restock time is <t:${resetTime
                 .toString()
                 .slice(0, -3)}:T>.`
         );
     } else {
-        inboundMessage.channel.send(
-            `${inboundMessage.author} You've run out of rolls. Your roll restock time is <t:${resetTime
+        interaction.reply(
+            `${interaction.user} You've run out of rolls. Your roll restock time is <t:${resetTime
                 .toString()
                 .slice(0, -3)}:T>.`
         );

@@ -1,46 +1,64 @@
 import { NonDmChannel } from '../../types';
 import { getUser, requestClientCredentialsToken } from '../../scraper/api';
-import { getPlayerByUsername, setPlayer } from '../../db/database';
-import { adminDiscordId, defaultPrefix } from '../../auth.json';
-import Discord, { Intents } from 'discord.js';
-const client = new Discord.Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-});
+import { getDiscordUser, getPlayerByUsername, setAddCounter, setPlayer } from '../../db/database';
+import { isPremium } from '../../util/isPremium';
+import { createPlayerCard } from '../../image/jimp';
 
-export async function add(inboundMessage, serverPrefix) {
+export async function add(interaction, serverPrefix, user) {
+    const discordUser = await getDiscordUser(interaction.user.id);
     // check if user is an administrator
-    if (inboundMessage.author.id === adminDiscordId) {
-        const userId = inboundMessage.content.substring(4 + serverPrefix.length);
+    if (isPremium(discordUser)) {
         // check if user entered a parameter
-        if (userId) {
-            if (userId === '@everyone' || userId === '@here') {
-                inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
+        if (user) {
+            if (user.includes('@everyone') || user.includes('@here')) {
+                interaction.reply(`${interaction.user} mahloola knows your tricks`);
                 return;
             } else {
+                if (
+                    !discordUser.addCounter ||
+                    discordUser.addCounter == null ||
+                    discordUser.addCounter == undefined
+                ) {
+                    setAddCounter(discordUser, 3);
+                }
+                if (discordUser.addCounter <= 0 && discordUser.addResetTime > new Date().getTime()) {
+                    interaction.reply(
+                        `${interaction.user} You've run out of user additions. Your 3 adds will restock on <t:${(
+                            discordUser.addResetTime / 1000
+                        ).toFixed(0)}:F>.`
+                    );
+                    return;
+                }
                 const apiToken = await requestClientCredentialsToken();
-                const player = await getUser(apiToken, userId);
+                const player = await getUser(apiToken, user); // OSU API PLAYER
+                const osuPlayer = await getPlayerByUsername(player.username); // PLAYER FROM MY DATABASE (separate data call to check if they already exist)
                 if (player) {
-                    await setPlayer(player);
-
-                    if (getPlayerByUsername(player.username)) {
+                    if (osuPlayer) {
+                        interaction.reply(
+                            `${interaction.user} ${osuPlayer.apiv2.username} already exists in the database.`
+                        );
+                        return;
+                    } else {
+                        await setPlayer(player);
                         const timestamp = new Date();
                         console.log(
                             `${timestamp.toLocaleTimeString().slice(0, 5)} | ${
-                                (inboundMessage.channel as NonDmChannel).guild.name
-                            }: ${inboundMessage.author.username} added ${player.username} to the database successfully.`
+                                (interaction.channel as NonDmChannel).guild.name
+                            }: ${interaction.user.username} added ${player.username} to the database successfully.`
                         );
-                        inboundMessage.channel.send(
-                            `${inboundMessage.author} ${player.username} was successfully added to the database.`
+                        await setAddCounter(discordUser, discordUser.addCounter - 1);
+                        interaction.reply(
+                            `${interaction.user} ${player.username} was successfully added to the database.`
                         );
                     }
                 } else {
-                    inboundMessage.channel.send(`${inboundMessage.author} User ${userId} was not found.`);
+                    interaction.reply(`${interaction.user} User ${user} was not found.`);
                 }
             }
         } else {
-            inboundMessage.channel.send(`${inboundMessage.author} Please enter an osu! User ID.`);
+            interaction.reply(`${interaction.user} Please enter an osu! User ID.`);
         }
     } else {
-        inboundMessage.channel.send(`${inboundMessage.author} You need to be premium to use this command.`);
+        interaction.reply(`${interaction.user} You need to be premium to use this command.`);
     }
 }

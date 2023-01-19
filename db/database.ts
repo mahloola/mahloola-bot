@@ -4,6 +4,7 @@ import simplifiedPlayers from './simplifiedPlayersLowercase.json';
 import { firestoreKey, workflow } from '../auth.json';
 import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
 import { Intents } from 'discord.js';
+import { isPremium } from '../util/isPremium';
 const client = new Discord.Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
@@ -177,12 +178,14 @@ export async function getPlayerByUsername(username): Promise<Player> {
 
     let latestDate = new Date(0);
     let playerDoc;
-    snapshot.forEach((doc) => {
-        if (doc.data().dateUpdated > latestDate) {
-            latestDate = doc.data().dateUpdated;
-            playerDoc = doc;
-        }
-    });
+    if (snapshot) {
+        snapshot.forEach((doc) => {
+            if (doc.data().dateUpdated > latestDate) {
+                latestDate = doc.data().dateUpdated;
+                playerDoc = doc;
+            }
+        });
+    }
     return playerDoc ? (playerDoc.data() as Player) : null;
 }
 
@@ -243,6 +246,10 @@ export async function getDiscordUser(discordId) {
     const userDoc = await usersRef.doc(discordId).get();
     return userDoc.exists ? userDoc.data() : null;
 }
+export async function getDiscordUserRef(discordId) {
+    const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
+    return usersRef.doc(discordId);
+}
 export async function getLeaderboardData(type): Promise<Leaderboard> {
     const leaderboardRef =
         workflow === 'development' ? db.collection('testing-leaderboards') : db.collection('leaderboards');
@@ -296,7 +303,7 @@ export async function setClaimResetTime(serverId, userId, time) {
 }
 
 // If roll succeeds returns true, otherwise returns false
-export async function attemptRoll(serverId, userId): Promise<boolean> {
+export async function attemptRoll(serverId, userId, discordUser): Promise<boolean> {
     // everything involving rolls and roll reset times happens inside this transaction to prevent race conditions
     return await db.runTransaction(async (t) => {
         const userRef = getServerUserRef(serverId, userId);
@@ -310,14 +317,14 @@ export async function attemptRoll(serverId, userId): Promise<boolean> {
             rollSuccess = true;
             dataToSet = {
                 rollResetTime: Date.now() + 1 * millisecondsPerHour,
-                rolls: 10 - 1,
+                rolls: isPremium(discordUser) ? 12 - 1 : 10 - 1,
             };
         } else if (Date.now() > user.rollResetTime) {
             // user is past their cooldown
             rollSuccess = true;
             dataToSet = {
                 rollResetTime: Date.now() + 1 * millisecondsPerHour,
-                rolls: 10 - 1,
+                rolls: isPremium(discordUser) ? 12 - 1 : 10 - 1,
             };
         } else if (user.rolls > 0) {
             // user has rolled recently but still has enough rolls
@@ -342,6 +349,14 @@ export async function attemptRoll(serverId, userId): Promise<boolean> {
 export async function setRolls(serverId, userId, rolls) {
     const userRef = await getServerUserRef(serverId, userId);
     await userRef.set({ rolls: rolls }, { merge: true });
+}
+
+// this is the number of available 'custom user adds' available to a premium user
+export async function setAddCounter(discordUser, addCount) {
+    const discordUserRef = await getDiscordUserRef(discordUser.discord.id);
+    const currentDateMs = new Date().getTime();
+    const addResetTimestamp = currentDateMs + 604800000;
+    await discordUserRef.set({ addCounter: addCount, addResetTime: addResetTimestamp }, { merge: true });
 }
 
 // gets Top-10-Average for a particular user, while getting owned player documents first (**1000 MS RUNTIME**)
