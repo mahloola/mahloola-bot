@@ -24,7 +24,6 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
     let player: Player;
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
-    await interaction.reply('_ _');
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
     // console.log(`t0.5: ${Date.now() - t1}`);
     let discordUser;
@@ -41,7 +40,7 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
     if (!rollSuccess) {
         // && !isAdmin
         const resetTime = user.rollResetTime;
-        interaction.channel.send(
+        await interaction.reply(
             `${interaction.member} You've run out of rolls. Your roll restock time is <t:${resetTime
                 .toString()
                 .slice(0, -3)}:T>.`
@@ -78,7 +77,7 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
         ? await setPlayerRollCounter(player, 1)
         : await setPlayerRollCounter(player, player.rollCounter + 1);
 
-    const outboundMessage = await interaction.channel.send({ files: [file] });
+    const outboundMessage = (await interaction.reply({ files: [file], fetchReply: true, ephemeral: false })) as Discord.Message;
     await outboundMessage.react('👍');
     // console.log(`end time: ${Date.now() - t1}`);
     const reactions = await outboundMessage.awaitReactions({
