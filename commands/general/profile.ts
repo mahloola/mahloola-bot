@@ -16,7 +16,7 @@ export async function profile(interaction) {
         iconURL: interaction.user.avatarURL(),
         url: interaction.user.avatarURL(),
     });
-    embed.setThumbnail(interaction.author.avatarURL());
+    embed.setThumbnail(interaction.user.avatarURL());
     embed.setDescription(description);
     embed.setTimestamp(Date.now());
 
