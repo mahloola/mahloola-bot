@@ -25,9 +25,10 @@
         "winston": "^3.2.1"
     },
     "scripts": {
-        "start": "ts-node index.ts",
-        "scrape": "ts-node scraper/scrape.ts",
-        "update": "ts-node scraper/update.ts"
+        "forever": "tsc && forever start dist/index.js",
+        "start": "tsc && node dist/index.js",
+        "scrape": "node dist/scraper/scrape.js",
+        "update": "node dist/scraper/update.js"
     },
     "repository": {
         "type": "git",

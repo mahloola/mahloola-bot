@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
-const { discordClientId, guildId, token } = require('../auth.json');
+const { discordClientId, discordClientIdTest, guildId, token, tokenDevelopment } = require('../auth.json');
 
 const commands = [
 	new SlashCommandBuilder().setName('roll').setDescription('Roll for an osu! player card'),
@@ -27,8 +27,10 @@ const commands = [
 ]
 	.map(command => command.toJSON());
 
+	// change token to tokenDevelopment for test bot
 const rest = new REST({ version: '9' }).setToken(token);
 
+// change discordClientId to discordClientIdTest for test bot
 rest.put(Routes.applicationCommands(discordClientId), { body: commands })
 	.then(() => console.log('Successfully registered application commands.'))
 	.catch(console.error);
