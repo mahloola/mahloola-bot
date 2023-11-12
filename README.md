@@ -1,11 +1,9 @@
+# mahloola bot
 <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=8&scope=bot">
   <p align="center">
-  <img src="https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png" alt="invite-link" width="200"/>
+  <img src="https://github.com/mahloola/mahloola-bot/assets/61226619/dd7163ac-afce-4eaa-80a6-e75ad19db4d6" alt="invite-link" width="200"/>
   </p>
 </a>
-
-
-# mahloola bot
 
 ## About
 mahloola bot is a Discord bot that acts as a card-trading game. The premise of the game is that you acquire up to 10 random cards per hour, out of 12,000 possible cards. The cards are modeled after real players of a rhythm game called [osu!](https://osu.ppy.sh/home). The enjoyment of this game comes from the mystery of not knowing who your next card will be. It could be a friend, a popular player, or even yourself.
