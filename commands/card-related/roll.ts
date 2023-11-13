@@ -19,13 +19,17 @@ import {
 import { NonDmChannel, Player } from '../../types';
 import { adminDiscordId, imageDirectory } from '../../auth.json';
 
-export async function roll(interaction: Discord.CommandInteraction<Discord.CacheType>, serverPrefix, db: FirebaseFirestore.Firestore, databaseStatistics, client: Discord.Client<boolean>) {
-    // const t1 = Date.now()
+export async function roll(
+    interaction: Discord.CommandInteraction<Discord.CacheType>,
+    serverPrefix,
+    db: FirebaseFirestore.Firestore,
+    databaseStatistics,
+    client: Discord.Client<boolean>
+) {
     let player: Player;
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
-    // console.log(`t0.5: ${Date.now() - t1}`);
     let discordUser;
     if ((await getDiscordUser(interaction.user.id)) == null) {
         discordUser = interaction.user.toJSON();
@@ -33,7 +37,6 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
     } else {
         discordUser = await getDiscordUser(interaction.user.id);
     }
-    // console.log(`t1: ${Date.now() - t1}`);
     // exit if user does not have enough rolls
     const rollSuccess = await attemptRoll(interaction.guild.id, interaction.user.id, discordUser);
     const isAdmin = interaction.user.id === adminDiscordId;
@@ -47,7 +50,6 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
         );
         return;
     }
-    // console.log(`t2: ${Date.now() - t1}`);
     let file;
     while (!file) {
         // get a random player (rank 1 - 10,000)
@@ -57,7 +59,7 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
                 .where('rollIndex', '>', Math.floor(Math.random() * 9_223_372_036_854))
                 .limit(1)
                 .get();
-            player = querySnapshot.size > 0 ? querySnapshot.docs[0].data() as any : null;
+            player = querySnapshot.size > 0 ? (querySnapshot.docs[0].data() as any) : null;
         }
         console.log(
             `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
@@ -66,7 +68,12 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
         );
         file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
     }
-    // console.log(`t3: ${Date.now() - t1}`);
+    const outboundMessage = (await interaction.reply({
+        files: [file],
+        fetchReply: true,
+        ephemeral: false,
+    })) as Discord.Message;
+    await outboundMessage.react('👍');
     // update statistics
     const statistics = await getDatabaseStatistics();
     statistics.rolls++;
@@ -76,10 +83,6 @@ export async function roll(interaction: Discord.CommandInteraction<Discord.Cache
     player.claimCounter === undefined
         ? await setPlayerRollCounter(player, 1)
         : await setPlayerRollCounter(player, player.rollCounter + 1);
-
-    const outboundMessage = (await interaction.reply({ files: [file], fetchReply: true, ephemeral: false })) as Discord.Message;
-    await outboundMessage.react('👍');
-    // console.log(`end time: ${Date.now() - t1}`);
     const reactions = await outboundMessage.awaitReactions({
         filter: (reaction, user) => user.id != outboundMessage.member.id && reaction.emoji.name == '👍',
         max: 1,
