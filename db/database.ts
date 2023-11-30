@@ -57,7 +57,8 @@ export async function setDiscordUser(discordUser) {
 }
 export async function setPremium(user, months) {
     const currentDateMs = new Date().getTime();
-    const premiumExpiryMs = currentDateMs + months * 2629800000;
+    const msPerMonth = 2629800000;
+    const premiumExpiryMs = currentDateMs + months * msPerMonth;
     if (user) {
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
         const docRef = usersRef.doc(user.discord.id.toString());
@@ -373,6 +374,8 @@ export async function updateUserElo(serverId, userId) {
         }
     }
     playerIds.sort((a, b) => {
+        if (!simplifiedPlayers[a]) return;
+        if (!simplifiedPlayers[b]) return;
         if (simplifiedPlayers[a][1] === null) {
             return 1;
         }
