@@ -43,7 +43,6 @@ async function updateDatabase() {
                 updatedPlayer = trimPlayerDocument(updatedPlayer);
                 // if the user exists in the osu database
                 await setPlayer(updatedPlayer);
-                await createPlayerCard(updatedPlayer, player.claimCount);
                 console.log(
                     `${i}. ${updatedPlayer.username} has been updated from rank ${player.apiv2.statistics.global_rank} to ${updatedPlayer.statistics.global_rank}`
                 );
