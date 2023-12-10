@@ -1,7 +1,6 @@
-# mahloola bot
 <a href="https://discord.com/api/oauth2/authorize?client_id=674498529489846272&permissions=8&scope=bot">
   <p align="center">
-  <img src="https://github.com/mahloola/mahloola-bot/assets/61226619/dd7163ac-afce-4eaa-80a6-e75ad19db4d6" alt="invite-link" width="200"/>
+  <img src="https://cdn.discordapp.com/attachments/945209894179590154/1182853166572773428/image.png?ex=658634db&is=6573bfdb&hm=ae1e536c872caafe46874483a12dd25aa9c6be8501f799c9344f7a3bd2bbe0e7&" alt="invite-link" width="600"/>
   </p>
 </a>
 
