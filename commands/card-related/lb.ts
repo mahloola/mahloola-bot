@@ -1,35 +1,37 @@
 import Discord, { Intents } from 'discord.js';
-import { getServerUserDoc, getServerUserIds, getServerUserRef, updateUserElo } from '../../db/database';
+import { getServerUserDoc, getServerUsers, getServerUserRef, updateUserElo } from '../../db/database';
 
 export async function lb(interaction, serverPrefix, db, databaseStatistics, client) {
     // get every user ID in the server
-    const userIds = await getServerUserIds(interaction.channel.guildId);
+
+    const serverUsers = await getServerUsers(interaction.channel.guildId);
     const users = [];
 
     console.log(`${interaction.user.username} used ;leaderboard in ${interaction.guild.name}.`);
 
-    //
-    for (let i = 0; i < userIds.length; i++) {
-        // get a specific user (to check if they have 10+ cards)
-        const user = await getServerUserDoc(interaction.channel.guildId, userIds[i]);
+    // THIS STEP TAKES FAR TOO MUCH TIME
+    const t2 = Date.now();
+    for (let i = 0; i < serverUsers.length; i++) {
 
-        await updateUserElo(interaction.channel.guildId, userIds[i]);
+        // get a specific user (to check if they have 10+ cards)
+        const user = serverUsers[i];
+        // await updateUserElo(interaction.channel.guildId, userIds[i]);
 
         // if the user has 10+ cards
         if (user.elo != undefined) {
             // get their discord info
-            const userDiscordInfo = await client.users.fetch(userIds[i]);
+            const userDiscordInfo = await client.users.fetch(user.discord.id);
             const userDiscordInfoJSON = userDiscordInfo.toJSON();
 
-            const userRef = await getServerUserRef(interaction.channel.guildId, userIds[i]);
+            const userRef = getServerUserRef(interaction.channel.guildId, user.discord.id);
 
             // set discord info in the database
-            await userRef.set({ discord: userDiscordInfoJSON }, { merge: true });
+            userRef.set({ discord: userDiscordInfoJSON }, { merge: true });
             // finally, push all the qualified users to an array
             users.push(user);
         }
     }
-
+    console.log(Date.now() - t2);
     // sort qualified users by elo
     const sortedUsers = users.sort((a, b) => {
         return a.elo - b.elo;
@@ -42,7 +44,7 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
     embed.setTitle(`${interaction.guild.name} Leaderboard`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        name: `${interaction.user.username}`,
         iconURL: interaction.user.avatarURL(),
         url: interaction.user.avatarURL(),
     });
@@ -77,4 +79,5 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
 
     // send the message
     interaction.reply({ embeds: [embed] });
+    //interaction.reply("leaderboard command is under maintenance sorry gyze");
 }
