@@ -61,19 +61,19 @@ export async function roll(
                 .get();
             player = querySnapshot.size > 0 ? (querySnapshot.docs[0].data() as any) : null;
         }
-        console.log(
-            `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
-                interaction.user.username
-            } rolled ${player.apiv2.username}.`
-        );
         file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
     }
+    console.log(
+        `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
+            interaction.user.username
+        } rolled ${player.apiv2.username}.`
+    );
     const outboundMessage = (await interaction.reply({
         files: [file],
         fetchReply: true,
         ephemeral: false,
     })) as Discord.Message;
-    await outboundMessage.react('👍');
+    
     // update statistics
     const statistics = await getDatabaseStatistics();
     statistics.rolls++;
@@ -83,6 +83,7 @@ export async function roll(
     player.claimCounter === undefined
         ? await setPlayerRollCounter(player, 1)
         : await setPlayerRollCounter(player, player.rollCounter + 1);
+    await outboundMessage.react('👍');
     const reactions = await outboundMessage.awaitReactions({
         filter: (reaction, user) => user.id != outboundMessage.member.id && reaction.emoji.name == '👍',
         max: 1,
