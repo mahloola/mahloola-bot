@@ -3,22 +3,31 @@ import { getPlayerByUsername } from '../../db/database';
 import { createPlayerCard } from '../../image/jimp';
 import { imageDirectory } from '../../auth.json';
 export async function view(interaction, serverPrefix, name) {
-    if (name.includes('@everyone') || name.includes('@here')) {
-        interaction.reply(`${interaction.author} mahloola knows your tricks`);
-        return;
-    } else {      
-        const player = await getPlayerByUsername(name);
-        if (player) {
-            // update their card
-            await createPlayerCard(player.apiv2, player.claimCounter);
-            // send the image
-            const file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
-            await interaction.reply({ files: [file] });
+    if (name) {
+        if (name.includes('@everyone') || name.includes('@here')) {
+            interaction.reply(`${interaction.author} mahloola knows your tricks`);
+            return;
         } else {
-            interaction.reply(`${interaction.user} Player "${name}" was not found.`);
+            const player = await getPlayerByUsername(name);
+            if (player) {
+                // update their card
+                await createPlayerCard(player.apiv2, player.claimCounter);
+                // send the image
+                try {
+                    const file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
+                    await interaction.reply({ files: [file] });
+                } catch (error) {
+                    console.error(`Failed to send image for ${player.apiv2.username}.`);
+                }
+                
+            } else {
+                interaction.reply(`${interaction.user} Player "${name}" was not found.`);
+            }
         }
+    } else {
+        interaction.reply(`${interaction.user} Please enter an osu! player name.`);
     }
-    
+
     // const username = inboundMessage.content.substring(
     //     (inboundMessage.content.includes('view') ? 5 : 2) + serverPrefix.length
     // );
