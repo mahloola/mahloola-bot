@@ -42,51 +42,55 @@ client.on('ready', async function () {
         if (!interaction.isCommand()) return;
         
         const { commandName } = interaction;
-      
-        //await commandName(interaction, serverPrefix, db, databaseStatistics, client);
-        if (commandName === 'roll') {
-            await roll(interaction, serverPrefix, db, databaseStatistics, client);       
-        } else if (commandName === 'rolls') {
-            await rolls(interaction);
-        } else if (commandName === 'claim') {
-            await claim(interaction);
-        } else if (commandName === 'cards') {
-            await cards(interaction, serverPrefix);
-        } else if (commandName === 'recent') {
-            await recent(interaction, serverPrefix, db, databaseStatistics, client);
-        } else if (commandName === 'pin') {
-            await pin(interaction, serverPrefix, interaction.options.getString('username'));
-        } else if (commandName === 'unpin') {
-            await unpin(interaction, serverPrefix, interaction.options.getString('username'));
-        } else if (commandName === 'view') {
-            await view(interaction, serverPrefix, interaction.options.getString('username'));
-        } else if (commandName === 'claimed') {
-            await claimed(interaction, serverPrefix, interaction.options.getString('username'));
-        } else if (commandName === 'rolled') {
-            await rolled(interaction, serverPrefix, interaction.options.getString('username'));
-        } else if (commandName === 'avg') {
-            await avg(interaction);
-        } else if (commandName === 'leaderboard') {
-            await lb(interaction, serverPrefix, db, databaseStatistics, client);
-        } else if (commandName === 'help') {
-            await help(interaction);
-        } else if (commandName === 'prefix') {
-            await prefix(interaction, serverPrefix, db, databaseStatistics);
-        } else if (commandName === 'stats') {
-            await stats(interaction);
-        } else if (commandName === 'profile') {
-            await profile(interaction);
-        } else if (commandName === 'message') {
-            await msg(interaction, serverPrefix, db, databaseStatistics, client, interaction.options.getString('message'));
-        } else if (commandName === 'donate') {
-            await donate(interaction);
-        } else if (commandName === 'perks') {
-            await perks(interaction);
-        } else if (commandName === 'premium') {
-            await premium(interaction, serverPrefix);
-        } else if (commandName === 'add') {
-            await add(interaction, serverPrefix, interaction.options.getString('username'));
+        try {
+         // await commandName(interaction, serverPrefix, db, databaseStatistics, client);
+            if (commandName === 'roll') {
+                await roll(interaction, serverPrefix, db, databaseStatistics, client);       
+            } else if (commandName === 'rolls') {
+                await rolls(interaction);
+            } else if (commandName === 'claim') {
+                await claim(interaction);
+            } else if (commandName === 'cards') {
+                await cards(interaction, serverPrefix);
+            } else if (commandName === 'recent') {
+                await recent(interaction, serverPrefix, db, databaseStatistics, client);
+            } else if (commandName === 'pin') {
+                await pin(interaction, serverPrefix, interaction.options.getString('username'));
+            } else if (commandName === 'unpin') {
+                await unpin(interaction, serverPrefix, interaction.options.getString('username'));
+            } else if (commandName === 'view') {
+                await view(interaction, serverPrefix, interaction.options.getString('username'));
+            } else if (commandName === 'claimed') {
+                await claimed(interaction, serverPrefix, interaction.options.getString('username'));
+            } else if (commandName === 'rolled') {
+                await rolled(interaction, serverPrefix, interaction.options.getString('username'));
+            } else if (commandName === 'avg') {
+                await avg(interaction);
+            } else if (commandName === 'leaderboard') {
+                await lb(interaction, serverPrefix, db, databaseStatistics, client);
+            } else if (commandName === 'help') {
+                await help(interaction);
+            } else if (commandName === 'prefix') {
+                await prefix(interaction, serverPrefix, db, databaseStatistics);
+            } else if (commandName === 'stats') {
+                await stats(interaction);
+            } else if (commandName === 'profile') {
+                await profile(interaction);
+            } else if (commandName === 'message') {
+                await msg(interaction, serverPrefix, db, databaseStatistics, client, interaction.options.getString('message'));
+            } else if (commandName === 'donate') {
+                await donate(interaction);
+            } else if (commandName === 'perks') {
+                await perks(interaction);
+            } else if (commandName === 'premium') {
+                await premium(interaction, serverPrefix);
+            } else if (commandName === 'add') {
+                await add(interaction, serverPrefix, interaction.options.getString('username'));
+            }
+        } catch (err) {
+            console.log(`${commandName} command failed by ${interaction.user.username}: ${err}`);
         }
+        
     });
 
     client.on('messageCreate', async (inboundMessage) => {     
