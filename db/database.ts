@@ -233,14 +233,14 @@ export function getServerUserRef(serverId, userId) {
     const userRef = usersRef.doc(userId.toString());
     return userRef;
 }
-export async function getServerUserIds(serverId) {
-    const userIds: string[] = [];
+export async function getServerUsers(serverId) {
+    const serverUsers: ServerUser[] = [];
     const usersRef = getServerUsersRef(serverId);
     const userDocs = await usersRef.get();
     userDocs.forEach((doc) => {
-        userIds.push(doc.id);
+        serverUsers.push(doc.data());
     });
-    return userIds;
+    return serverUsers;
 }
 export async function getDiscordUser(discordId) {
     const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
