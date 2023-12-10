@@ -12,7 +12,7 @@ export async function profile(interaction) {
     embed.setTitle(`${user.discord.username}'s Stats`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        name: `${interaction.user.username}`,
         iconURL: interaction.user.avatarURL(),
         url: interaction.user.avatarURL(),
     });

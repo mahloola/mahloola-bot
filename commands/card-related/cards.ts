@@ -120,7 +120,7 @@ export async function cards(interaction, serverPrefix) {
             );
             embed.setColor('#D9A6BD');
             embed.setAuthor({
-                name: `${interaction.user.username}#${interaction.user.discriminator}`,
+                name: `${interaction.user.username}`,
                 iconURL: interaction.user.avatarURL(),
                 url: interaction.user.avatarURL(),
             });

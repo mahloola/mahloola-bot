@@ -6,7 +6,7 @@ export async function perks(interaction) {
         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
     );
     embed.setAuthor({
-        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        name: `${interaction.user.username}`,
         iconURL: interaction.user.avatarURL(),
         url: interaction.user.avatarURL(),
     });

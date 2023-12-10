@@ -25,7 +25,7 @@ export async function recent(interaction, serverPrefix, db, databaseStatistics, 
     embed.setTitle(`Recent 5 Claims for ${interaction.user.username}`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        name: `${interaction.user.username}`,
         iconURL: interaction.user.avatarURL(),
         url: interaction.user.avatarURL(),
     });

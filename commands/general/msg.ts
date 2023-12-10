@@ -7,7 +7,7 @@ export async function msg(interaction, serverPrefix, db, databaseStatistics, cli
     embed.setTitle(`${interaction.user.username} from *${interaction.guild.name}* says:`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({
-        name: `${interaction.user.username}#${interaction.user.discriminator}`,
+        name: `${interaction.user.username}`,
         iconURL: interaction.user.avatarURL(),
         url: interaction.user.avatarURL(),
     });
