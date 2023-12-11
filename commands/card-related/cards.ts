@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import paginationEmbed from 'discordjs-button-pagination';
-import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
+import {MessageButton, User } from 'discord.js';
 import Discord, { Intents } from 'discord.js';
 import { getServerUserDoc, updateUserElo, updateUserEloByPlayers, setDiscordUser } from '../../db/database';
 const client = new Discord.Client({
@@ -8,32 +8,16 @@ const client = new Discord.Client({
 });
 import simplifiedPlayers from '../../db/simplifiedPlayers.json';
 
-export async function cards(interaction, serverPrefix) {
+export async function cards(interaction, serverPrefix, user: User) {
     let discordUserId;
     let discordUser;
-    // if (inboundMessage.content.length > 6 + serverPrefix.length) {
-    //     const username = inboundMessage.content.substring(6 + serverPrefix.length);
-    //     if (username.includes('@everyone') || username.includes('@here')) {
-    //         inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
-    //         return;
-    //     } else {
-    //         if (inboundMessage.mentions.users.first()) {
-    //             discordUser = inboundMessage.mentions.users.first();
-    //         } else {
-    //             const username = inboundMessage.content.substring(6 + serverPrefix.length);
-    //             discordUser = await client.users.cache.find((user) => user.username == username);
-    //         }
-    //         if (discordUser) {
-    //             discordUserId = discordUser.id;
-    //         } else {
-    //             inboundMessage.channel.send(`${inboundMessage.author} User "${username}" was not found.`);
-    //             return;
-    //         }
-    //     }
-    // } else {
+    if (!user) {
         discordUserId = interaction.user.id;
         discordUser = interaction.user;
-    // }
+    } else {
+        discordUserId = user.id;
+        discordUser = user;
+    }
 
     const player = await getServerUserDoc(interaction.guild.id, discordUserId);
 
