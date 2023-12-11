@@ -275,6 +275,14 @@ export async function setOwnedPlayer(serverId, userId, playerId) {
 
     await userRef.set({ ownedPlayers: admin.firestore.FieldValue.arrayUnion(playerId) }, { merge: true });
 }
+export async function deleteOwnedPlayer(serverId, userId, playerId) {
+    const userRef = await getServerUserRef(serverId, userId);
+    const userSnapshot = await userRef.get();
+    const user = userSnapshot.data();
+
+    const updatedOwnedUsers = user.ownedPlayers.filter((id) => id !== playerId);
+    await userRef.update({ ownedPlayers: updatedOwnedUsers });
+}
 
 // PINNING FUNCTIONS
 export async function setPinnedPlayer(serverId, userId, pinnedUserId) {
@@ -286,8 +294,8 @@ export async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
     const userSnapshot = await userRef.get();
     const user = userSnapshot.data();
 
-    const updatedOwnedUsers = user.pinnedPlayers.filter((id) => id !== pinnedUserId);
-    await userRef.update({ pinnedPlayers: updatedOwnedUsers });
+    const updatedPinnedUsers = user.pinnedPlayers.filter((id) => id !== pinnedUserId);
+    await userRef.update({ pinnedPlayers: updatedPinnedUsers });
 }
 
 // this is when the claim cooldown ends for a particular user

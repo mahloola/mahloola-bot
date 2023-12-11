@@ -8,6 +8,7 @@ import { stats } from './general/stats';
 import { avg } from './card-related/avg';
 import { cards } from './card-related/cards';
 import { claim } from './card-related/claim';
+import { unclaim } from './card-related/unclaim';
 import { claimed } from './card-related/claimed';
 import { recent } from './card-related/recent';
 import { lb } from './card-related/lb';
@@ -47,6 +48,7 @@ const commandMapping = {
     ['r']: roll,
     ['rolls']: rolls,
     ['claim']: claim,
+    ['unclaim']: unclaim,
     ['c']: claim,
     ['claims']: claim,
     ['cards']: cards,
