@@ -1,33 +1,18 @@
-import { getPlayerByUsername, getServerUserDoc, setOwnedPlayer } from '../../db/database';
+import { getDiscordUser, getPlayerByUsername, getServerUserDoc, setOwnedPlayer } from '../../db/database';
 
-export async function trade(inboundMessage) {
-    const words = inboundMessage.content.split(' ');
-    if (words.length === 1) {
-        inboundMessage.channel.send(
-            'Please enter a user to trade with.\nUsage: `;trade @user2 <card> <optional:user2card>`.'
-        );
-        return;
+export async function trade(interaction, otherUser, cards, otherCards) {
+    
+    const discordUser1 = await getServerUserDoc(interaction.guild.id, interaction.user.id);
+    const discordUser2 = await getServerUserDoc(interaction.guild.id, otherUser.id);
+    const cardsArray = cards.split(',');
+    const otherCardsArray = otherCards.split(',');
+    for (let i = 0; i < cardsArray.length; i++) {
+        if (!discordUser1.ownedPlayers.includes(cardsArray[i])) {
+            interaction.reply(
+                `${interaction.user} You don't own a player named **${cardsArray[i]} to ${receivingUser.discord.username}.`
+            );
+        }
     }
-    const user2DiscordId = words[1].substring(2, words[1].length - 1);
-    let user2 = await getServerUserDoc(inboundMessage.guild.id, user2DiscordId);
-    if (user2 == null) {
-        inboundMessage.channel.send(
-            'Please enter a user to trade with.\nUsage: `;trade @user2 <card> <optional:user2card>`.'
-        );
-        return;
-    }
-    let username1 = words[2];
-    let username2;
-
-    let player2;
-    console.log(words);
-    if (words.length >= 4) {
-        username2 = words[3];
-        player2 = await getPlayerByUsername(username2);
-        console.log(player2.apiv2.username);
-    }
-
-    let player = await getPlayerByUsername(username1);
     if (player !== null && player2 !== null) {
         if (words.length >= 4) {
             inboundMessage.channel.send(

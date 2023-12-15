@@ -8,8 +8,7 @@ const commands = [
 	new SlashCommandBuilder().setName('rolls').setDescription('Check your available rolls'),
 	new SlashCommandBuilder().setName('claim').setDescription('Check when your next claim is available'),
 	new SlashCommandBuilder().setName('unclaim').setDescription('Remove somebody from your card deck').addStringOption(option => option.setName('username').setDescription('username of the player to remove')),
-	new SlashCommandBuilder().setName('give').setDescription('Give a card to another user').addStringOption(option => option.setName('card').setDescription('the card you would like to give')).addUserOption(option => option.setName('user').setDescription('the user you would like to give the card to')),
-	new SlashCommandBuilder().setName('trade').setDescription('Trade somebody one of your cards').addStringOption(option => option.setName('card').setDescription('the card you would like to trade')).addUserOption(option => option.setName('user').setDescription('the user you would like to trade with')),
+	new SlashCommandBuilder().setName('trade').setDescription('Create a trade offer with someone').addUserOption(option => option.setName('user').setDescription('the user you would like to trade with').setRequired(true)).addStringOption(option => option.setName('cards').setDescription('the card(s) you wish to give (comma separated)').setRequired(true)).addStringOption(option => option.setName('cards2').setDescription('the card(s) you wish to receive (comma-separated) (optional)')),
 	new SlashCommandBuilder().setName('cards').setDescription('Display all of your owned cards').addUserOption(option => option.setName('user').setDescription('whose cards you would like to see')),
 	new SlashCommandBuilder().setName('recent').setDescription('Display your 5 most recently claimed cards'),
 	new SlashCommandBuilder().setName('pin').setDescription('Pin cards to the top of your cards page').addStringOption(option => option.setName('username').setDescription('username of the player to pin')),
@@ -31,9 +30,9 @@ const commands = [
 	.map(command => command.toJSON());
 
 	// change token to tokenDevelopment for test bot
-const rest = new REST({ version: '9' }).setToken(token);
+const rest = new REST({ version: '9' }).setToken(tokenDevelopment);
 
 // change discordClientId to discordClientIdTest for test bot
-rest.put(Routes.applicationCommands(discordClientId), { body: commands })
+rest.put(Routes.applicationCommands(discordClientIdTest), { body: commands })
 	.then(() => console.log('Successfully registered application commands.'))
 	.catch(console.error);

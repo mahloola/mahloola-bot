@@ -3,6 +3,9 @@ import { defaultPrefix, adminDiscordId, token, tokenDevelopment, workflow } from
 import { roll } from './commands/card-related/roll';
 import { rolls } from './commands/card-related/rolls';
 import { claim } from './commands/card-related/claim';
+import { unclaim } from './commands/card-related/unclaim';
+import { give } from './commands/card-related/give';
+import { trade } from './commands/card-related/trade';
 import { cards } from './commands/card-related/cards';
 import { recent } from './commands/card-related/recent';
 import { pin } from './commands/card-related/pin';
@@ -50,8 +53,12 @@ client.on('ready', async function () {
                 await rolls(interaction);
             } else if (commandName === 'claim') {
                 await claim(interaction);
+            } else if (commandName === 'unclaim') {
+                await unclaim(interaction, serverPrefix, interaction.options.getString('username'));
+            } else if (commandName === 'trade') {
+                await trade(interaction, interaction.options.getUser('user'), interaction.options.getString('cards'), interaction.options.getString('cards2'));
             } else if (commandName === 'cards') {
-                await cards(interaction, serverPrefix);
+                await cards(interaction, serverPrefix, interaction.options.getUser('user'));
             } else if (commandName === 'recent') {
                 await recent(interaction, serverPrefix, db, databaseStatistics, client);
             } else if (commandName === 'pin') {
@@ -88,7 +95,7 @@ client.on('ready', async function () {
                 await add(interaction, serverPrefix, interaction.options.getString('username'));
             }
         } catch (err) {
-            console.log(`${commandName} command failed by ${interaction.user.username}: ${err}`);
+            console.log(`${commandName} command failed by ${interaction.user.username}: ${err} ${err.trace}`);
         }
         
     });
