@@ -1,7 +1,8 @@
 import { MessageAttachment } from 'discord.js';
-import { getPlayerByUsername } from '../../db/database';
+import { getPlayerByUsername, setPlayer } from '../../db/database';
+import { getUser } from '../../scraper/api';
 import { createPlayerCard } from '../../image/jimp';
-import { imageDirectory } from '../../auth.json';
+import { imageDirectory, osuApiKey } from '../../auth.json';
 export async function view(interaction, serverPrefix, name) {
     if (name) {
         if (name.includes('@everyone') || name.includes('@here')) {
@@ -10,7 +11,6 @@ export async function view(interaction, serverPrefix, name) {
         } else {
             const player = await getPlayerByUsername(name);
             if (player) {
-                // update their card
                 await createPlayerCard(player.apiv2, player.claimCounter);
                 // send the image
                 try {
@@ -19,7 +19,9 @@ export async function view(interaction, serverPrefix, name) {
                 } catch (error) {
                     console.error(`Failed to send image for ${player.apiv2.username}.`);
                 }
-                
+                // update their card
+                const osuPlayer = await getUser(osuApiKey, player.apiv2.id);
+                setPlayer(osuPlayer);
             } else {
                 interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }
