@@ -4,7 +4,6 @@ import { roll } from './commands/card-related/roll';
 import { rolls } from './commands/card-related/rolls';
 import { claim } from './commands/card-related/claim';
 import { unclaim } from './commands/card-related/unclaim';
-import { give } from './commands/card-related/give';
 import { trade } from './commands/card-related/trade';
 import { cards } from './commands/card-related/cards';
 import { recent } from './commands/card-related/recent';
@@ -95,7 +94,7 @@ client.on('ready', async function () {
                 await add(interaction, serverPrefix, interaction.options.getString('username'));
             }
         } catch (err) {
-            console.log(`${commandName} command failed by ${interaction.user.username}: ${err} ${err.trace}`);
+            console.log(`${commandName} command failed by ${interaction.user.username}: ${err.stack} ${console.error()}`);
         }
         
     });

@@ -1,58 +1,142 @@
-import { getDiscordUser, getPlayerByUsername, getServerUserDoc, setOwnedPlayer } from '../../db/database';
+import { User } from 'discord.js';
+import { NonDmChannel, Player } from '../../types';
+import {
+    deleteOwnedPlayer,
+    getDiscordUser,
+    getPlayerByUsername,
+    getServerUserDoc,
+    setOwnedPlayer,
+    setPlayer,
+} from '../../db/database';
 
-export async function trade(interaction, otherUser, cards, otherCards) {
-    
-    const discordUser1 = await getServerUserDoc(interaction.guild.id, interaction.user.id);
-    const discordUser2 = await getServerUserDoc(interaction.guild.id, otherUser.id);
-    const cardsArray = cards.split(',');
-    const otherCardsArray = otherCards.split(',');
-    for (let i = 0; i < cardsArray.length; i++) {
-        if (!discordUser1.ownedPlayers.includes(cardsArray[i])) {
-            interaction.reply(
-                `${interaction.user} You don't own a player named **${cardsArray[i]} to ${receivingUser.discord.username}.`
-            );
+export async function trade(interaction, otherUser: User, cards, otherCards) {
+    if (otherUser == interaction.user) {
+        interaction.reply(`${interaction.user} You can't trade yourself.`);
+        return;
+    }
+    if (cards.includes('@everyone') || cards.includes('@here')) {
+        interaction.reply(`${interaction.user} u asshole`);
+        return;
+    }
+    if (otherCards) {
+        if (otherCards.includes('@everyone') || otherCards.includes('@here')) {
+            interaction.reply(`${interaction.user} u asshole`);
+            return;
         }
     }
-    if (player !== null && player2 !== null) {
-        if (words.length >= 4) {
-            inboundMessage.channel.send(
-                `${words[1]} ${inboundMessage.author.username} would like to give you ${username1} in return for ${username2}. Type 'y' or 'Y' to confirm.`
-            );
-        } else {
-            inboundMessage.channel.send(
-                `${words[1]} ${inboundMessage.author.username} would like to give you ${username1}. Type 'y' or 'Y' to confirm.`
-            );
+
+    const discordUser1 = await getServerUserDoc(interaction.guild.id, interaction.user.id); // giving user
+    const discordUser2 = await getServerUserDoc(interaction.guild.id, otherUser.id); // receiving user
+    const validCards = []; // player ids to give
+    const validOtherCards = []; // player ids to receive
+    let playerList = ''; // readable format of the players to give
+    let otherPlayerList = ''; // readable format of the players to receive
+
+    const cardsArray = cards.split(',');
+    const usernameList = [];
+    for (let i = 0; i < cardsArray.length; i++) {
+        const player = await getPlayerByUsername(cardsArray[i].trim());
+        if (!player) {
+            interaction.reply(`${interaction.user} Player **${cardsArray[i]}** does not exist in the database.`);
+            return;
         }
+        if (!discordUser1.ownedPlayers.includes(player.apiv2.id)) {
+            interaction.reply(`${interaction.user} You don't own **${player.apiv2.username}**.`);
+            return;
+        }
+        if (discordUser2.ownedPlayers.includes(player.apiv2.id)) {
+            interaction.reply(`${interaction.user} ${otherUser.username} already owns **${player.apiv2.username}**.`);
+            return;
+        }
+        // if the card in question passes all checks
+        if (!validCards.includes(player.apiv2.id)) {
+            validCards.push(player.apiv2.id);      
+            usernameList.push(player.apiv2.username);
+            playerList = usernameList.join(', ');
+        }
+    }
 
-        const userResponse = await inboundMessage.channel.awaitMessages({
-            filter: (sender) => {
-                return sender.author.id == user2DiscordId;
-            },
-            max: 1,
-            time: 60000,
-            errors: ['time'],
-        });
-
-        if (userResponse.content == 'y' || userResponse.content == 'Y') {
-            await setOwnedPlayer(inboundMessage.guild.id, user2.discord.id, player.apiv2.id);
-            inboundMessage.channel.send(
-                `${inboundMessage.author} Successfully gave **${player.apiv2.username}** to ${inboundMessage.author.username}.`
-            );
-            if (words.length >= 3) {
-                await setOwnedPlayer(inboundMessage.guild.id, inboundMessage.author.id, player2.apiv2.id);
-                inboundMessage.channel.send(
-                    `${inboundMessage.author} Successfully gave **${player2.apiv2.username}** to ${user2.discord.username}.`
+    if (otherCards) {   
+        const otherCardsArray = otherCards.split(',');
+        const otherUsernameList = [];
+        for (let i = 0; i < otherCardsArray.length; i++) {
+            const player = await getPlayerByUsername(otherCardsArray[i].trim());
+            if (!player) {
+                interaction.reply(
+                    `${interaction.user} Player **${otherCardsArray[i]}** does not exist in the database.`
                 );
+                return;
+            }
+            if (!discordUser2.ownedPlayers.includes(player.apiv2.id)) {
+                interaction.reply(
+                    `${interaction.user} ${otherUser.username} doesn't own **${player.apiv2.username}**.`
+                );
+                return;
+            }
+            if (discordUser1.ownedPlayers.includes(player.apiv2.id)) {
+                interaction.reply(`${interaction.user} You already own **${player.apiv2.username}**.`);
+                return;
+            }
+            // if the card in question passes all checks
+            if (!validOtherCards.includes(player.apiv2.id)) {
+                validOtherCards.push(player.apiv2.id);
+                
+                otherUsernameList.push(player.apiv2.username);
+                otherPlayerList = otherUsernameList.join(', ');
             }
         }
+    }
+
+    // type out the confirmation message
+    if (validOtherCards.length) {
+        interaction.reply(
+            `${otherUser} ${interaction.user.username} would like to give you **${playerList}** in return for **${otherPlayerList}**. Type 'Y' or 'y' to accept the trade, or 'N' / 'n' to decline.`
+        );
     } else {
-        if (username1.includes('@everyone') || username1.includes('@here')) {
-            inboundMessage.channel.send(`${inboundMessage.author} mahloola knows your tricks`);
-            return;
-        } else {
-            inboundMessage.channel.send(
-                `Could not find a player called ${username1}. \nUsage: \`;trade @user2 <card> <optional: user2card>\`\nExample: \`;trade @mahIooIa mrekk chocomint\``
+        interaction.reply(
+            `${otherUser} ${interaction.user.username} would like to give you **${playerList}**. Type 'Y' or 'y' to accept the offer, or 'N' / 'n' to decline.`
+        );
+    }
+
+    // wait for the other user to respond
+    const filter = (message) => {
+        return message.author.id == otherUser.id;
+    };
+    const userResponse = await interaction.channel.awaitMessages({
+        filter,
+        max: 1,
+        time: 60000,
+        errors: ['time'],
+    });
+
+    if (userResponse.size > 0) {
+        if (userResponse.first().content == 'y' || userResponse.first().content == 'Y') {
+            // what user 1 is giving to user 2
+
+            for (let i = 0; i < validCards.length; i++) {
+                await setOwnedPlayer(interaction.guild.id, otherUser.id, validCards[i]);
+                await deleteOwnedPlayer(interaction.guild.id, interaction.user.id, validCards[i]);
+            }
+
+            // what user 2 is giving to user 1
+            if (validOtherCards.length) {
+                for (let i = 0; i < validOtherCards.length; i++) {
+                    await setOwnedPlayer(interaction.guild.id, interaction.user.id, validOtherCards[i]);
+                    await deleteOwnedPlayer(interaction.guild.id, otherUser.id, validOtherCards[i]);
+                }
+            }
+            const timestamp = new Date();
+            const currentTime = timestamp.getTime();
+            console.log(
+                `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
+                    interaction.user.username
+                } traded ${otherUser.username} ${playerList} for ${
+                    otherPlayerList.length > 0 ? otherPlayerList : 'nothing'
+                }.`
             );
+            interaction.channel.send(`${interaction.user} ${otherUser} The trade deal has been completed.`);
+        } else if (userResponse.first().content == 'n' || userResponse.first().content == 'N') {
+            interaction.channel.send(`${interaction.user} ${otherUser} The trade deal has been declined.`);
         }
     }
 }
