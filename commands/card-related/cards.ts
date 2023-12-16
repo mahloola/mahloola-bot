@@ -104,9 +104,9 @@ export async function cards(interaction, serverPrefix, user: User) {
             );
             embed.setColor('#D9A6BD');
             embed.setAuthor({
-                name: `${interaction.user.username}`,
-                iconURL: interaction.user.avatarURL(),
-                url: interaction.user.avatarURL(),
+                name: `${discordUser.username}`,
+                iconURL: discordUser.avatarURL(),
+                url: discordUser.avatarURL(),
             });
             embed.setThumbnail(discordUser.avatarURL());
             // add all players to embed
