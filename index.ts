@@ -94,7 +94,7 @@ client.on('ready', async function () {
                 await add(interaction, serverPrefix, interaction.options.getString('username'));
             }
         } catch (err) {
-            console.log(`${commandName} command failed by ${interaction.user.username}: ${err.stack} ${console.error()}`);
+            console.log(`${commandName} command failed by ${interaction.user.username}: ${workflow === 'development' ?? (err.stack + console.error())}`);
         }
         
     });
