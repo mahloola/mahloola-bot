@@ -111,35 +111,34 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
         errors: ['time'],
     });
     console.log(userResponse);
-    if (userResponse.size > 0) {
-        console.log(userResponse.first().content);
-        if (userResponse.first().content == 'y' || userResponse.first().content == 'Y') {
-            // what user 1 is giving to user 2
+    if (userResponse.size == 0) return;
+    console.log(userResponse.first().content);
+    if (userResponse.first().content == 'y' || userResponse.first().content == 'Y') {
+        // what user 1 is giving to user 2
 
-            for (let i = 0; i < validCards.length; i++) {
-                await setOwnedPlayer(interaction.guild.id, otherUser.id, validCards[i]);
-                await deleteOwnedPlayer(interaction.guild.id, interaction.user.id, validCards[i]);
-            }
-
-            // what user 2 is giving to user 1
-            if (validOtherCards.length) {
-                for (let i = 0; i < validOtherCards.length; i++) {
-                    await setOwnedPlayer(interaction.guild.id, interaction.user.id, validOtherCards[i]);
-                    await deleteOwnedPlayer(interaction.guild.id, otherUser.id, validOtherCards[i]);
-                }
-            }
-            const timestamp = new Date();
-            const currentTime = timestamp.getTime();
-            console.log(
-                `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
-                    interaction.user.username
-                } traded ${otherUser.username} ${playerList} for ${
-                    otherPlayerList.length > 0 ? otherPlayerList : 'nothing'
-                }.`
-            );
-            interaction.channel.send(`${interaction.user} ${otherUser} The trade deal has been completed.`);
-        } else if (userResponse.first().content == 'n' || userResponse.first().content == 'N') {
-            interaction.channel.send(`${interaction.user} ${otherUser} The trade deal has been declined.`);
+        for (let i = 0; i < validCards.length; i++) {
+            await setOwnedPlayer(interaction.guild.id, otherUser.id, validCards[i]);
+            await deleteOwnedPlayer(interaction.guild.id, interaction.user.id, validCards[i]);
         }
+
+        // what user 2 is giving to user 1
+        if (validOtherCards.length) {
+            for (let i = 0; i < validOtherCards.length; i++) {
+                await setOwnedPlayer(interaction.guild.id, interaction.user.id, validOtherCards[i]);
+                await deleteOwnedPlayer(interaction.guild.id, otherUser.id, validOtherCards[i]);
+            }
+        }
+        const timestamp = new Date();
+        const currentTime = timestamp.getTime();
+        console.log(
+            `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
+                interaction.user.username
+            } traded ${otherUser.username} ${playerList} for ${
+                otherPlayerList.length > 0 ? otherPlayerList : 'nothing'
+            }.`
+        );
+        interaction.channel.send(`${interaction.user} ${otherUser} The trade deal has been completed.`);
+    } else if (userResponse.first().content == 'n' || userResponse.first().content == 'N') {
+        interaction.channel.send(`${interaction.user} ${otherUser} The trade deal has been declined.`);
     }
 }
