@@ -44,19 +44,21 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
             interaction.reply(`${interaction.user} You don't own **${player.apiv2.username}**.`);
             return;
         }
-        if (discordUser2.ownedPlayers.includes(player.apiv2.id)) {
+
+        if (discordUser2?.ownedPlayers?.includes(player.apiv2.id)) {
             interaction.reply(`${interaction.user} ${otherUser.username} already owns **${player.apiv2.username}**.`);
             return;
         }
+
         // if the card in question passes all checks
         if (!validCards.includes(player.apiv2.id)) {
-            validCards.push(player.apiv2.id);      
+            validCards.push(player.apiv2.id);
             usernameList.push(player.apiv2.username);
             playerList = usernameList.join(', ');
         }
     }
 
-    if (otherCards) {   
+    if (otherCards) {
         const otherCardsArray = otherCards.split(',');
         const otherUsernameList = [];
         for (let i = 0; i < otherCardsArray.length; i++) {
@@ -67,7 +69,7 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
                 );
                 return;
             }
-            if (!discordUser2.ownedPlayers.includes(player.apiv2.id)) {
+            if (!discordUser2?.ownedPlayers?.includes(player.apiv2.id)) {
                 interaction.reply(
                     `${interaction.user} ${otherUser.username} doesn't own **${player.apiv2.username}**.`
                 );
@@ -80,7 +82,7 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
             // if the card in question passes all checks
             if (!validOtherCards.includes(player.apiv2.id)) {
                 validOtherCards.push(player.apiv2.id);
-                
+
                 otherUsernameList.push(player.apiv2.username);
                 otherPlayerList = otherUsernameList.join(', ');
             }
@@ -108,8 +110,9 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
         time: 60000,
         errors: ['time'],
     });
-
+    console.log(userResponse);
     if (userResponse.size > 0) {
+        console.log(userResponse.first().content);
         if (userResponse.first().content == 'y' || userResponse.first().content == 'Y') {
             // what user 1 is giving to user 2
 
