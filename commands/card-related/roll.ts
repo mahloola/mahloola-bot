@@ -86,7 +86,7 @@ export async function roll(
     await outboundMessage.react('👍');
     const reactions = await outboundMessage.awaitReactions({
         filter: (reaction, user) => user.id != outboundMessage.member.id && reaction.emoji.name == '👍',
-        max: 1,
+        max: 20,
         time: 60000,
     });
     const reaction = reactions.get('👍');
