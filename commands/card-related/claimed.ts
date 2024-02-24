@@ -31,7 +31,7 @@ export async function claimed(interaction, serverPrefix, name) {
         const players = lbData.players;
         let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
         // create the embed message
-        const embed = new Discord.MessageEmbed();
+        const embed = new Discord.EmbedBuilder();
 
         // populate the embed message
         embed.setTitle(`Global Claim Leaderboard`);

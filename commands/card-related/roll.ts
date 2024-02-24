@@ -1,5 +1,6 @@
-import Discord, { CommandInteraction, Intents, Message } from 'discord.js';
-import { MessageAttachment } from 'discord.js';
+import Discord, { CommandInteraction, Message, User } from 'discord.js';
+import { DiscordUser, GlobalUser } from '../../types';
+import { AttachmentBuilder } from 'discord.js';
 import {
     attemptRoll,
     getDatabaseStatistics,
@@ -30,12 +31,15 @@ export async function roll(
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
-    let discordUser;
-    if ((await getDiscordUser(interaction.user.id)) == null) {
-        discordUser = interaction.user.toJSON();
-        await setDiscordUser(discordUser);
+    let discordUser : GlobalUser = interaction.user.toJSON();
+    let discordUserInDatabase = await getDiscordUser(interaction.user.id);
+    // if user doesn't exist, or user's discord name/pfp doesn't match their current in the database
+    if (!discordUserInDatabase || discordUserInDatabase?.discord?.username != discordUser?.discord?.username || discordUserInDatabase?.discord?.avatarURL != discordUser?.discord?.avatarURL) { 
+        discordUser.discord = interaction.user.toJSON();
+        await setDiscordUser(discordUser); // update their discord profile
+        // DANGER: MAKE SURE TO TEST THIS TO NOT OVERWRITE THEIR STATS
     } else {
-        discordUser = await getDiscordUser(interaction.user.id);
+        
     }
     // exit if user does not have enough rolls
     const rollSuccess = await attemptRoll(interaction.guild.id, interaction.user.id, discordUser);
@@ -56,12 +60,12 @@ export async function roll(
         while (!player) {
             const querySnapshot = await db
                 .collection('players')
-                .where('rollIndex', '>', Math.floor(Math.random() * 9_223_372_036_854))
+                .where('rollIndex', '>', Math.floor(Math.random() * 9_223_372_036_854)) // big brain
                 .limit(1)
                 .get();
             player = querySnapshot.size > 0 ? (querySnapshot.docs[0].data() as any) : null;
         }
-        file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
+        file = new AttachmentBuilder(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
     }
     console.log(
         `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
@@ -73,7 +77,7 @@ export async function roll(
         fetchReply: true,
         ephemeral: false,
     })) as Discord.Message;
-    
+
     // update statistics
     const statistics = await getDatabaseStatistics();
     statistics.rolls++;
@@ -86,7 +90,7 @@ export async function roll(
     await outboundMessage.react('👍');
     const reactions = await outboundMessage.awaitReactions({
         filter: (reaction, user) => user.id != outboundMessage.member.id && reaction.emoji.name == '👍',
-        max: 20,
+        max: 1,
         time: 60000,
     });
     const reaction = reactions.get('👍');
@@ -106,9 +110,9 @@ export async function roll(
                     if (!ownedFlag) {
                         claimingUser = userObject;
                         discordUser = await getDiscordUser(claimingUser.id);
-                        if (!discordUser) {
-                            const discordUserObject = interaction.member;
-                            discordUser = discordUserObject;
+                        if (!discordUser) { // if the user claiming has never used the bot before, create a global user profile
+                            const discordUserObject : any = interaction.member;
+                            discordUser.discord = discordUserObject;
                             // discordUser = discordUserObject.toJSON();
                             await setDiscordUser(discordUser);
                         }

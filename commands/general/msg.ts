@@ -1,9 +1,9 @@
-import Discord, { Intents } from 'discord.js';
+import Discord from 'discord.js';
 import { adminDiscordId } from '../../auth.json';
 
 export async function msg(interaction, serverPrefix, db, databaseStatistics, client, msg) {
     const mahloola = client.users.cache.get(adminDiscordId);
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
     embed.setTitle(`${interaction.user.username} from *${interaction.guild.name}* says:`);
     embed.setColor('#D9A6BD');
     embed.setAuthor({

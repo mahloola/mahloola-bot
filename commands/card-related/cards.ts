@@ -1,12 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import paginationEmbed from 'discordjs-button-pagination';
-import {MessageButton, User } from 'discord.js';
-import Discord, { Intents } from 'discord.js';
+import { ButtonStyle, User } from 'discord.js';
+import Discord from 'discord.js';
 import { getServerUserDoc, updateUserElo, updateUserEloByPlayers, setDiscordUser } from '../../db/database';
-const client = new Discord.Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-});
 import simplifiedPlayers from '../../db/simplifiedPlayers.json';
+import { ButtonBuilder } from '@discordjs/builders';
 
 export async function cards(interaction, serverPrefix, user: User) {
     let discordUserId;
@@ -96,7 +94,7 @@ export async function cards(interaction, serverPrefix, user: User) {
     if (ownedPlayerObjects.length > 0) {
         for (let i = 0; i < pages; i++) {
             // create the embed message
-            const embed = new Discord.MessageEmbed();
+            const embed = new Discord.EmbedBuilder();
     
             // add the rest of the information
             embed.setTitle(
@@ -116,17 +114,17 @@ export async function cards(interaction, serverPrefix, user: User) {
             });
             embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);
             if (pinnedPlayerObjects?.length > 0) {
-                embed.addField(`Pinned (${pinnedPlayerObjects.length})`, pinnedDescription);
-                embed.addField(
+                embed.addFields({name: `Pinned (${pinnedPlayerObjects.length})`, value: pinnedDescription});
+                embed.addFields({name:
                     `${`Players ${i * 10 + 1}-${
                         ownedPlayerObjects.length < 10 || ownedPlayerObjects.length < (i + 1) * 10
                             ? ownedPlayerObjects.length
                             : (i + 1) * 10
-                    }`}`,
-                    embedDescription.replaceAll('_', '\\_') // MessageEmbed field values must be non-empty strings.
+                    }`}`, value:
+                    embedDescription.replaceAll('_', '\\_')} // MessageEmbed field values must be non-empty strings.
                 );
             } else {
-                embed.addField(`Players`, embedDescription);
+                embed.addFields({name: `Players`, value: embedDescription});
             }
             embed.setTimestamp(Date.now());
             embeds.push(embed);
@@ -136,8 +134,8 @@ export async function cards(interaction, serverPrefix, user: User) {
     // if (ownedPlayerObjects.length <= 10) return; // end it here if the user doesn't have multiple pages
 
     // pagination
-    const button1 = new MessageButton().setCustomId('previousbtn').setLabel('Previous').setStyle('DANGER');
-    const button2 = new MessageButton().setCustomId('nextbtn').setLabel('Next').setStyle('SUCCESS');
+    const button1 = new ButtonBuilder().setCustomId('previousbtn').setLabel('Previous').setStyle(ButtonStyle.Danger);
+    const button2 = new ButtonBuilder().setCustomId('nextbtn').setLabel('Next').setStyle(ButtonStyle.Success);
     const buttonList = [button1, button2];
     await interaction.reply(`${await paginationEmbed(interaction, embeds, buttonList, 120000)} _ _`);
 }

@@ -29,7 +29,7 @@ export async function help(interaction) {
 **Discord**
 https://discord.gg/DGdzyapHkW
         `;
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
 
     embed.setTitle(`mahloola BOT commands`);
     embed.setColor('#D9A6BD');

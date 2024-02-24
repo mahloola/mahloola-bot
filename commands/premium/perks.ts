@@ -1,6 +1,6 @@
 import Discord from 'discord.js';
 export async function perks(interaction) {
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
     embed.setTitle('Donation Perks');
     embed.setThumbnail(
         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`

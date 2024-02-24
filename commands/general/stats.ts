@@ -11,7 +11,7 @@ export async function stats(interaction) {
 **Servers**: ${statistics.servers}
 **Rolls**: ${statistics.rolls}
 `;
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
 
     embed.setTitle(`mahloola BOT Global Stats`);
     embed.setColor('#D9A6BD');

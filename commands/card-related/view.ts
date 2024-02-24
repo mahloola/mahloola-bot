@@ -1,4 +1,4 @@
-import { MessageAttachment } from 'discord.js';
+import { AttachmentBuilder } from 'discord.js';
 import { getPlayerByUsername, setPlayer } from '../../db/database';
 import { getUser } from '../../scraper/api';
 import { createPlayerCard } from '../../image/jimp';
@@ -20,7 +20,7 @@ export async function view(interaction, serverPrefix, name) {
                     // update their card
                     const osuPlayer = await getUser(apiToken, player.apiv2.id);
                     await setPlayer(osuPlayer);
-                    const file = new MessageAttachment(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
+                    const file = new AttachmentBuilder(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
                     await interaction.reply({ files: [file] });
                 } catch (error) {
                     console.error(`Failed to send image for ${player.apiv2.username}.`);

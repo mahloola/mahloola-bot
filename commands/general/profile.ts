@@ -7,7 +7,7 @@ export async function profile(interaction) {
 **Rolls**: ${user.rollCounter ?? 0}
 **Claims**: ${user.claimCounter ?? 0}
 `;
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
 
     embed.setTitle(`${user.discord.username}'s Stats`);
     embed.setColor('#D9A6BD');

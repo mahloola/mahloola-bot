@@ -1,9 +1,5 @@
-import Discord, { Intents } from 'discord.js';
 import { getPlayerByUsername, setOwnedPlayer } from '../../db/database';
 import { adminDiscordId } from '../../auth.json';
-const client = new Discord.Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-});
 
 export async function givecard(inboundMessage) {
     const words = inboundMessage.content.split(' ');

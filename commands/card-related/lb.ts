@@ -1,4 +1,4 @@
-import Discord, { Intents } from 'discord.js';
+import Discord from 'discord.js';
 import { getServerUserDoc, getServerUsers, getServerUserRef, updateUserElo } from '../../db/database';
 
 export async function lb(interaction, serverPrefix, db, databaseStatistics, client) {
@@ -38,7 +38,7 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
     });
 
     // create the embed message
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
 
     // populate the embed message
     embed.setTitle(`${interaction.guild.name} Leaderboard`);

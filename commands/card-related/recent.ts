@@ -20,7 +20,7 @@ export async function recent(interaction, serverPrefix, db, databaseStatistics, 
         })\n ▸ <https://osu.ppy.sh/u/${playerIds[playerIds.length - i - 1]}>\n`;
     }
 
-    const embed = new Discord.MessageEmbed();
+    const embed = new Discord.EmbedBuilder();
 
     embed.setTitle(`Recent 5 Claims for ${interaction.user.username}`);
     embed.setColor('#D9A6BD');

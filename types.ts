@@ -13,6 +13,16 @@ export interface Player {
     rollCounter?: number;
 }
 
+export interface GlobalUser {
+    discord?: DiscordUser;
+    rollCounter?: number;
+    addCounter?: number;
+    addResetTime?: number;
+    claimCounter?: number;
+    dateUpdated?: Date;
+    premium?: number;
+}
+
 export interface DiscordUser {
     avatar?: string;
     avatarURL?: string;
