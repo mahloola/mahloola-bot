@@ -28,10 +28,10 @@ export async function rolled(interaction, serverPrefix, name) {
             }
         }
     } else {
-        let players = lbData.players;
+        const players = lbData.players;
         let sortedPlayerIds = Object.keys(players).sort((id1, id2) => players[id2] - players[id1]);
         // create the embed message
-        let embed = new Discord.EmbedBuilder();
+        const embed = new Discord.EmbedBuilder();
 
         embed.setTitle(`Global Rolled Leaderboard`);
         embed.setColor('#D9A6BD');

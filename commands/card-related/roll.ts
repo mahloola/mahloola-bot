@@ -1,51 +1,40 @@
-import Discord, { CommandInteraction, Message, User } from 'discord.js';
+import Discord, {
+    ActionRowBuilder,
+    AttachmentBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ComponentType
+} from 'discord.js';
 import { DiscordUser, GlobalUser } from '../../types';
-import { AttachmentBuilder } from 'discord.js';
 import {
     attemptRoll,
-    getDatabaseStatistics,
     getDiscordUser,
-    getPlayerByUsername,
     getServerUserDoc,
-    setClaimResetTime,
-    setDatabaseStatistics,
     setDiscordUser,
-    setOwnedPlayer,
-    setPlayerClaimCounter,
-    setPlayerRollCounter,
-    setUserClaimCounter,
-    setUserRollCounter,
     updateUserElo,
 } from '../../db/database';
-import { NonDmChannel, Player } from '../../types';
-import { adminDiscordId, imageDirectory } from '../../auth.json';
+import { imageDirectory } from '../../auth.json';
+import claimCard from '../util/claimCard';
+import checkOwnedFlag from '../util/checkOwnedFlag';
+import updateRollStatistics from '../util/updateRollStatistics';
+import updateDiscordUser from '../util/updateDiscordUser';
+import logClaim from '../util/logFunctions/logClaim';
+import logRoll from '../util/logFunctions/logRoll';
+import getRandomPlayer from '../util/getRandomPlayer';
 
 export async function roll(
     interaction: Discord.CommandInteraction<Discord.CacheType>,
-    serverPrefix,
     db: FirebaseFirestore.Firestore,
-    databaseStatistics,
-    client: Discord.Client<boolean>
 ) {
-    let player: Player;
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
-    let discordUser : GlobalUser = interaction.user.toJSON();
-    let discordUserInDatabase = await getDiscordUser(interaction.user.id);
-    // if user doesn't exist, or user's discord name/pfp doesn't match their current in the database
-    if (!discordUserInDatabase || discordUserInDatabase?.discord?.username != discordUser?.discord?.username || discordUserInDatabase?.discord?.avatarURL != discordUser?.discord?.avatarURL) { 
-        discordUser.discord = interaction.user.toJSON();
-        await setDiscordUser(discordUser); // update their discord profile
-        // DANGER: MAKE SURE TO TEST THIS TO NOT OVERWRITE THEIR STATS
-    } else {
-        
-    }
+    const discordUserInDatabase = await getDiscordUser(interaction.user.id);
+    let discordUser = interaction.user.toJSON();
+    await updateDiscordUser(discordUserInDatabase, discordUser, interaction);
     // exit if user does not have enough rolls
-    const rollSuccess = await attemptRoll(interaction.guild.id, interaction.user.id, discordUser);
-    const isAdmin = interaction.user.id === adminDiscordId;
+    const rollSuccess = await attemptRoll(interaction.guild.id, interaction.user.id, discordUserInDatabase);
     if (!rollSuccess) {
-        // && !isAdmin
         const resetTime = user.rollResetTime;
         await interaction.reply(
             `${interaction.member} You've run out of rolls. Your roll restock time is <t:${resetTime
@@ -54,114 +43,61 @@ export async function roll(
         );
         return;
     }
+    const player = await getRandomPlayer(db);
     let file;
     while (!file) {
-        // get a random player (rank 1 - 10,000)
-        while (!player) {
-            const querySnapshot = await db
-                .collection('players')
-                .where('rollIndex', '>', Math.floor(Math.random() * 9_223_372_036_854)) // big brain
-                .limit(1)
-                .get();
-            player = querySnapshot.size > 0 ? (querySnapshot.docs[0].data() as any) : null;
-        }
         file = new AttachmentBuilder(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
     }
-    console.log(
-        `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
-            interaction.user.username
-        } rolled ${player.apiv2.username}.`
-    );
+    logRoll(timestamp, interaction, player);
+
+    const confirm = new ButtonBuilder().setCustomId('claim').setLabel('Claim').setStyle(ButtonStyle.Success);
+    const row: any = new ActionRowBuilder() // Set the type of the component
+        .addComponents(confirm);
+
     const outboundMessage = (await interaction.reply({
         files: [file],
         fetchReply: true,
         ephemeral: false,
+        components: [row],
     })) as Discord.Message;
 
-    // update statistics
-    const statistics = await getDatabaseStatistics();
-    statistics.rolls++;
-    setDatabaseStatistics(statistics);
-    setUserRollCounter(discordUser.discord ?? discordUser, discordUser.rollCounter ? discordUser.rollCounter + 1 : 1);
-    // set the player claimed counter to 1 if they've never been claimed, or increment it if they've been claimed before
-    player.claimCounter === undefined
-        ? await setPlayerRollCounter(player, 1)
-        : await setPlayerRollCounter(player, player.rollCounter + 1);
-    await outboundMessage.react('👍');
-    const reactions = await outboundMessage.awaitReactions({
-        filter: (reaction, user) => user.id != outboundMessage.member.id && reaction.emoji.name == '👍',
-        max: 1,
-        time: 60000,
-    });
-    const reaction = reactions.get('👍');
+    updateRollStatistics(discordUserInDatabase, player);
+
     try {
-        const reactionUsers = await reaction.users.fetch();
+        const collector = outboundMessage.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: 60_000,
+        });
         let claimingUser: Discord.User;
-        for (const [userId, userObject] of reactionUsers) {
-            if (userId !== outboundMessage.member.id) {
-                const claimingUserDoc = await getServerUserDoc(outboundMessage.guild.id, userId);
-                const claimResetTime = claimingUserDoc.claimResetTime ?? 0;
-                if (currentTime > claimResetTime) {
-                    let ownedFlag = false;
-                    if (claimingUserDoc.ownedPlayers?.includes(player.apiv2.id)) {
-                        outboundMessage.channel.send(`${userObject} You already own **${player.apiv2.username}**.`);
-                        ownedFlag = true;
-                    }
-                    if (!ownedFlag) {
-                        claimingUser = userObject;
-                        discordUser = await getDiscordUser(claimingUser.id);
-                        if (!discordUser) { // if the user claiming has never used the bot before, create a global user profile
-                            const discordUserObject : any = interaction.member;
-                            discordUser.discord = discordUserObject;
-                            // discordUser = discordUserObject.toJSON();
-                            await setDiscordUser(discordUser);
-                        }
-                        await setOwnedPlayer(outboundMessage.guild.id, claimingUser.id, player.apiv2.id).then(
-                            async () => {
-                                player.claimCounter === undefined
-                                    ? await setPlayerClaimCounter(player, 1)
-                                    : await setPlayerClaimCounter(player, player.claimCounter + 1);
-                                discordUser.claimCounter === undefined
-                                    ? await setUserClaimCounter(discordUser.discord, 1)
-                                    : await setUserClaimCounter(discordUser.discord, discordUser.claimCounter + 1);
-                                if (claimingUserDoc.ownedPlayers === undefined) {
-                                    outboundMessage.channel.send(
-                                        `**${player.apiv2.username}** has been claimed by **${claimingUser.username}**! You may claim **9** more cards with no cooldown.`
-                                    );
-                                } else if (claimingUserDoc.ownedPlayers.length >= 9) {
-                                    await setClaimResetTime(
-                                        outboundMessage.guild.id,
-                                        claimingUser.id,
-                                        currentTime + 3600000
-                                    );
-                                    outboundMessage.channel.send(
-                                        `**${player.apiv2.username}** has been claimed by **${claimingUser.username}**!`
-                                    );
-                                } else {
-                                    outboundMessage.channel.send(
-                                        `**${player.apiv2.username}** has been claimed by **${
-                                            claimingUser.username
-                                        }**! You may claim **${
-                                            9 - claimingUserDoc.ownedPlayers.length
-                                        }** more cards with no cooldown.`
-                                    );
-                                }
-                            }
-                        );
-                        await updateUserElo(interaction.guild.id, interaction.user.id);
-                        console.log(
-                            `${timestamp.toLocaleTimeString().slice(0, 5)} | ${
-                                (interaction.channel as NonDmChannel).guild.name
-                            }: ${claimingUser.username} claimed ${player.apiv2.username}.`
-                        );
+        collector.on('collect', async (interaction) => {
+            if (interaction.user.id !== outboundMessage.member.id) {
+                const claimingUserDoc = await getServerUserDoc(outboundMessage.guild.id, interaction.user.id);
+                const neverUsed = (claimingUserDoc == null);
+                const claimResetTime = claimingUserDoc?.claimResetTime ?? 0;
+                if (currentTime > claimResetTime || neverUsed) {
+                    const ownedFlag = checkOwnedFlag(claimingUserDoc, player);
+                    if (ownedFlag) {
+                        outboundMessage.channel.send(`${interaction.user} You already own **${player.apiv2.username}**.`);
+                    } else {
+                        claimingUser = interaction.user;
+                        discordUser = await getDiscordUser(claimingUser.id);                   
+                        if (discordUser === null) {
+                            // if the user claiming has never used the bot before, create a global user profile
+                            await setDiscordUser(interaction.user.toJSON());
+                            discordUser = await getDiscordUser(claimingUser.id);                           
+                        }                         
+                        logClaim(timestamp, interaction, claimingUser, player);
+                        updateUserElo(interaction.guild.id, interaction.user.id);  
+                        await claimCard(interaction, claimingUser, player, discordUser, claimingUserDoc, currentTime);
+                        return;
                     }
                 } else {
-                    outboundMessage.channel.send(
-                        `${userObject} You may claim again <t:${claimResetTime.toString().slice(0, -3)}:R>.`
+                    interaction.reply(
+                        `${interaction.user} You may claim again <t:${claimResetTime.toString().slice(0, -3)}:R>.`
                     );
                 }
             }
-        }
+        });
     } catch (error) {
         outboundMessage.reactions
             .removeAll()

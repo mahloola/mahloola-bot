@@ -27,12 +27,12 @@ import { add } from './commands/premium/add';
 import commandMapping from './commands/commandMapping';
 import { initializeDatabase, getDatabaseStatistics, getServerDoc } from './db/database';
 const client = new Discord.Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GUILD_MESSAGE_REACTIONS],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
 let serverPrefix;
 
 client.on('ready', async function () {
-    const db = initializeDatabase();
+    const db : FirebaseFirestore.Firestore = initializeDatabase();
     db.settings({ ignoreUndefinedProperties: true });
     const databaseStatistics = await getDatabaseStatistics();
     const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
@@ -47,29 +47,29 @@ client.on('ready', async function () {
         try {
          // await commandName(interaction, serverPrefix, db, databaseStatistics, client);
             if (commandName === 'roll') {
-                await roll(interaction, serverPrefix, db, databaseStatistics, client);       
+                await roll(interaction, db);       
             } else if (commandName === 'rolls') {
                 await rolls(interaction);
             } else if (commandName === 'claim') {
                 await claim(interaction);
             } else if (commandName === 'unclaim') {
-                await unclaim(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await unclaim(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'trade') {
-                await trade(interaction, interaction.options.getUser('user'), interaction.options.getAttachment('cards'), interaction.options.getAttachment('cards2'));
+                await trade(interaction, interaction.options.getUser('user'), interaction.options.get('cards').value, interaction.options.get('cards2')?.value);
             } else if (commandName === 'cards') {
                 await cards(interaction, serverPrefix, interaction.options.getUser('user'));
             } else if (commandName === 'recent') {
                 await recent(interaction, serverPrefix, db, databaseStatistics, client);
             } else if (commandName === 'pin') {
-                await pin(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await pin(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'unpin') {
-                await unpin(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await unpin(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'view') {
-                await view(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await view(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'claimed') {
-                await claimed(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await claimed(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'rolled') {
-                await rolled(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await rolled(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'avg') {
                 await avg(interaction);
             } else if (commandName === 'leaderboard') {
@@ -83,7 +83,7 @@ client.on('ready', async function () {
             } else if (commandName === 'profile') {
                 await profile(interaction);
             } else if (commandName === 'message') {
-                await msg(interaction, serverPrefix, db, databaseStatistics, client, interaction.options.getAttachment('message'));
+                await msg(interaction, serverPrefix, db, databaseStatistics, client, interaction.options.get('message').value);
             } else if (commandName === 'donate') {
                 await donate(interaction);
             } else if (commandName === 'perks') {
@@ -91,10 +91,10 @@ client.on('ready', async function () {
             } else if (commandName === 'premium') {
                 await premium(interaction, serverPrefix);
             } else if (commandName === 'add') {
-                await add(interaction, serverPrefix, interaction.options.getAttachment('username'));
+                await add(interaction, serverPrefix, interaction.options.get('username').value);
             }
         } catch (err) {
-            console.log(`${commandName} command failed by ${interaction.user.username}: ${(err.stack)}\n${(console.error())}`);
+            console.error(`${commandName} command failed by ${interaction.user.username}: ${(err.stack)}\n${(console.error())}`);
         }
         
     });
@@ -124,7 +124,7 @@ client.on('ready', async function () {
                 await command(inboundMessage, serverPrefix, db, databaseStatistics, client);
             } catch (err) {
                 console.trace();
-                console.log(err);
+                console.error(err);
             }
         }
     });

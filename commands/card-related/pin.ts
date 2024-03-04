@@ -1,6 +1,6 @@
 import { getDiscordUser, getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db/database';
 import simplifiedPlayers from '../../db/simplifiedPlayers.json';
-import { isPremium } from '../../util/isPremium';
+import { isPremium } from '../util/isPremium';
 
 export async function pin(interaction, serverPrefix, name) {
     if (name) {

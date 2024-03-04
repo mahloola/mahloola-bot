@@ -7,7 +7,6 @@ import {
 } from '../../db/database';
 
 export async function unclaim(interaction, serverPrefix, name) {
-    console.log(name);
     if (name) {
         if (name.includes('@everyone') || name.includes('@here')) {
             interaction.reply(`${interaction.user} mahloola knows your tricks`);

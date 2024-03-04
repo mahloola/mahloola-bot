@@ -1,7 +1,7 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
-const { discordClientId, discordClientIdTest, guildId, token, tokenDevelopment } = require('../auth.json');
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v9';
+import { discordClientId, discordClientIdTest, token, tokenDevelopment } from '../auth.json';
 
 const commands = [
 	new SlashCommandBuilder().setName('roll').setDescription('Roll for an osu! player card'),

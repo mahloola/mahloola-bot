@@ -4,8 +4,7 @@ import Discord from 'discord.js';
 export async function recent(interaction, serverPrefix, db, databaseStatistics, client) {
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
     const playerIds = user.ownedPlayers;
-    const playerNames = [];
-    const playerRanks = [];
+    const playerNames = [], playerRanks = [];
     for (let i = 0; i < playerIds.length; i++) {
         if (simplifiedPlayers[playerIds[i]]) {
             playerNames.push(simplifiedPlayers[playerIds[i]][0]);

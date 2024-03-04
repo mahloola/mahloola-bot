@@ -1,10 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import paginationEmbed from 'discordjs-button-pagination';
-import { ButtonStyle, User } from 'discord.js';
+import { pagination, ButtonTypes, ButtonStyles } from '@devraelfreeze/discordjs-pagination';
+import { ButtonBuilder, ButtonStyle, EmbedBuilder, User } from 'discord.js';
 import Discord from 'discord.js';
 import { getServerUserDoc, updateUserElo, updateUserEloByPlayers, setDiscordUser } from '../../db/database';
 import simplifiedPlayers from '../../db/simplifiedPlayers.json';
-import { ButtonBuilder } from '@discordjs/builders';
 
 export async function cards(interaction, serverPrefix, user: User) {
     let discordUserId;
@@ -94,7 +93,7 @@ export async function cards(interaction, serverPrefix, user: User) {
     if (ownedPlayerObjects.length > 0) {
         for (let i = 0; i < pages; i++) {
             // create the embed message
-            const embed = new Discord.EmbedBuilder();
+            const embed = new EmbedBuilder();
     
             // add the rest of the information
             embed.setTitle(
@@ -134,8 +133,17 @@ export async function cards(interaction, serverPrefix, user: User) {
     // if (ownedPlayerObjects.length <= 10) return; // end it here if the user doesn't have multiple pages
 
     // pagination
-    const button1 = new ButtonBuilder().setCustomId('previousbtn').setLabel('Previous').setStyle(ButtonStyle.Danger);
-    const button2 = new ButtonBuilder().setCustomId('nextbtn').setLabel('Next').setStyle(ButtonStyle.Success);
-    const buttonList = [button1, button2];
-    await interaction.reply(`${await paginationEmbed(interaction, embeds, buttonList, 120000)} _ _`);
+    const buttons =  [
+        {
+          type: ButtonTypes.previous,
+          label: 'Previous Page',
+          style: ButtonStyles.Primary
+        },
+        {
+          type: ButtonTypes.next,
+          label: 'Next Page',
+          style: ButtonStyles.Success
+        }
+      ]
+    await pagination({embeds: embeds, author: discordUser, interaction: interaction, buttons: buttons, time: 120000});
 }

@@ -1,7 +1,7 @@
 import { NonDmChannel } from '../../types';
 import { getUser, requestClientCredentialsToken } from '../../scraper/api';
 import { getDiscordUser, getPlayerByUsername, setAddCounter, setPlayer } from '../../db/database';
-import { isPremium } from '../../util/isPremium';
+import { isPremium } from '../util/isPremium';
 import { createPlayerCard } from '../../image/jimp';
 
 export async function add(interaction, serverPrefix, user) {

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { setPlayer } from '../db/database';
-import { sleep } from '../util/sleep';
+import { sleep } from '../commands/util/sleep';
 import { getUser } from './api';
 import { requestClientCredentialsToken } from './api';
 
@@ -34,7 +34,7 @@ export default {
                     console.log(`Scraping ${player.username}...`);
                     setPlayer(player);
                 } catch (err) {
-                    console.log(`Failed to scraper user ${userId}: ${err}`);
+                    console.error(`Failed to scraper user ${userId}: ${err}`);
                 }
             }
             // after 50 calls, wait for 1 minute

@@ -37,6 +37,7 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
         return a.elo - b.elo;
     });
 
+    
     // create the embed message
     const embed = new Discord.EmbedBuilder();
 
@@ -52,21 +53,7 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
     let embedDescription = `\`\`\`#    | User\n`;
     embedDescription += `----------------\n`;
     sortedUsers.slice(0, 10).forEach((player) => {
-        switch (player.elo.toFixed(0).toString().length) {
-            // determine how many spaces to add for table alignment
-            case 1:
-                embedDescription += `${player.elo.toFixed(0)}    | ${player.discord.username} \n`;
-                break;
-            case 2:
-                embedDescription += `${player.elo.toFixed(0)}   | ${player.discord.username} \n`;
-                break;
-            case 3:
-                embedDescription += `${player.elo.toFixed(0)}  | ${player.discord.username} \n`;
-                break;
-            case 4:
-                embedDescription += `${player.elo.toFixed(0)} | ${player.discord.username} \n`;
-                break;
-        }
+        embedDescription += `${player.elo.toString().padEnd(4)} | ${player.discord.username} \n`;
     });
 
     embedDescription += `\`\`\``;

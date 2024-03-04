@@ -58,7 +58,7 @@ async function updateDatabase() {
                 console.log(`${player.apiv2.username} was banned and deleted from the database.`);
             }
         } catch (err) {
-            console.log(err);
+            console.error(err);
         }
     }
 

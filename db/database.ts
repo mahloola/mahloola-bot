@@ -1,12 +1,11 @@
 import admin from 'firebase-admin';
-import Discord from 'discord.js';
+import Discord, { GatewayIntentBits } from 'discord.js';
 import simplifiedPlayers from './simplifiedPlayersLowercase.json';
 import { firestoreKey, workflow } from '../auth.json';
 import { DatabaseStatistics, Player, Leaderboard, Server, ServerUser } from '../types';
-import { Intents } from 'discord.js';
-import { isPremium } from '../util/isPremium';
+import { isPremium } from '../commands/util/isPremium';
 const client = new Discord.Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
 const millisecondsPerHour = 3600000;
 
@@ -36,7 +35,7 @@ export async function setPlayer(player) {
             { merge: true }
         );
     } else {
-        console.log(`Failed to set player ${player.id}`);
+        console.error(`Failed to set player ${player.id}`);
     }
 }
 // set discord user in the database
@@ -52,7 +51,7 @@ export async function setDiscordUser(discordUser) {
             { merge: true }
         );
     } else {
-        console.log(`Failed to set user ${discordUser.id}`);
+        console.error(`Failed to set user ${discordUser.id}`);
     }
 }
 export async function setPremium(user, months) {
@@ -69,7 +68,7 @@ export async function setPremium(user, months) {
             { merge: true }
         );
     } else {
-        console.log(`Failed to set premium date for user ${user.discord.username}`);
+        console.error(`Failed to set premium date for user ${user.discord.username}`);
     }
 }
 export async function populateUsers() {
@@ -108,7 +107,7 @@ export async function setUserRollCounter(discord, count) {
         const userRef = usersRef.doc(discord.id);
         await userRef.set({ discord: discord, rollCounter: count }, { merge: true });
     } else {
-        console.log(`Failed to set user roll counter.`);
+        console.error(`Failed to set user roll counter.`);
     }
 }
 export async function setUserClaimCounter(discord, count) {
@@ -117,7 +116,7 @@ export async function setUserClaimCounter(discord, count) {
         const userRef = usersRef.doc(discord.id);
         await userRef.set({ discord: discord, claimCounter: count }, { merge: true });
     } else {
-        console.log(`Failed to set user claim counter.`);
+        console.error(`Failed to set user claim counter.`);
     }
 }
 // set the counter for how many times a player has been claimed
@@ -138,7 +137,7 @@ export async function setPlayerClaimCounter(player, count) {
         claimedPlayers[playerId] = count;
         await leaderboardRef.set({ players: claimedPlayers }, { merge: true });
     } else {
-        console.log(`Failed to set player counter for ${player.id}`);
+        console.error(`Failed to set player counter for ${player.id}`);
     }
 }
 // set the counter for how many times a player has been rolled
@@ -162,7 +161,7 @@ export async function setPlayerRollCounter(player, count) {
         // rolledPlayers = [{ playerId: 111, count: 1 }, { playerId: 1121, count: 3 }, { playerId: 141, count: 6 }]
         await leaderboardRef.set({ players: rolledPlayers }, { merge: true });
     } else {
-        console.log(`Failed to set player counter for ${player.id}`);
+        console.error(`Failed to set player counter for ${player.id}`);
     }
 }
 
@@ -371,6 +370,7 @@ export async function setAddCounter(discordUser, addCount) {
 // gets Top-10-Average for a particular user, while getting owned player documents first (**1000 MS RUNTIME**)
 export async function updateUserElo(serverId, userId) {
     const user = await getServerUserDoc(serverId, userId);
+    if (user == null) return;
     // if user owns less than 10 players, they are unranked
     if (user.ownedPlayers == undefined || user.ownedPlayers.length < 10) {
         return null;

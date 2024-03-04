@@ -1,6 +1,6 @@
 import { getDiscordUser, setAddCounter } from '../../db/database';
 import { adminDiscordId, defaultPrefix } from '../../auth.json';
-import { isPremium } from '../../util/isPremium';
+import { isPremium } from '../util/isPremium';
 
 export async function adds(interaction, serverPrefix, db, databaseStatistics, client) {
     const discordUser = await getDiscordUser(interaction.user.id);

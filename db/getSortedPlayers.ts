@@ -23,7 +23,6 @@ async function main() {
         return b.apiv2.statistics.global_rank - a.apiv2.statistics.global_rank;
     });
     let hoursPlayedLeaderboardString = '';
-    let sum = 0;
     hoursPlayedLeaderboardString += 'rank,hours\n';
     for (let i = 0; i < top10k.length; i++) {
         // if (top3000[i]) {

@@ -224,7 +224,7 @@ export async function createPlayerCard(player, claimCount) {
             });
         }
     } catch (err) {
-        console.log(`Failed to read cover URL for user ${player.username}.`);
+        console.error(`Failed to read cover URL for user ${player.username}.`);
     }
 
     // circle border
@@ -280,6 +280,6 @@ export async function createPlayerCard(player, claimCount) {
         await osuCard.writeAsync(`${imageDirectory}/cache/osuCard-${player.username}.png`);
     } catch (err) {
         console.trace();
-        console.log(err);
+        console.error(err);
     }
 }

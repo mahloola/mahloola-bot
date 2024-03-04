@@ -4,15 +4,14 @@
     "description": "",
     "main": "dist/index.js",
     "dependencies": {
-        "@discordjs/builders": "^1.4.0",
-        "@discordjs/rest": "^1.5.0",
+        "@devraelfreeze/discordjs-pagination": "^2.7.6",
         "@jimp/jpeg": "^0.16.1",
         "@jimp/plugin-crop": "^0.16.1",
         "axios": "^0.24.0",
+        "discord": "^0.8.2",
         "discord.io": "^2.5.3",
         "discord.js": "^14.14.1",
         "discord.js-pagination": "^1.0.3",
-        "discordjs-button-pagination": "^1.0.7",
         "dotenv": "^10.0.0",
         "fetch": "^1.1.0",
         "firebase-admin": "^10.0.0",
@@ -22,6 +21,7 @@
         "puppeteer": "^11.0.0",
         "request": "^2.88.2",
         "text2png": "^2.3.0",
+        "undici": "^6.6.2",
         "winston": "^3.2.1"
     },
     "scripts": {
@@ -42,7 +42,7 @@
     },
     "homepage": "https://github.com/mahloola/osuCards#readme",
     "devDependencies": {
-        "@types/node": "14.18.3",
+        "@types/node": "^16.18.83",
         "@typescript-eslint/eslint-plugin": "^5.27.0",
         "@typescript-eslint/parser": "^5.27.0",
         "eslint": "^8.14.0",

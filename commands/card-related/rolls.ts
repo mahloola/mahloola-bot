@@ -1,11 +1,10 @@
 import { getDiscordUser, getServerUserDoc, setRollResetTime, setRolls } from '../../db/database';
-import { isPremium } from '../../util/isPremium';
+import { isPremium } from '../util/isPremium';
 
 export async function rolls(interaction) {
     let user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
-    let discordUser = await getDiscordUser(interaction.user.id);
-    let currentRolls;
-    let resetTimestamp;
+    const discordUser = await getDiscordUser(interaction.user.id);
+    let currentRolls, resetTimestamp;
     const maxRolls = isPremium(discordUser) ? 12 : 10;
     if (user) {
         currentRolls = user.rolls;

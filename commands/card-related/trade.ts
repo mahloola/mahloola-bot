@@ -1,4 +1,4 @@
-import { User, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
+import { User, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { NonDmChannel, Player } from '../../types';
 import {
     deleteOwnedPlayer,
@@ -91,32 +91,29 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
 
     const acceptButton = new ButtonBuilder().setCustomId('accept').setLabel('Accept').setStyle(ButtonStyle.Success);
 
-    const declineButton = new ButtonBuilder()
-        .setCustomId('decline')
-        .setLabel('Decline')
-        .setStyle(ButtonStyle.Danger);
+    const declineButton = new ButtonBuilder().setCustomId('decline').setLabel('Decline').setStyle(ButtonStyle.Danger);
 
     const buttonRow = new ActionRowBuilder().addComponents(acceptButton, declineButton);
 
     let confirmationMessage;
     // type out the confirmation message
     if (validOtherCards.length) {
-        confirmationMessage = interaction.reply({
-            content: `${otherUser} ${interaction.user.username} would like to give you **${playerList}** in return for **${otherPlayerList}**. Type 'Y' or 'y' to accept the trade, or 'N' / 'n' to decline.`,
+        confirmationMessage = await interaction.reply({
+            content: `${otherUser} ${interaction.user.username} would like to give you **${playerList}** in return for **${otherPlayerList}**.`,
             components: [buttonRow],
         });
     } else {
-        confirmationMessage = interaction.reply({
-            content: `${otherUser} ${interaction.user.username} would like to give you **${playerList}**. Type 'Y' or 'y' to accept the offer, or 'N' / 'n' to decline.`,
+        confirmationMessage = await interaction.reply({
+            content: `${otherUser} ${interaction.user.username} would like to give you **${playerList}**.`,
             components: [buttonRow],
         });
     }
 
-    const collectorFilter = (i) => i.user.id === interaction.user.id;
-
+    const collectorFilter = (i) => i.user.id === otherUser.id;
     try {
         const confirmation = await confirmationMessage.awaitMessageComponent({ filter: collectorFilter, time: 60000 });
-        if (confirmationMessage.customId === 'accept') {
+
+        if (confirmation.customId === 'accept') {
             // what user 1 is giving to user 2
 
             for (let i = 0; i < validCards.length; i++) {
@@ -132,7 +129,6 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
                 }
             }
             const timestamp = new Date();
-            const currentTime = timestamp.getTime();
             console.log(
                 `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
                     interaction.user.username
@@ -140,15 +136,15 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
                     otherPlayerList.length > 0 ? otherPlayerList : 'nothing'
                 }.`
             );
-            await confirmation.update({
+            await confirmationMessage.edit({
                 content: `${interaction.user} ${otherUser} The trade deal has been completed.`,
                 components: [],
             });
-        } else if (confirmationMessage.customId === 'cancel') {
-            await confirmation.update({ content: 'Trade cancelled.', components: [] });
+        } else if (confirmation.customId === 'decline') {
+            await confirmationMessage.edit({ content: 'Trade declined.', components: [] });
         }
     } catch (e) {
-        await interaction.editReply({
+        await confirmationMessage.edit({
             content: 'Confirmation not received within 1 minute, cancelling',
             components: [],
         });
