@@ -55,7 +55,7 @@ client.on('ready', async function () {
             } else if (commandName === 'unclaim') {
                 await unclaim(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'trade') {
-                await trade(interaction, interaction.options.getUser('user'), interaction.options.get('cards').value, interaction.options.get('cards2')?.value);
+                await trade(interaction, interaction.options.getUser('user'), interaction.options.get('your-cards').value, interaction.options.get('their-cards')?.value);
             } else if (commandName === 'cards') {
                 await cards(interaction, serverPrefix, interaction.options.getUser('user'));
             } else if (commandName === 'recent') {

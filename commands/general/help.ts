@@ -3,11 +3,12 @@ import Discord from 'discord.js';
 export async function help(interaction) {
     const description = `
 **Card-Related**
-\`roll:\` Roll for a top 10,000 player. Claim by reacting with 👍
+\`roll:\` Roll for a random player.
 \`rolls:\` Check your available rolls.
 \`claim:\` Check when your next claim is available.
 \`unclaim *username*:\` Get rid of one of your cards.
 \`cards:\` Display all of your owned cards.
+\`trade:\` Trade cards with another user.
 \`recent:\` Display your 5 most recently claimed cards.
 \`pin *username*:\` Pin cards to the top of your cards page.
 \`unpin *username*:\` Remove pins from your cards page.
@@ -17,7 +18,6 @@ export async function help(interaction) {
 \`leaderboard:\` Display server leaderboard based on top 10 card rankings.\n 
 **General**
 \`help:\` Display all commands.
-\`prefix:\` Change the bot prefix (must be an administrator).
 \`stats:\` Display all-time stats for mahloola BOT.
 \`profile:\` Display your all-time mahloola BOT stats (across all servers).
 \`message *message*:\` Send a message to mahloola about the bot.\n
