@@ -89,7 +89,7 @@ export async function roll(
                         logClaim(timestamp, interaction, claimingUser, player);
                         updateUserElo(interaction.guild.id, interaction.user.id);  
                         await claimCard(interaction, claimingUser, player, discordUser, claimingUserDoc, currentTime);
-                        return;
+                        outboundMessage.edit({ components: [] });
                     }
                 } else {
                     interaction.reply(
