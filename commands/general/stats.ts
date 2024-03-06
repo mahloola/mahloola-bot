@@ -7,9 +7,9 @@ export async function stats(interaction) {
     const statistics = await getDatabaseStatistics();
     //inboundMessage.channel.send(`Total Users: ${statistics.users}\nTotal Servers: ${statistics.servers}\nTotal Rolls: ${statistics.rolls}`)
     const description = `
-**Users**: ${statistics.users}
-**Servers**: ${statistics.servers}
-**Rolls**: ${statistics.rolls}
+**Users**: ${statistics.users.toLocaleString()}
+**Servers**: ${statistics.servers.toLocaleString()}
+**Rolls**: ${statistics.rolls.toLocaleString()}
 `;
     const embed = new Discord.EmbedBuilder();
 
