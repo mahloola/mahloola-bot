@@ -1,18 +1,6 @@
-import Discord, {
-    ActionRowBuilder,
-    AttachmentBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    ComponentType
-} from 'discord.js';
+import Discord, { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { DiscordUser, GlobalUser } from '../../types';
-import {
-    attemptRoll,
-    getDiscordUser,
-    getServerUserDoc,
-    setDiscordUser,
-    updateUserElo,
-} from '../../db/database';
+import { attemptRoll, getDiscordUser, getServerUserDoc, setDiscordUser, updateUserElo } from '../../db/database';
 import { imageDirectory } from '../../auth.json';
 import claimCard from '../util/claimCard';
 import checkOwnedFlag from '../util/checkOwnedFlag';
@@ -21,10 +9,11 @@ import updateDiscordUser from '../util/updateDiscordUser';
 import logClaim from '../util/logFunctions/logClaim';
 import logRoll from '../util/logFunctions/logRoll';
 import getRandomPlayer from '../util/getRandomPlayer';
+import { sleep } from '../util/sleep';
 
 export async function roll(
     interaction: Discord.CommandInteraction<Discord.CacheType>,
-    db: FirebaseFirestore.Firestore,
+    db: FirebaseFirestore.Firestore
 ) {
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
@@ -72,22 +61,25 @@ export async function roll(
         collector.on('collect', async (interaction) => {
             if (interaction.user.id !== outboundMessage.member.id) {
                 const claimingUserDoc = await getServerUserDoc(outboundMessage.guild.id, interaction.user.id);
-                const neverUsed = (claimingUserDoc == null);
+                const neverUsed = claimingUserDoc == null;
                 const claimResetTime = claimingUserDoc?.claimResetTime ?? 0;
                 if (currentTime > claimResetTime || neverUsed) {
                     const ownedFlag = checkOwnedFlag(claimingUserDoc, player);
                     if (ownedFlag) {
-                        outboundMessage.channel.send(`${interaction.user} You already own **${player.apiv2.username}**.`);
+                        outboundMessage.channel.send(
+                            `${interaction.user} You already own **${player.apiv2.username}**.`
+                        );
                     } else {
+                        sleep(1000); // bandage race solution fix: sleep for 1 second to allow the database to update
                         claimingUser = interaction.user;
-                        discordUser = await getDiscordUser(claimingUser.id);                   
+                        discordUser = await getDiscordUser(claimingUser.id);
                         if (discordUser === null) {
                             // if the user claiming has never used the bot before, create a global user profile
                             await setDiscordUser(interaction.user.toJSON());
-                            discordUser = await getDiscordUser(claimingUser.id);                           
-                        }                         
+                            discordUser = await getDiscordUser(claimingUser.id);
+                        }
                         logClaim(timestamp, interaction, claimingUser, player);
-                        updateUserElo(interaction.guild.id, interaction.user.id);  
+                        updateUserElo(interaction.guild.id, interaction.user.id);
                         await claimCard(interaction, claimingUser, player, discordUser, claimingUserDoc, currentTime);
                         outboundMessage.edit({ components: [] });
                     }
