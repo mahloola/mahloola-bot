@@ -1,15 +1,14 @@
-import Discord, { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
-import { DiscordUser, GlobalUser } from '../../types';
+import Discord, { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { attemptRoll, getDiscordUser, getServerUserDoc, setDiscordUser, updateUserElo } from '../../db/database';
-import { imageDirectory } from '../../auth.json';
-import claimCard from '../util/claimCard';
 import checkOwnedFlag from '../util/checkOwnedFlag';
-import updateRollStatistics from '../util/updateRollStatistics';
-import updateDiscordUser from '../util/updateDiscordUser';
+import claimCard from '../util/claimCard';
+import { getImage } from '../util/getImage';
+import getRandomPlayer from '../util/getRandomPlayer';
 import logClaim from '../util/logFunctions/logClaim';
 import logRoll from '../util/logFunctions/logRoll';
-import getRandomPlayer from '../util/getRandomPlayer';
 import { sleep } from '../util/sleep';
+import updateDiscordUser from '../util/updateDiscordUser';
+import updateRollStatistics from '../util/updateRollStatistics';
 
 export async function roll(
     interaction: Discord.CommandInteraction<Discord.CacheType>,
@@ -33,10 +32,7 @@ export async function roll(
         return;
     }
     const player = await getRandomPlayer(db);
-    let file;
-    while (!file) {
-        file = new AttachmentBuilder(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
-    }
+    const file = getImage(player.apiv2.username);
     logRoll(timestamp, interaction, player);
 
     const confirm = new ButtonBuilder().setCustomId('claim').setLabel('Claim').setStyle(ButtonStyle.Success);

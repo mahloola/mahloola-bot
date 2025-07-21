@@ -1,53 +1,54 @@
 import Discord, { GatewayIntentBits } from 'discord.js';
-import { defaultPrefix, adminDiscordId, token, tokenDevelopment, workflow } from './auth.json';
-import { roll } from './commands/card-related/roll';
-import { rolls } from './commands/card-related/rolls';
-import { claim } from './commands/card-related/claim';
-import { unclaim } from './commands/card-related/unclaim';
-import { trade } from './commands/card-related/trade';
+import { defaultPrefix, token, tokenDevelopment, workflow } from './auth.json';
+import { avg } from './commands/card-related/avg';
 import { cards } from './commands/card-related/cards';
-import { recent } from './commands/card-related/recent';
+import { claim } from './commands/card-related/claim';
+import { claimed } from './commands/card-related/claimed';
+import { lb } from './commands/card-related/lb';
 import { pin } from './commands/card-related/pin';
+import { recent } from './commands/card-related/recent';
+import { roll } from './commands/card-related/roll';
+import { rolled } from './commands/card-related/rolled';
+import { rolls } from './commands/card-related/rolls';
+import { trade } from './commands/card-related/trade';
+import { unclaim } from './commands/card-related/unclaim';
 import { unpin } from './commands/card-related/unpin';
 import { view } from './commands/card-related/view';
-import { claimed } from './commands/card-related/claimed';
-import { rolled } from './commands/card-related/rolled';
-import { avg } from './commands/card-related/avg';
-import { lb } from './commands/card-related/lb';
 import { help } from './commands/general/help';
-import { prefix } from './commands/general/prefix';
-import { stats } from './commands/general/stats';
-import { profile } from './commands/general/profile';
 import { msg } from './commands/general/msg';
+import { prefix } from './commands/general/prefix';
+import { profile } from './commands/general/profile';
+import { stats } from './commands/general/stats';
+import { add } from './commands/premium/add';
 import { donate } from './commands/premium/donate';
 import { perks } from './commands/premium/perks';
 import { premium } from './commands/premium/premium';
-import { add } from './commands/premium/add';
 
 import commandMapping from './commands/commandMapping';
-import { initializeDatabase, getDatabaseStatistics, getServerDoc } from './db/database';
+import { getDatabaseStatistics, getServerDoc, initializeDatabase } from './db/database';
 const client = new Discord.Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
 let serverPrefix;
 
 client.on('ready', async function () {
-    const db : FirebaseFirestore.Firestore = initializeDatabase();
+    const db: FirebaseFirestore.Firestore = initializeDatabase();
     db.settings({ ignoreUndefinedProperties: true });
     const databaseStatistics = await getDatabaseStatistics();
     const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
     console.log(
         `\n${statisticsVersion} Statistics\n------------------\nRolls   | ${databaseStatistics.rolls}\nServers | ${databaseStatistics.servers}\nUsers   | ${databaseStatistics.users}\nPlayers | ${databaseStatistics.players}`
     );
-    
-    client.on('interactionCreate', async interaction => {
+
+    client.on('interactionCreate', async (interaction) => {
         if (!interaction.isCommand()) return;
-        
+
         const { commandName } = interaction;
+        console.log(commandName);
         try {
-         // await commandName(interaction, serverPrefix, db, databaseStatistics, client);
+            // await commandName(interaction, serverPrefix, db, databaseStatistics, client);
             if (commandName === 'roll') {
-                await roll(interaction, db);       
+                await roll(interaction, db);
             } else if (commandName === 'rolls') {
                 await rolls(interaction);
             } else if (commandName === 'claim') {
@@ -55,7 +56,12 @@ client.on('ready', async function () {
             } else if (commandName === 'unclaim') {
                 await unclaim(interaction, serverPrefix, interaction.options.get('username').value);
             } else if (commandName === 'trade') {
-                await trade(interaction, interaction.options.getUser('user'), interaction.options.get('your-cards').value, interaction.options.get('their-cards')?.value);
+                await trade(
+                    interaction,
+                    interaction.options.getUser('user'),
+                    interaction.options.get('your-cards').value,
+                    interaction.options.get('their-cards')?.value
+                );
             } else if (commandName === 'cards') {
                 await cards(interaction, serverPrefix, interaction.options.getUser('user'));
             } else if (commandName === 'recent') {
@@ -83,7 +89,14 @@ client.on('ready', async function () {
             } else if (commandName === 'profile') {
                 await profile(interaction);
             } else if (commandName === 'message') {
-                await msg(interaction, serverPrefix, db, databaseStatistics, client, interaction.options.get('message').value);
+                await msg(
+                    interaction,
+                    serverPrefix,
+                    db,
+                    databaseStatistics,
+                    client,
+                    interaction.options.get('message').value
+                );
             } else if (commandName === 'donate') {
                 await donate(interaction);
             } else if (commandName === 'perks') {
@@ -94,12 +107,13 @@ client.on('ready', async function () {
                 await add(interaction, serverPrefix, interaction.options.get('username').value);
             }
         } catch (err) {
-            console.error(`${commandName} command failed by ${interaction.user.username}: ${(err.stack)}\n${(console.error())}`);
+            console.error(
+                `${commandName} command failed by ${interaction.user.username}: ${err.stack}\n${console.error()}`
+            );
         }
-        
     });
 
-    client.on('messageCreate', async (inboundMessage) => {     
+    client.on('messageCreate', async (inboundMessage) => {
         const serverDoc = await getServerDoc(inboundMessage.guild.id);
         if (serverDoc) {
             if (serverDoc.prefix === undefined) {
@@ -117,7 +131,6 @@ client.on('ready', async function () {
         const args = inboundMessage.content.slice(serverPrefix.length).trim().split(/ +/);
         const commandText = args.shift().toLowerCase(); // make lowercase work too
 
-        
         const command = commandMapping[commandText];
         if (command) {
             try {
