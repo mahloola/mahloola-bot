@@ -3,9 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "main": "dist/index.js",
-    "engines":{
+    "engines": {
         "node": "16.18.1",
-        "npm": "auto",
+        "npm": "auto"
     },
     "dependencies": {
         "@devraelfreeze/discordjs-pagination": "^2.7.6",
