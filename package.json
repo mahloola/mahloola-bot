@@ -30,7 +30,7 @@
     },
     "scripts": {
         "forever": "tsc && forever start dist/index.js",
-        "start": "tsc && node dist/index.js",
+        "start": "tsc && node --max-old-space-size=384 dist/index.js",
         "updateCommands": "tsc && node dist/commands/commandBuilder.js",
         "scrape": "node dist/scraper/scrape.js",
         "update": "node dist/scraper/update.js"

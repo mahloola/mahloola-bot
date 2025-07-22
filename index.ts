@@ -33,7 +33,6 @@ let serverPrefix;
 
 client.on('ready', async function () {
     const db: FirebaseFirestore.Firestore = initializeDatabase();
-    db.settings({ ignoreUndefinedProperties: true });
     const databaseStatistics = await getDatabaseStatistics();
     const statisticsVersion = workflow === 'development' ? 'Testing' : 'Current';
     console.log(
