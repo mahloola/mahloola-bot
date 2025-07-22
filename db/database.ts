@@ -19,7 +19,6 @@ export function initializeDatabase() {
     console.log('Database initialized!');
     db.settings({
         ignoreUndefinedProperties: true,
-        cacheSizeBytes: 50 * 1024 * 1024, // Limit cache to 50MB
     });
     return db;
 }
