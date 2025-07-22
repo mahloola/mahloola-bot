@@ -1,9 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import { pagination, ButtonTypes, ButtonStyles } from '@devraelfreeze/discordjs-pagination';
-import { ButtonBuilder, ButtonStyle, EmbedBuilder, User } from 'discord.js';
-import Discord from 'discord.js';
-import { getServerUserDoc, updateUserElo, updateUserEloByPlayers, setDiscordUser } from '../../db/database';
-import simplifiedPlayers from '../../db/simplifiedPlayers.json';
+import { ButtonStyles, ButtonTypes, pagination } from '@devraelfreeze/discordjs-pagination';
+import { EmbedBuilder, User } from 'discord.js';
+import { getServerUserDoc, updateUserElo } from '../../db/database.js';
+import simplifiedPlayers from '../../db/simplifiedPlayers.json' assert { type: 'json' };
 
 export async function cards(interaction, serverPrefix, user: User) {
     let discordUserId;
@@ -94,7 +93,7 @@ export async function cards(interaction, serverPrefix, user: User) {
         for (let i = 0; i < pages; i++) {
             // create the embed message
             const embed = new EmbedBuilder();
-    
+
             // add the rest of the information
             embed.setTitle(
                 `${discordUser.username}'s cards ${ownedPlayerObjects.length > 10 ? `(Page ${i + 1} of ${pages})` : ``}`
@@ -113,37 +112,39 @@ export async function cards(interaction, serverPrefix, user: User) {
             });
             embed.setDescription(`Top 10 Avg: **${eloDisplay}**\n`);
             if (pinnedPlayerObjects?.length > 0) {
-                embed.addFields({name: `Pinned (${pinnedPlayerObjects.length})`, value: pinnedDescription});
-                embed.addFields({name:
-                    `${`Players ${i * 10 + 1}-${
-                        ownedPlayerObjects.length < 10 || ownedPlayerObjects.length < (i + 1) * 10
-                            ? ownedPlayerObjects.length
-                            : (i + 1) * 10
-                    }`}`, value:
-                    embedDescription.replaceAll('_', '\\_')} // MessageEmbed field values must be non-empty strings.
+                embed.addFields({ name: `Pinned (${pinnedPlayerObjects.length})`, value: pinnedDescription });
+                embed.addFields(
+                    {
+                        name: `${`Players ${i * 10 + 1}-${
+                            ownedPlayerObjects.length < 10 || ownedPlayerObjects.length < (i + 1) * 10
+                                ? ownedPlayerObjects.length
+                                : (i + 1) * 10
+                        }`}`,
+                        value: embedDescription.replaceAll('_', '\\_'),
+                    } // MessageEmbed field values must be non-empty strings.
                 );
             } else {
-                embed.addFields({name: `Players`, value: embedDescription});
+                embed.addFields({ name: `Players`, value: embedDescription });
             }
             embed.setTimestamp(Date.now());
             embeds.push(embed);
         }
     }
-    
+
     // if (ownedPlayerObjects.length <= 10) return; // end it here if the user doesn't have multiple pages
 
     // pagination
-    const buttons =  [
+    const buttons = [
         {
-          type: ButtonTypes.previous,
-          label: 'Previous Page',
-          style: ButtonStyles.Primary
+            type: ButtonTypes.previous,
+            label: 'Previous Page',
+            style: ButtonStyles.Primary,
         },
         {
-          type: ButtonTypes.next,
-          label: 'Next Page',
-          style: ButtonStyles.Success
-        }
-      ]
-    await pagination({embeds: embeds, author: discordUser, interaction: interaction, buttons: buttons, time: 120000});
+            type: ButtonTypes.next,
+            label: 'Next Page',
+            style: ButtonStyles.Success,
+        },
+    ];
+    await pagination({ embeds: embeds, author: discordUser, interaction: interaction, buttons: buttons, time: 120000 });
 }

@@ -1,5 +1,5 @@
 import Discord from 'discord.js';
-import { getLeaderboardData, getPlayer, getPlayerByUsername } from '../../db/database';
+import { getLeaderboardData, getPlayer, getPlayerByUsername } from '../../db/database.js';
 
 export async function claimed(interaction, serverPrefix, name) {
     const lbData = await getLeaderboardData('claimed');
@@ -11,18 +11,14 @@ export async function claimed(interaction, serverPrefix, name) {
             const player = await getPlayerByUsername(name);
             if (player) {
                 lbData.players[player.apiv2.id] === 1
-                    ? interaction.reply(
-                          `${interaction.user} ${player.apiv2.username} has been claimed once.`
-                      )
+                    ? interaction.reply(`${interaction.user} ${player.apiv2.username} has been claimed once.`)
                     : lbData.players[player.apiv2.id] > 1
                     ? interaction.reply(
                           `${interaction.user} ${player.apiv2.username} has been claimed ${
                               lbData.players[player.apiv2.id]
                           } times.`
                       )
-                    : interaction.reply(
-                          `${interaction.user} ${player.apiv2.username} has never been claimed.`
-                      );
+                    : interaction.reply(`${interaction.user} ${player.apiv2.username} has never been claimed.`);
             } else {
                 interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }

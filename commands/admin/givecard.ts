@@ -1,6 +1,6 @@
-import { getPlayerByUsername, setOwnedPlayer } from '../../db/database';
-import { adminDiscordId } from '../../auth.json';
-
+import auth from '../../config/auth.js';
+import { getPlayerByUsername, setOwnedPlayer } from '../../db/database.js';
+const { adminDiscordId } = auth;
 export async function givecard(inboundMessage) {
     const words = inboundMessage.content.split(' ');
     if (inboundMessage.author.id !== adminDiscordId) {

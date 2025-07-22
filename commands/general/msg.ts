@@ -1,5 +1,6 @@
 import Discord from 'discord.js';
-import { adminDiscordId } from '../../auth.json';
+import auth from '../../config/auth.js';
+const { adminDiscordId } = auth;
 
 export async function msg(interaction, serverPrefix, db, databaseStatistics, client, msg) {
     const mahloola = client.users.cache.get(adminDiscordId);

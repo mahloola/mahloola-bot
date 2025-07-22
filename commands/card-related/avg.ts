@@ -1,4 +1,4 @@
-import { updateUserElo } from '../../db/database';
+import { updateUserElo } from '../../db/database.js';
 
 export async function avg(interaction) {
     const elo = await updateUserElo(interaction.channel.guildId, interaction.user.id);

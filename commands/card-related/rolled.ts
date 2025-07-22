@@ -1,5 +1,5 @@
 import Discord from 'discord.js';
-import { getLeaderboardData, getPlayer, getPlayerByUsername } from '../../db/database';
+import { getLeaderboardData, getPlayer, getPlayerByUsername } from '../../db/database.js';
 
 export async function rolled(interaction, serverPrefix, name) {
     const lbData = await getLeaderboardData('rolled');
@@ -11,18 +11,14 @@ export async function rolled(interaction, serverPrefix, name) {
             const player = await getPlayerByUsername(name);
             if (player) {
                 lbData.players[player.apiv2.id] === 1
-                    ? interaction.reply(
-                          `${interaction.user} ${player.apiv2.username} has been rolled once.`
-                      )
+                    ? interaction.reply(`${interaction.user} ${player.apiv2.username} has been rolled once.`)
                     : lbData.players[player.apiv2.id] > 1
                     ? interaction.reply(
                           `${interaction.user} ${player.apiv2.username} has been rolled ${
                               lbData.players[player.apiv2.id]
                           } times.`
                       )
-                    : interaction.reply(
-                          `${interaction.user} ${player.apiv2.username} has never been rolled.`
-                      );
+                    : interaction.reply(`${interaction.user} ${player.apiv2.username} has never been rolled.`);
             } else {
                 interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }

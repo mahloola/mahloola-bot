@@ -1,4 +1,4 @@
-import { setClaimResetTime, setOwnedPlayer, setPlayerClaimCounter, setUserClaimCounter } from '../../db/database';
+import { setClaimResetTime, setOwnedPlayer, setPlayerClaimCounter, setUserClaimCounter } from '../../db/database.js';
 
 async function claimCard(interaction, claimingUser, player, discordUser, claimingUserDoc, currentTime) {
     await setOwnedPlayer(interaction.guild.id, claimingUser.id, player.apiv2.id).then(async () => {

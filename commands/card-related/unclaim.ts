@@ -1,10 +1,4 @@
-import {
-    deleteOwnedPlayer,
-    deletePinnedPlayer,
-    getPlayerByUsername,
-    getServerUserDoc,
-    setDiscordUser,
-} from '../../db/database';
+import { deleteOwnedPlayer, deletePinnedPlayer, getPlayerByUsername, getServerUserDoc } from '../../db/database.js';
 
 export async function unclaim(interaction, serverPrefix, name) {
     if (name) {

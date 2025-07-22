@@ -1,10 +1,11 @@
-import { getServerUserDoc } from '../../db/database';
-import simplifiedPlayers from '../../db/simplifiedPlayers.json';
 import Discord from 'discord.js';
+import { getServerUserDoc } from '../../db/database.js';
+import simplifiedPlayers from '../../db/simplifiedPlayers.json' assert { type: 'json' };
 export async function recent(interaction, serverPrefix, db, databaseStatistics, client) {
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
     const playerIds = user.ownedPlayers;
-    const playerNames = [], playerRanks = [];
+    const playerNames = [],
+        playerRanks = [];
     for (let i = 0; i < playerIds.length; i++) {
         if (simplifiedPlayers[playerIds[i]]) {
             playerNames.push(simplifiedPlayers[playerIds[i]][0]);

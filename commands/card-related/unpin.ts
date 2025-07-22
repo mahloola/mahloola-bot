@@ -1,4 +1,4 @@
-import { deletePinnedPlayer, getPlayerByUsername, getServerUserDoc } from '../../db/database';
+import { deletePinnedPlayer, getPlayerByUsername, getServerUserDoc } from '../../db/database.js';
 
 export async function unpin(interaction, serverPrefix, name) {
     if (name) {
@@ -11,24 +11,18 @@ export async function unpin(interaction, serverPrefix, name) {
                 const user = await getServerUserDoc(interaction.channel.guildId, interaction.user.id);
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
                 if (validFlag) {
-                    await deletePinnedPlayer(
-                        interaction.channel.guildId,
-                        interaction.user.id,
-                        player.apiv2.id
-                    ).catch((err) => console.error(err));
+                    await deletePinnedPlayer(interaction.channel.guildId, interaction.user.id, player.apiv2.id).catch(
+                        (err) => console.error(err)
+                    );
                     interaction.reply(`${interaction.user} unpinned ${name} successfully.`);
                 } else {
-                    interaction.reply(
-                        `${interaction.user} You do not own the player "${name}".`
-                    );
+                    interaction.reply(`${interaction.user} You do not own the player "${name}".`);
                 }
             } else {
                 interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }
         }
     } else {
-        interaction.reply(
-            `${interaction.user} Please enter the username of the player you want to unpin.`
-        );
+        interaction.reply(`${interaction.user} Please enter the username of the player you want to unpin.`);
     }
 }

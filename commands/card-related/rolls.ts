@@ -1,5 +1,5 @@
-import { getDiscordUser, getServerUserDoc, setRollResetTime, setRolls } from '../../db/database';
-import { isPremium } from '../util/isPremium';
+import { getDiscordUser, getServerUserDoc, setRollResetTime, setRolls } from '../../db/database.js';
+import { isPremium } from '../util/isPremium.js';
 
 export async function rolls(interaction) {
     let user = await getServerUserDoc(interaction.guild.id, interaction.user.id);

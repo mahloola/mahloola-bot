@@ -1,4 +1,5 @@
-import { adminDiscordId } from '../../auth.json';
+import auth from '../../config/auth.js';
+const { adminDiscordId } = auth;
 export async function kick(inboundMessage, serverPrefix, db, databaseStatistics, client) {
     if (inboundMessage.author.id !== adminDiscordId) {
         inboundMessage.channel.send('You need to be mahloola to use this command.');

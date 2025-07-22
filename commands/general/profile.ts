@@ -1,5 +1,5 @@
 import Discord from 'discord.js';
-import { getDiscordUser } from '../../db/database';
+import { getDiscordUser } from '../../db/database.js';
 
 export async function profile(interaction) {
     const user = await getDiscordUser(interaction.user.id);

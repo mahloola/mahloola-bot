@@ -1,6 +1,6 @@
-import { getDiscordUser, getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db/database';
-import simplifiedPlayers from '../../db/simplifiedPlayers.json';
-import { isPremium } from '../util/isPremium';
+import { getDiscordUser, getPlayerByUsername, getServerUserDoc, setPinnedPlayer } from '../../db/database.js';
+import simplifiedPlayers from '../../db/simplifiedPlayers.json' assert { type: 'json' };
+import { isPremium } from '../util/isPremium.js';
 
 export async function pin(interaction, serverPrefix, name) {
     if (name) {
@@ -26,26 +26,18 @@ export async function pin(interaction, serverPrefix, name) {
                 }
                 const validFlag = user?.ownedPlayers?.includes(player.apiv2.id);
                 if (validFlag) {
-                    await setPinnedPlayer(
-                        interaction.channel.guildId,
-                        interaction.user.id,
-                        player.apiv2.id
-                    ).catch((err) => console.error(err));
-                    interaction.reply(
-                        `${interaction.user} pinned ${player.apiv2.username} successfully.`
+                    await setPinnedPlayer(interaction.channel.guildId, interaction.user.id, player.apiv2.id).catch(
+                        (err) => console.error(err)
                     );
+                    interaction.reply(`${interaction.user} pinned ${player.apiv2.username} successfully.`);
                 } else {
-                    interaction.channel.send(
-                        `${interaction.user} You do not own the player "${name}".`
-                    );
+                    interaction.channel.send(`${interaction.user} You do not own the player "${name}".`);
                 }
             } else {
                 interaction.reply(`${interaction.user} Player "${name}" was not found.`);
             }
         }
     } else {
-        interaction.reply(
-            `${interaction.user} Please enter the username of the player you want to pin.`
-        );
+        interaction.reply(`${interaction.user} Please enter the username of the player you want to pin.`);
     }
 }

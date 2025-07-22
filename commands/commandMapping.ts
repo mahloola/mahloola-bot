@@ -1,36 +1,36 @@
 // general
-import { help } from './general/help';
-import { msg } from './general/msg';
-import { profile } from './general/profile';
-import { prefix } from './general/prefix';
-import { stats } from './general/stats';
+import { help } from './general/help.js';
+import { msg } from './general/msg.js';
+import { prefix } from './general/prefix.js';
+import { profile } from './general/profile.js';
+import { stats } from './general/stats.js';
 // card-related
-import { avg } from './card-related/avg';
-import { cards } from './card-related/cards';
-import { claim } from './card-related/claim';
-import { unclaim } from './card-related/unclaim';
-import { claimed } from './card-related/claimed';
-import { recent } from './card-related/recent';
-import { lb } from './card-related/lb';
-import { pin } from './card-related/pin';
-import { unpin } from './card-related/unpin';
-import { trade } from './card-related/trade';
-import { view } from './card-related/view';
-import { roll } from './card-related/roll';
-import { rolled } from './card-related/rolled';
-import { rolls } from './card-related/rolls';
+import { avg } from './card-related/avg.js';
+import { cards } from './card-related/cards.js';
+import { claim } from './card-related/claim.js';
+import { claimed } from './card-related/claimed.js';
+import { lb } from './card-related/lb.js';
+import { pin } from './card-related/pin.js';
+import { recent } from './card-related/recent.js';
+import { roll } from './card-related/roll.js';
+import { rolled } from './card-related/rolled.js';
+import { rolls } from './card-related/rolls.js';
+import { trade } from './card-related/trade.js';
+import { unclaim } from './card-related/unclaim.js';
+import { unpin } from './card-related/unpin.js';
+import { view } from './card-related/view.js';
 // premium
-import { add } from './premium/add';
-import { adds } from './premium/adds';
-import { donate } from './premium/donate';
-import { perks } from './premium/perks';
-import { premium } from './premium/premium';
+import { add } from './premium/add.js';
+import { adds } from './premium/adds.js';
+import { donate } from './premium/donate.js';
+import { perks } from './premium/perks.js';
+import { premium } from './premium/premium.js';
 // admin
-import { givecard } from './admin/givecard';
-import { givepremium } from './admin/givepremium';
-import { kick } from './admin/kick';
-import { updatestats } from './admin/updatestats';
-import { populate } from './admin/populate';
+import { givecard } from './admin/givecard.js';
+import { givepremium } from './admin/givepremium.js';
+import { kick } from './admin/kick.js';
+import { populate } from './admin/populate.js';
+import { updatestats } from './admin/updatestats.js';
 
 const commandMapping = {
     // GENERAL

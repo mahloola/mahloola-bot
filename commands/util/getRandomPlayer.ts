@@ -1,6 +1,3 @@
-import { AttachmentBuilder } from 'discord.js';
-import { Player } from '../../types';
-
 const getRandomPlayer = async (db: FirebaseFirestore.Firestore) => {
     let player;
     // get a random player (rank 1 - 10,000)

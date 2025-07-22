@@ -1,5 +1,4 @@
-import Discord from 'discord.js';
-import { setPrefix } from '../../db/database';
+import { setPrefix } from '../../db/database.js';
 
 export async function prefix(interaction, serverPrefix, db, statistics) {
     const newPrefix = interaction.member.permissionsIn(interaction.channel).has('ADMINISTRATOR')

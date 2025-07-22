@@ -1,36 +1,35 @@
 import Discord, { GatewayIntentBits } from 'discord.js';
-import { defaultPrefix, token, tokenDevelopment, workflow } from './auth.json';
-import { avg } from './commands/card-related/avg';
-import { cards } from './commands/card-related/cards';
-import { claim } from './commands/card-related/claim';
-import { claimed } from './commands/card-related/claimed';
-import { lb } from './commands/card-related/lb';
-import { pin } from './commands/card-related/pin';
-import { recent } from './commands/card-related/recent';
-import { roll } from './commands/card-related/roll';
-import { rolled } from './commands/card-related/rolled';
-import { rolls } from './commands/card-related/rolls';
-import { trade } from './commands/card-related/trade';
-import { unclaim } from './commands/card-related/unclaim';
-import { unpin } from './commands/card-related/unpin';
-import { view } from './commands/card-related/view';
-import { help } from './commands/general/help';
-import { msg } from './commands/general/msg';
-import { prefix } from './commands/general/prefix';
-import { profile } from './commands/general/profile';
-import { stats } from './commands/general/stats';
-import { add } from './commands/premium/add';
-import { donate } from './commands/premium/donate';
-import { perks } from './commands/premium/perks';
-import { premium } from './commands/premium/premium';
-
-import commandMapping from './commands/commandMapping';
-import { getDatabaseStatistics, getServerDoc, initializeDatabase } from './db/database';
+import { avg } from './commands/card-related/avg.js';
+import { cards } from './commands/card-related/cards.js';
+import { claim } from './commands/card-related/claim.js';
+import { claimed } from './commands/card-related/claimed.js';
+import { lb } from './commands/card-related/lb.js';
+import { pin } from './commands/card-related/pin.js';
+import { recent } from './commands/card-related/recent.js';
+import { roll } from './commands/card-related/roll.js';
+import { rolled } from './commands/card-related/rolled.js';
+import { rolls } from './commands/card-related/rolls.js';
+import { trade } from './commands/card-related/trade.js';
+import { unclaim } from './commands/card-related/unclaim.js';
+import { unpin } from './commands/card-related/unpin.js';
+import { view } from './commands/card-related/view.js';
+import commandMapping from './commands/commandMapping.js';
+import { help } from './commands/general/help.js';
+import { msg } from './commands/general/msg.js';
+import { prefix } from './commands/general/prefix.js';
+import { profile } from './commands/general/profile.js';
+import { stats } from './commands/general/stats.js';
+import { add } from './commands/premium/add.js';
+import { donate } from './commands/premium/donate.js';
+import { perks } from './commands/premium/perks.js';
+import { premium } from './commands/premium/premium.js';
+import auth from './config/auth.js';
+import { getDatabaseStatistics, getServerDoc, initializeDatabase } from './db/database.js';
 const client = new Discord.Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
 let serverPrefix;
-
+const { defaultPrefix, token, tokenDevelopment, workflow } = auth;
 client.on('ready', async function () {
     const db: FirebaseFirestore.Firestore = initializeDatabase();
     const databaseStatistics = await getDatabaseStatistics();

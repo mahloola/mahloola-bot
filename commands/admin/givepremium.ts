@@ -1,5 +1,6 @@
-import { getDiscordUser, setPremium } from '../../db/database';
-import { adminDiscordId } from '../../auth.json';
+import auth from '../../config/auth.js';
+import { getDiscordUser, setPremium } from '../../db/database.js';
+const { adminDiscordId } = auth;
 
 export async function givepremium(inboundMessage, serverPrefix) {
     if (inboundMessage.author.id !== adminDiscordId) {

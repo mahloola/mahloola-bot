@@ -1,4 +1,4 @@
-import { getServerUserDoc, setClaimResetTime } from '../../db/database';
+import { getServerUserDoc, setClaimResetTime } from '../../db/database.js';
 
 export async function claim(interaction) {
     const user = await getServerUserDoc(interaction.guild.id, interaction.user.id);
@@ -19,9 +19,7 @@ export async function claim(interaction) {
     }
     const timeRemaining = resetTime - currentTime;
     if (timeRemaining > 0) {
-        interaction.reply(
-            `${interaction.user} You may claim again <t:${resetTime.toString().slice(0, -3)}:R>.`
-        );
+        interaction.reply(`${interaction.user} You may claim again <t:${resetTime.toString().slice(0, -3)}:R>.`);
     } else {
         interaction.reply(`${interaction.user} You may claim now.`);
     }

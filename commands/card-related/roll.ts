@@ -1,14 +1,14 @@
 import Discord, { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
-import { attemptRoll, getDiscordUser, getServerUserDoc, setDiscordUser, updateUserElo } from '../../db/database';
-import checkOwnedFlag from '../util/checkOwnedFlag';
-import claimCard from '../util/claimCard';
-import { getImage } from '../util/getImage';
-import getRandomPlayer from '../util/getRandomPlayer';
-import logClaim from '../util/logFunctions/logClaim';
-import logRoll from '../util/logFunctions/logRoll';
-import { sleep } from '../util/sleep';
-import updateDiscordUser from '../util/updateDiscordUser';
-import updateRollStatistics from '../util/updateRollStatistics';
+import { attemptRoll, getDiscordUser, getServerUserDoc, setDiscordUser, updateUserElo } from '../../db/database.js';
+import checkOwnedFlag from '../util/checkOwnedFlag.js';
+import claimCard from '../util/claimCard.js';
+import { getImage } from '../util/getImage.js';
+import getRandomPlayer from '../util/getRandomPlayer.js';
+import logClaim from '../util/logFunctions/logClaim.js';
+import logRoll from '../util/logFunctions/logRoll.js';
+import { sleep } from '../util/sleep.js';
+import updateDiscordUser from '../util/updateDiscordUser.js';
+import updateRollStatistics from '../util/updateRollStatistics.js';
 
 export async function roll(
     interaction: Discord.CommandInteraction<Discord.CacheType>,

@@ -1,5 +1,5 @@
 import Discord from 'discord.js';
-import { getServerUserDoc, getServerUsers, getServerUserRef, updateUserElo } from '../../db/database';
+import { getServerUserRef, getServerUsers } from '../../db/database.js';
 
 export async function lb(interaction, serverPrefix, db, databaseStatistics, client) {
     // get every user ID in the server
@@ -12,7 +12,6 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
     // THIS STEP TAKES FAR TOO MUCH TIME
     const t2 = Date.now();
     for (let i = 0; i < serverUsers.length; i++) {
-
         // get a specific user (to check if they have 10+ cards)
         const user = serverUsers[i];
         // await updateUserElo(interaction.channel.guildId, userIds[i]);
@@ -37,7 +36,6 @@ export async function lb(interaction, serverPrefix, db, databaseStatistics, clie
         return a.elo - b.elo;
     });
 
-    
     // create the embed message
     const embed = new Discord.EmbedBuilder();
 

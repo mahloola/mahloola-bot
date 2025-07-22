@@ -1,5 +1,5 @@
-import Discord, { Message } from 'discord.js';
-import { getDatabaseStatistics } from '../../db/database';
+import Discord from 'discord.js';
+import { getDatabaseStatistics } from '../../db/database.js';
 
 export async function stats(interaction) {
     // create the embed message

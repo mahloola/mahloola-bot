@@ -1,8 +1,7 @@
-import { NonDmChannel } from '../../types';
-import { getUser, requestClientCredentialsToken } from '../../scraper/api';
-import { getDiscordUser, getPlayerByUsername, setAddCounter, setPlayer } from '../../db/database';
-import { isPremium } from '../util/isPremium';
-import { createPlayerCard } from '../../image/jimp';
+import { getDiscordUser, getPlayerByUsername, setAddCounter, setPlayer } from '../../db/database.js';
+import { getUser, requestClientCredentialsToken } from '../../scraper/api.js';
+import { NonDmChannel } from '../../types.js';
+import { isPremium } from '../util/isPremium.js';
 
 export async function add(interaction, serverPrefix, user) {
     const discordUser = await getDiscordUser(interaction.user.id);
@@ -14,11 +13,7 @@ export async function add(interaction, serverPrefix, user) {
                 interaction.reply(`${interaction.user} mahloola knows your tricks`);
                 return;
             } else {
-                if (
-                    !discordUser.addCounter ||
-                    discordUser.addCounter == null ||
-                    discordUser.addCounter == undefined
-                ) {
+                if (!discordUser.addCounter || discordUser.addCounter == null || discordUser.addCounter == undefined) {
                     setAddCounter(discordUser, 3);
                 }
                 if (discordUser.addCounter <= 0 && discordUser.addResetTime > new Date().getTime()) {

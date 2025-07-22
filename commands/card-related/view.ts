@@ -1,9 +1,9 @@
 import { AttachmentBuilder } from 'discord.js';
-import { getPlayerByUsername, setPlayer } from '../../db/database';
-import { getUser } from '../../scraper/api';
-import { createPlayerCard } from '../../image/jimp';
-import { imageDirectory } from '../../auth.json';
-import { requestClientCredentialsToken } from '../../scraper/api';
+import auth from '../../config/auth.js';
+import { getPlayerByUsername, setPlayer } from '../../db/database.js';
+import { createPlayerCard } from '../../image/jimp.js';
+import { getUser, requestClientCredentialsToken } from '../../scraper/api.js';
+const { imageDirectory } = auth;
 
 export async function view(interaction, serverPrefix, name) {
     const apiToken = await requestClientCredentialsToken();

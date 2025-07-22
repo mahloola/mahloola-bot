@@ -1,9 +1,10 @@
 import Discord, { GatewayIntentBits } from 'discord.js';
 import admin from 'firebase-admin';
-import { firestoreKey, workflow } from '../auth.json';
-import { isPremium } from '../commands/util/isPremium';
-import { DatabaseStatistics, Leaderboard, Player, Server, ServerUser } from '../types';
-import simplifiedPlayers from './simplifiedPlayersLowercase.json';
+import { isPremium } from '../commands/util/isPremium.js';
+import auth from '../config/auth.js';
+import { DatabaseStatistics, Leaderboard, Player, Server, ServerUser } from '../types.js';
+import simplifiedPlayers from './simplifiedPlayersLowercase.json' assert { type: 'json' };
+const { firestoreKey, workflow } = auth;
 const client = new Discord.Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
@@ -21,16 +22,6 @@ export function initializeDatabase() {
         ignoreUndefinedProperties: true,
     });
     return db;
-}
-
-function formatMemory(memory: NodeJS.MemoryUsage): string {
-    return `RSS: ${bytesToMB(memory.rss)} MB, Heap: ${bytesToMB(memory.heapUsed)}/${bytesToMB(
-        memory.heapTotal
-    )} MB, External: ${bytesToMB(memory.external)} MB`;
-}
-
-function bytesToMB(bytes: number): string {
-    return (bytes / 1024 / 1024).toFixed(2);
 }
 
 // set document in player database (osu apiv2)

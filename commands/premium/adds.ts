@@ -1,15 +1,10 @@
-import { getDiscordUser, setAddCounter } from '../../db/database';
-import { adminDiscordId, defaultPrefix } from '../../auth.json';
-import { isPremium } from '../util/isPremium';
+import { getDiscordUser, setAddCounter } from '../../db/database.js';
+import { isPremium } from '../util/isPremium.js';
 
 export async function adds(interaction, serverPrefix, db, databaseStatistics, client) {
     const discordUser = await getDiscordUser(interaction.user.id);
     if (isPremium(discordUser)) {
-        if (
-            !discordUser.addCounter ||
-            discordUser.addCounter == null ||
-            discordUser.addCounter == undefined
-        ) {
+        if (!discordUser.addCounter || discordUser.addCounter == null || discordUser.addCounter == undefined) {
             await setAddCounter(discordUser, 3);
         }
         if (discordUser.addCounter === 3) {

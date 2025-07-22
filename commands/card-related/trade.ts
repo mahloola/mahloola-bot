@@ -1,13 +1,6 @@
-import { User, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { NonDmChannel, Player } from '../../types';
-import {
-    deleteOwnedPlayer,
-    getDiscordUser,
-    getPlayerByUsername,
-    getServerUserDoc,
-    setOwnedPlayer,
-    setPlayer,
-} from '../../db/database';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, User } from 'discord.js';
+import { deleteOwnedPlayer, getPlayerByUsername, getServerUserDoc, setOwnedPlayer } from '../../db/database.js';
+import { NonDmChannel } from '../../types.js';
 
 export async function trade(interaction, otherUser: User, cards, otherCards) {
     if (otherUser == interaction.user) {

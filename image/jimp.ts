@@ -1,7 +1,8 @@
-import * as Jimp from 'jimp';
 import * as fs from 'fs';
+import * as Jimp from 'jimp';
 import text2png from 'text2png';
-import { imageDirectory } from '../auth.json';
+import auth from '../config/auth.js';
+const { imageDirectory } = auth;
 
 export async function createPlayerCard(player, claimCount) {
     let userTitle = false; // enable this flag if the user has a title

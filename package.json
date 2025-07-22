@@ -7,6 +7,7 @@
         "node": "16.18.1",
         "npm": "8.19.2"
     },
+    "type": "module",
     "dependencies": {
         "@devraelfreeze/discordjs-pagination": "^2.7.6",
         "@jimp/jpeg": "^0.16.1",
@@ -32,8 +33,8 @@
         "forever": "tsc && forever start dist/index.js",
         "start": "tsc && node --max-old-space-size=384 dist/index.js",
         "updateCommands": "tsc && node dist/commands/commandBuilder.js",
-        "scrape": "node dist/scraper/scrape.js",
-        "update": "node dist/scraper/update.js"
+        "scrape": "tsc && node dist/scraper/scrape.js",
+        "update": "tsc && node dist/scraper/update.js"
     },
     "repository": {
         "type": "git",

@@ -1,5 +1,5 @@
 import Discord from 'discord.js';
-import { setDiscordUser } from '../../db/database';
+import { setDiscordUser } from '../../db/database.js';
 
 export async function donate(interaction: Discord.CommandInteraction<Discord.CacheType>) {
     await setDiscordUser(interaction.user.toJSON());
