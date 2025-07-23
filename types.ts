@@ -7,12 +7,27 @@ export interface DatabaseStatistics {
     players?: number;
 }
 
+// this is what is in our database
 export interface Player {
-    apiv2: OsuUser;
+    apiv2: PlayerApiv2;
     claimCounter?: number;
     rollCounter?: number;
+    dateUpdated?: string;
+    rollIndex?: number;
+    usernameLowercase: string;
 }
-
+// this is what we keep from the osu API on our end
+export interface PlayerApiv2 {
+    id: number;
+    username: string;
+    cover_url: string;
+    global_rank: number;
+    country_rank: number;
+    pp: number;
+    country_code: string;
+    title: string;
+    follower_count: number;
+}
 export interface GlobalUser {
     discord?: DiscordUser;
     rollCounter?: number;
@@ -59,7 +74,8 @@ export interface Leaderboard {
     players?: Record<string, number>;
 }
 
-export interface OsuUser {
+// this is what we get from osu API
+export interface OsuPlayer {
     id: number;
     // groups: any[];
     is_restricted: boolean;
@@ -125,6 +141,87 @@ export interface OsuUser {
     rank_history: RankHistory;
 }
 
+// this is what's retrieved from the GetRanking endpoint
+export interface OsuPlayerSimplified {
+    count_100: number;
+    count_300: number;
+    count_50: number;
+    count_miss: number;
+    level: {
+        current: number;
+        progress: number;
+    };
+    global_rank: number | null;
+    global_rank_exp: number | null;
+    pp: number;
+    pp_exp: number;
+    ranked_score: number;
+    hit_accuracy: number;
+    play_count: number;
+    play_time: number;
+    total_score: number;
+    total_hits: number;
+    maximum_combo: number;
+    replays_watched_by_others: number;
+    is_ranked: boolean;
+    grade_counts: {
+        ss: number;
+        ssh: number;
+        s: number;
+        sh: number;
+        a: number;
+    };
+    rank_change_since_30_days: number;
+    user: {
+        avatar_url: string;
+        country_code: string;
+        default_group: string;
+        id: number;
+        is_active: boolean;
+        is_bot: boolean;
+        is_deleted: boolean;
+        is_online: boolean;
+        is_supporter: boolean;
+        last_visit: string | null;
+        pm_friends_only: boolean;
+        profile_colour: string | null;
+        username: string;
+        country: {
+            code: string;
+            name: string;
+        };
+        cover: {
+            custom_url: string;
+            url: string;
+            id: string | null;
+        };
+        team?: {
+            flag_url: string;
+            id: number;
+            name: string;
+            short_name: string;
+        };
+    };
+}
+
+export interface Statistics {
+    country_rank: number;
+    level: Level;
+    grade_counts: GradeCounts;
+    maximum_combo: number;
+    play_time: number;
+    hit_accuracy: number;
+    pp: number;
+    total_score: number;
+    global_rank: number;
+    is_ranked: boolean;
+    replays_watched_by_others: number;
+    play_count: number;
+    total_hits: number;
+    ranked_score: number;
+    rank: Rank;
+}
+
 export interface Country {
     name: string;
     code: string;
@@ -156,22 +253,43 @@ export interface RankHistory {
     mode: string;
 }
 
-export interface Statistics {
-    country_rank: number;
-    level: Level;
-    grade_counts: GradeCounts;
-    maximum_combo: number;
-    play_time: number;
-    hit_accuracy: number;
-    pp: number;
-    total_score: number;
-    global_rank: number;
-    is_ranked: boolean;
-    replays_watched_by_others: number;
-    play_count: number;
-    total_hits: number;
-    ranked_score: number;
-    rank: Rank;
+export interface GradeCounts {
+    ssh: number;
+    sh: number;
+    s: number;
+    a: number;
+    ss: number;
+}
+
+export interface Country {
+    name: string;
+    code: string;
+}
+
+export interface Cover {
+    url: string;
+    id: null;
+    custom_url: string;
+}
+
+export interface Kudosu {
+    total: number;
+    available: number;
+}
+
+export interface Count {
+    start_date: Date;
+    count: number;
+}
+
+export interface Page {
+    html: string;
+    raw: string;
+}
+
+export interface RankHistory {
+    data: number[];
+    mode: string;
 }
 
 export interface GradeCounts {
@@ -181,7 +299,6 @@ export interface GradeCounts {
     a: number;
     ss: number;
 }
-
 export interface Level {
     current: number;
     progress: number;

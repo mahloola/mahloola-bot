@@ -1,10 +1,11 @@
 import * as fs from 'fs';
-import * as Jimp from 'jimp';
+import Jimp from 'jimp';
 import text2png from 'text2png';
 import auth from '../config/auth.js';
+import { PlayerApiv2 } from '../types.js';
 const { imageDirectory } = auth;
 
-export async function createPlayerCard(player, claimCount) {
+export async function createPlayerCard(player: PlayerApiv2, claimCount: number) {
     let userTitle = false; // enable this flag if the user has a title
     // make sure image/cache directory exists
     // eslint-disable-next-line no-empty
@@ -14,7 +15,7 @@ export async function createPlayerCard(player, claimCount) {
     } catch {}
 
     // create all text images in parallel using text2png
-    const rank = player.statistics.global_rank;
+    const rank = player.global_rank;
     const writePromises = [];
     writePromises.push(
         fs.promises.writeFile(
@@ -48,11 +49,9 @@ export async function createPlayerCard(player, claimCount) {
         fs.promises.writeFile(
             `${imageDirectory}/cache/text2png-${player.username}-statistics-right.png`,
             text2png(
-                `${player.statistics.global_rank ? player.statistics.global_rank : '-'}\n${
-                    player.statistics.country_rank ? player.statistics.country_rank : '-'
-                }\n${player.statistics.pp ? player.statistics.pp : '-'}\n${player.follower_count}\n${
-                    claimCount ? claimCount : 0
-                }`,
+                `${player.global_rank ? player.global_rank : '-'}\n${
+                    player.country_rank ? player.country_rank : '-'
+                }\n${player.pp ? player.pp : '-'}\n${player.follower_count}\n${claimCount ? claimCount : 0}`,
                 {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
@@ -116,7 +115,7 @@ export async function createPlayerCard(player, claimCount) {
     readPromises.push(Jimp.read(`https://a.ppy.sh/${player.id}`));
     readPromises.push(
         Jimp.read(
-            `https://raw.githubusercontent.com/ppy/osu-resources/master/osu.Game.Resources/Textures/Flags/${player.country.code}.png`
+            `https://raw.githubusercontent.com/ppy/osu-resources/master/osu.Game.Resources/Textures/Flags/${player.country_code}.png`
         )
     );
     readPromises.push(Jimp.read('image/mask.png'));

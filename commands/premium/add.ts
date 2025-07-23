@@ -2,6 +2,7 @@ import { getDiscordUser, getPlayerByUsername, setAddCounter, setPlayer } from '.
 import { getUser, requestClientCredentialsToken } from '../../scraper/api.js';
 import { NonDmChannel } from '../../types.js';
 import { isPremium } from '../util/isPremium.js';
+import { trimPlayerDocument } from '../util/trimPlayerDocument.js';
 
 export async function add(interaction, serverPrefix, user) {
     const discordUser = await getDiscordUser(interaction.user.id);
@@ -34,7 +35,8 @@ export async function add(interaction, serverPrefix, user) {
                         );
                         return;
                     } else {
-                        await setPlayer(player);
+                        const trimmedPlayer = trimPlayerDocument(player);
+                        await setPlayer(trimmedPlayer);
                         const timestamp = new Date();
                         console.log(
                             `${timestamp.toLocaleTimeString().slice(0, 5)} | ${

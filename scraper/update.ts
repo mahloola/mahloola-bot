@@ -1,33 +1,14 @@
 import dotenv from 'dotenv';
-import { getUser } from './api';
-import { setPlayer, initializeDatabase, setDatabaseStatistics, getDatabaseStatistics } from '../db/database';
 import * as fs from 'fs';
-import { requestClientCredentialsToken } from './api';
-import { createPlayerCard } from '../image/jimp';
-import sizeof from 'firestore-size';
+import { trimPlayerDocument } from '../commands/util/trimPlayerDocument.js';
+import { getDatabaseStatistics, initializeDatabase, setDatabaseStatistics, setPlayer } from '../db/database.js';
+import { createPlayerCard } from '../image/jimp.js';
+import { PlayerApiv2 } from '../types.js';
+import { getUser, requestClientCredentialsToken } from './api.js';
 dotenv.config();
 
 const db = initializeDatabase();
 
-function trimPlayerDocument(user) {
-    const dataFieldsToDelete = [
-        'groups',
-        'kudosu',
-        'default_group',
-        'monthly_playcounts',
-        'page',
-        'previous_usernames',
-        'profile_order',
-        'rankHistory',
-        'rank_history',
-        'replays_watched_counts',
-        'user_achievements',
-    ];
-    for (let i = 0; i < dataFieldsToDelete.length; i++) {
-        delete user[dataFieldsToDelete[i]];
-    }
-    return user;
-}
 async function updateDatabase() {
     const playersSnapshot = await db.collection('players').get();
     const apiToken = await requestClientCredentialsToken();
@@ -38,19 +19,21 @@ async function updateDatabase() {
             // get player object
             const player = playersSnapshot.docs[i].data();
             // osu api call with the user id
-            let updatedPlayer = await getUser(apiToken, player.apiv2.id);
+            const updatedPlayer = await getUser(apiToken, player.apiv2.id);
             if (updatedPlayer) {
-                updatedPlayer = trimPlayerDocument(updatedPlayer);
+                const trimmedPlayer: PlayerApiv2 = trimPlayerDocument(updatedPlayer);
                 // if the user exists in the osu database
-                await setPlayer(updatedPlayer);
+                await setPlayer(trimmedPlayer);
                 console.log(
-                    `${i}. ${updatedPlayer.username} has been updated from rank ${player.apiv2.statistics.global_rank} to ${updatedPlayer.statistics.global_rank}`
+                    `${i + 1}. ${trimmedPlayer.username} has been updated from rank ${
+                        player.apiv2.statistics.global_rank
+                    } to ${trimmedPlayer.global_rank}`
                 );
-                await createPlayerCard(updatedPlayer, player.claimCounter);
-                simplifiedPlayers[updatedPlayer.id] = [updatedPlayer.username, updatedPlayer.statistics.global_rank];
-                simplifiedPlayersLowercase[updatedPlayer.id] = [
-                    updatedPlayer.username.toLowerCase(),
-                    updatedPlayer.statistics.global_rank,
+                await createPlayerCard(trimmedPlayer, player.claimCounter);
+                simplifiedPlayers[trimmedPlayer.id] = [trimmedPlayer.username, trimmedPlayer.global_rank];
+                simplifiedPlayersLowercase[trimmedPlayer.id] = [
+                    trimmedPlayer.username.toLowerCase(),
+                    trimmedPlayer.global_rank,
                 ];
             } else {
                 // if the user was banned since the last update

@@ -2,7 +2,7 @@ import Discord, { GatewayIntentBits } from 'discord.js';
 import admin from 'firebase-admin';
 import { isPremium } from '../commands/util/isPremium.js';
 import auth from '../config/auth.js';
-import { DatabaseStatistics, Leaderboard, Player, Server, ServerUser } from '../types.js';
+import { DatabaseStatistics, Leaderboard, Player, PlayerApiv2, Server, ServerUser } from '../types.js';
 import simplifiedPlayers from './simplifiedPlayersLowercase.json' assert { type: 'json' };
 const { firestoreKey, workflow } = auth;
 const client = new Discord.Client({
@@ -15,17 +15,17 @@ admin.initializeApp({
     credential: admin.credential.cert(firestoreKey),
 });
 const db = admin.firestore();
+db.settings({
+    ignoreUndefinedProperties: true,
+});
 
 export function initializeDatabase() {
     console.log('Database initialized!');
-    db.settings({
-        ignoreUndefinedProperties: true,
-    });
     return db;
 }
 
 // set document in player database (osu apiv2)
-export async function setPlayer(player) {
+export async function setPlayer(player: PlayerApiv2) {
     if (player) {
         const docRef = db.collection('players').doc(player.id.toString());
         await docRef.set(
@@ -35,7 +35,7 @@ export async function setPlayer(player) {
                 usernameLowercase: player.username.toLowerCase(),
                 rollIndex: Math.random() * 9_223_372_036_854,
             },
-            { merge: true }
+            { mergeFields: ['apiv2', 'dateUpdated'] }
         );
     } else {
         console.error(`Failed to set player ${player.id}`);

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import auth from '../config/auth.js';
+import { OsuPlayer } from '../types.js';
 const { osuApiKey } = auth;
 export const requestClientCredentialsToken = async () => {
     const response = await axios.post('https://osu.ppy.sh/oauth/token', {
@@ -13,7 +14,7 @@ export const requestClientCredentialsToken = async () => {
     return token;
 };
 
-export const getUser = async (token, userId) => {
+export async function getUser(token, userId): Promise<OsuPlayer> {
     const config = {
         headers: {
             'Content-Type': 'application/json',
@@ -27,7 +28,7 @@ export const getUser = async (token, userId) => {
     } catch (err) {
         console.log(err);
     }
-};
+}
 
 export const getRanking = async (token) => {
     const config = {

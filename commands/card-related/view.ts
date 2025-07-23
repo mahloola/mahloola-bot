@@ -3,6 +3,7 @@ import auth from '../../config/auth.js';
 import { getPlayerByUsername, setPlayer } from '../../db/database.js';
 import { createPlayerCard } from '../../image/jimp.js';
 import { getUser, requestClientCredentialsToken } from '../../scraper/api.js';
+import { trimPlayerDocument } from '../util/trimPlayerDocument.js';
 const { imageDirectory } = auth;
 
 export async function view(interaction, serverPrefix, name) {
@@ -19,7 +20,8 @@ export async function view(interaction, serverPrefix, name) {
                 try {
                     // update their card
                     const osuPlayer = await getUser(apiToken, player.apiv2.id);
-                    await setPlayer(osuPlayer);
+                    const trimmedPlayer = trimPlayerDocument(osuPlayer);
+                    await setPlayer(trimmedPlayer);
                     const file = new AttachmentBuilder(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
                     await interaction.reply({ files: [file] });
                 } catch (error) {
