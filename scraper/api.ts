@@ -30,7 +30,7 @@ export async function getUser(token, userId): Promise<OsuPlayer> {
     }
 }
 
-export const getRanking = async (token) => {
+export const getRanking = async (token, page) => {
     const config = {
         headers: {
             'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ export const getRanking = async (token) => {
         },
     };
     try {
-        const response = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance`, config);
+        const response = await axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance?page=${page}`, config);
         return response.data;
     } catch (err) {
         console.log(err);
