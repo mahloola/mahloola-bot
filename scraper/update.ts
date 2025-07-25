@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import * as fs from 'fs';
+import { readFile, writeFile } from 'fs/promises';
 import { trimPlayerDocument } from '../commands/util/trimPlayerDocument.js';
 import { getDatabaseStatistics, initializeDatabase, setDatabaseStatistics, setPlayer } from '../db/database.js';
 import { createPlayerCard } from '../image/jimp.js';
@@ -12,8 +12,12 @@ const db = initializeDatabase();
 async function updateDatabase() {
     const playersSnapshot = await db.collection('players').get();
     const apiToken = await requestClientCredentialsToken();
-    const simplifiedPlayers = {},
-        simplifiedPlayersLowercase = {};
+
+    const simplifiedPlayersJSON = await readFile('db/simplifiedPlayers.json', 'utf8');
+    const simplifiedPlayers = JSON.parse(simplifiedPlayersJSON);
+    const simplifiedPlayersLowercaseJSON = await readFile('db/simplifiedPlayersLowercase.json', 'utf8');
+    const simplifiedPlayersLowercase = JSON.parse(simplifiedPlayersLowercaseJSON);
+
     for (let i = 0; i < playersSnapshot.size; i++) {
         try {
             // get player object
@@ -25,11 +29,11 @@ async function updateDatabase() {
                 // if the user exists in the osu database
                 await setPlayer(trimmedPlayer);
                 console.log(
-                    `${i + 1}. ${trimmedPlayer.username} has been updated from rank ${
-                        player.apiv2.statistics.global_rank
-                    } to ${trimmedPlayer.global_rank}`
+                    `${i + 1}. ${trimmedPlayer.username} has been updated from rank ${player.apiv2?.global_rank} to ${
+                        trimmedPlayer.global_rank
+                    }`
                 );
-                await createPlayerCard(trimmedPlayer, player.claimCounter);
+                await createPlayerCard(trimmedPlayer, player.claimCounter ?? 0);
                 simplifiedPlayers[trimmedPlayer.id] = [trimmedPlayer.username, trimmedPlayer.global_rank];
                 simplifiedPlayersLowercase[trimmedPlayer.id] = [
                     trimmedPlayer.username.toLowerCase(),
@@ -46,12 +50,9 @@ async function updateDatabase() {
     }
 
     // update players-simplified
-    fs.writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers), (err) => {
-        if (err) throw err;
-    });
-    fs.writeFile('db/simplifiedPlayersLowercase.json', JSON.stringify(simplifiedPlayersLowercase), (err) => {
-        if (err) throw err;
-    });
+    writeFile('db/simplifiedPlayers.json', JSON.stringify(simplifiedPlayers));
+    writeFile('db/simplifiedPlayersLowercase.json', JSON.stringify(simplifiedPlayersLowercase));
+
     // update player count in the database statistics
     const currentStats = await getDatabaseStatistics();
     currentStats.players = Object.keys(simplifiedPlayers).length;
