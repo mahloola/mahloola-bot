@@ -35,7 +35,7 @@ export async function setPlayer(player: PlayerApiv2) {
                 usernameLowercase: player.username.toLowerCase(),
                 rollIndex: Math.random() * 9_223_372_036_854,
             },
-            { mergeFields: ['apiv2', 'dateUpdated'] }
+            { merge: true }
         );
     } else {
         console.error(`Failed to set player ${player.id}`);

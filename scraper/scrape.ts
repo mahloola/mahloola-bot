@@ -10,8 +10,6 @@ dotenv.config();
 const apiToken = await requestClientCredentialsToken();
 const db = initializeDatabase();
 
-const startingPage = 1;
-
 async function getExistingPlayerIds(): Promise<number[]> {
     const playersSnapshot = await db.collection('players').get();
     const playerIds = [];
@@ -29,6 +27,7 @@ const simplifiedPlayersLowercase = JSON.parse(simplifiedPlayersLowercaseJSON);
 
 const existingPlayerIds: number[] = await getExistingPlayerIds();
 
+const startingPage = 1;
 for (let page = startingPage; page < 201; page++) {
     const rankingData = await getRanking(apiToken, page);
     const playerDataList: OsuPlayerSimplified[] = rankingData.ranking;
