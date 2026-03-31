@@ -114,6 +114,7 @@ export async function roll(
 
             // 👇 existing claim logic
             if (reactInteraction.customId === 'claim') {
+                await reactInteraction.deferReply();
                 if (reactInteraction.user.id !== outboundMessage?.member?.id) {
                     const claimingUserDoc = await getServerUserDoc(
                         outboundMessage?.guild?.id,
@@ -152,9 +153,12 @@ export async function roll(
                                 claimingUserDoc,
                                 currentTime
                             );
+                            await reactInteraction.editReply(
+                                `**${player.apiv2.username}** has been claimed by ${reactInteraction.user}!`
+                            );
                         }
                     } else {
-                        reactInteraction.reply(
+                        await reactInteraction.editReply(
                             `${reactInteraction.user} You may claim again <t:${claimResetTime.toString().slice(0, -3)}:R>.`
                         );
                     }
