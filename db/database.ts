@@ -333,7 +333,6 @@ export async function setRollResetTime(serverId, userId) {
 }
 
 export async function setClaimResetTime(serverId, userId, time) {
-    if (userId === adminDiscordId) return;
     const userRef = getServerUserRef(serverId, userId);
     await userRef.set({ claimResetTime: time }, { merge: true });
 }
@@ -425,7 +424,6 @@ export async function updateUserElo(serverId, userId) {
         if (simplifiedPlayers[playerIds[i]]) {
             if (simplifiedPlayers[playerIds[i]][1] !== null) {
                 totalRanks += simplifiedPlayers[playerIds[i]][1];
-                console.log(simplifiedPlayers[playerIds[i]][1]);
             }
         }
     }

@@ -11,6 +11,7 @@ export async function lb(
     client: Discord.Client
 ): Promise<void> {
     if (!interaction.isChatInputCommand()) return;
+    await interaction.deferReply(); // ✅ fine
 
     const timestamp1 = new Date().getTime();
 
@@ -86,5 +87,5 @@ export async function lb(
         `${interaction.user.username} used ;leaderboard in ${interaction.guild?.name}. (${timestamp2 - timestamp1} ms)`
     );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
 }
