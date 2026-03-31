@@ -62,7 +62,7 @@ export async function roll(
 
     const outboundMessage = (await interaction.reply({
         content: getRollText(user?.rolls),
-        files: [new AttachmentBuilder(`${imageDirectory}/mahloola-bot-cards/osuCard-${player.apiv2.username}.png`)],
+        files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
         fetchReply: true,
         ephemeral: false,
         components: [row],
@@ -105,11 +105,7 @@ export async function roll(
                 // update message with new image
                 await reactInteraction.update({
                     content: getRollText(user?.rolls),
-                    files: [
-                        new AttachmentBuilder(
-                            `${imageDirectory}/mahloola-bot-cards/osuCard-${player.apiv2.username}.png`
-                        ),
-                    ],
+                    files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
                     components: [row],
                 });
 
