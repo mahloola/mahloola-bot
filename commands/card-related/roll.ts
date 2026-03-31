@@ -6,7 +6,6 @@ import checkOwnedFlag from '../util/checkOwnedFlag.js';
 import claimCard from '../util/claimCard.js';
 import getRandomPlayer from '../util/getRandomPlayer.js';
 import logClaim from '../util/logFunctions/logClaim.js';
-import { sleep } from '../util/sleep.js';
 import updateDiscordUser from '../util/updateDiscordUser.js';
 import updateRollStatistics from '../util/updateRollStatistics.js';
 const { adminDiscordId, imageDirectory } = auth;
@@ -19,6 +18,8 @@ export async function roll(
     interaction: Discord.CommandInteraction<Discord.CacheType>,
     db: FirebaseFirestore.Firestore
 ) {
+    await interaction.deferReply({ ephemeral: false }); // gives you 15 min to respond
+
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
@@ -59,11 +60,9 @@ export async function roll(
         return `*${rolls} roll${rolls === 1 ? '' : 's'} remaining*`;
     };
 
-    const outboundMessage = (await interaction.reply({
+    const outboundMessage = (await interaction.editReply({
         content: getRollText(user?.rolls),
         files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
-        fetchReply: true,
-        ephemeral: false,
         components: [row],
     })) as Discord.Message;
 
@@ -114,6 +113,7 @@ export async function roll(
             // 👇 existing claim logic
             if (reactInteraction.customId === 'claim') {
                 await reactInteraction.deferReply();
+
                 if (reactInteraction.user.id !== outboundMessage?.member?.id) {
                     const claimingUserDoc = await getServerUserDoc(
                         outboundMessage?.guild?.id,
@@ -123,7 +123,7 @@ export async function roll(
                     const neverUsed = claimingUserDoc == null;
                     const claimResetTime = claimingUserDoc?.claimResetTime ?? 0;
 
-                    if (currentTime > claimResetTime || neverUsed) {
+                    if (currentTime > claimResetTime || neverUsed || reactInteraction.user.id === adminDiscordId) {
                         const ownedFlag = checkOwnedFlag(claimingUserDoc, player);
 
                         if (ownedFlag) {
@@ -131,8 +131,6 @@ export async function roll(
                                 `${reactInteraction.user} You already own **${player.apiv2.username}**.`
                             );
                         } else {
-                            await sleep(1000);
-
                             const claimingUser = reactInteraction.user;
                             let discordUser = await getDiscordUser(claimingUser.id);
 
@@ -151,9 +149,6 @@ export async function roll(
                                 discordUser,
                                 claimingUserDoc,
                                 currentTime
-                            );
-                            await reactInteraction.editReply(
-                                `**${player.apiv2.username}** has been claimed by ${reactInteraction.user}!`
                             );
                         }
                     } else {
