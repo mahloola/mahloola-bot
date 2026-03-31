@@ -3,6 +3,7 @@
         "module": "ESNext",
         "target": "ESNext",
         "moduleResolution": "node",
+        "resolveJsonModule": true,
         "esModuleInterop": true,
         "sourceMap": true,
         "resolveJsonModule": true,

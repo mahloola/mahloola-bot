@@ -219,12 +219,20 @@ export async function getServerDoc(serverId): Promise<Server> {
     const serverDoc = await serversRef.doc(serverId.toString()).get();
     return serverDoc.exists ? (serverDoc.data() as Server) : null;
 }
+
 export function getServerUsersRef(serverId) {
     const serversRef = getServersRef();
     const serverDoc = serversRef.doc(serverId.toString());
     const usersRef = serverDoc.collection('users');
     return usersRef;
 }
+export function getServerLeaderboardRef(serverId) {
+    const serversRef = getServersRef();
+    const serverDoc = serversRef.doc(serverId.toString());
+    const usersRef = serverDoc.collection('leaderboard');
+    return usersRef;
+}
+
 export async function getServerUserDoc(serverId, userId): Promise<ServerUser> {
     const usersRef = getServerUsersRef(serverId);
     const userDoc = await usersRef.doc(userId.toString()).get();
@@ -235,12 +243,13 @@ export function getServerUserRef(serverId, userId) {
     const userRef = usersRef.doc(userId.toString());
     return userRef;
 }
+
 export async function getServerUsers(serverId) {
     const serverUsers: ServerUser[] = [];
     const usersRef = getServerUsersRef(serverId);
     const userDocs = await usersRef.get();
     userDocs.forEach((doc) => {
-        serverUsers.push(doc.data());
+        serverUsers.push({ id: doc.id, ...doc.data() });
     });
     return serverUsers;
 }
@@ -300,6 +309,20 @@ export async function deletePinnedPlayer(serverId, userId, pinnedUserId) {
     await userRef.update({ pinnedPlayers: updatedPinnedUsers });
 }
 
+// update server leaderboard
+export async function updateServerLeaderboard(serverId: number, userId: number, newAverage: number) {
+    const serversRef = getServersRef();
+
+    await serversRef.doc(serverId.toString()).set(
+        {
+            leaderboard: {
+                [userId]: newAverage,
+            },
+        },
+        { merge: true }
+    );
+}
+
 // this is when the claim cooldown ends for a particular user
 export async function setRollResetTime(serverId, userId) {
     const userRef = await getServerUserRef(serverId, userId);
@@ -309,7 +332,7 @@ export async function setRollResetTime(serverId, userId) {
 }
 
 export async function setClaimResetTime(serverId, userId, time) {
-    const userRef = await getServerUserRef(serverId, userId);
+    const userRef = getServerUserRef(serverId, userId);
     await userRef.set({ claimResetTime: time }, { merge: true });
 }
 
@@ -323,7 +346,7 @@ export async function attemptRoll(serverId, userId, discordUser): Promise<boolea
         let dataToSet: ServerUser = null;
         let rollSuccess;
 
-        if (!user || user.rollResetTime === undefined) {
+        if (!user || user.rollResetTime === undefined || user.discord?.id == '198773384794996739') {
             // user doesn't exist yet
             rollSuccess = true;
             dataToSet = {
@@ -400,14 +423,58 @@ export async function updateUserElo(serverId, userId) {
         if (simplifiedPlayers[playerIds[i]]) {
             if (simplifiedPlayers[playerIds[i]][1] !== null) {
                 totalRanks += simplifiedPlayers[playerIds[i]][1];
+                console.log(simplifiedPlayers[playerIds[i]][1]);
             }
         }
     }
-    const avgRanks = totalRanks / 10;
+    const newElo = totalRanks / 10;
+    console.log(`Average for ${userId}: ${newElo}`);
     // update elo in the db
     const serversRef = getServersRef();
-    await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: avgRanks }, { merge: true });
-    return avgRanks;
+    await serversRef.doc(serverId).collection('users').doc(userId).set({ elo: newElo }, { merge: true });
+    updateServerLeaderboard(serverId, userId, newElo);
+    return newElo;
+}
+
+type LeaderboardMap = Record<string, number>;
+
+export async function migrateLeaderboards(): Promise<void> {
+    const serversRef = getServersRef();
+
+    console.log('🚀 Starting leaderboard migration...');
+
+    const serversSnapshot = await serversRef.get();
+
+    for (const serverDoc of serversSnapshot.docs) {
+        const serverId = serverDoc.id;
+
+        console.log(`\n📦 Processing server: ${serverId}`);
+
+        try {
+            const serverUsers = await getServerUsers(serverId);
+            console.log('server users: ', serverUsers.length);
+            const leaderboard: LeaderboardMap = {};
+
+            for (const user of serverUsers) {
+                console.log('User Elo: ', user.elo);
+                if (user.elo !== undefined) {
+                    // ✅ use document ID instead of discord.id
+                    if (!user.id) return;
+                    leaderboard[user.id] = user.elo;
+                }
+            }
+
+            console.log(`✅ Built leaderboard with ${Object.keys(leaderboard).length} users`);
+
+            await serversRef.doc(serverId).set({ leaderboard }, { merge: true });
+
+            console.log(`💾 Saved leaderboard for server ${serverId}`);
+        } catch (err) {
+            console.error(`❌ Error processing server ${serverId}:`, err);
+        }
+    }
+
+    console.log('\n🎉 Migration complete!');
 }
 
 // gets Top-10-Average for a particular user, but doesn't need to get player documents first

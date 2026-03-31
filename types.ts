@@ -61,6 +61,7 @@ export interface Server {
 }
 
 export interface ServerUser {
+    id?: string; // some legacy stuff doesnt have an id in it by design
     ownedPlayers?: number[];
     pinnedPlayers?: number[];
     claimResetTime?: number;

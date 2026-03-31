@@ -1,68 +1,90 @@
 import Discord from 'discord.js';
-import { getServerUserRef, getServerUsers } from '../../db/database.js';
+import { getServersRef } from '../../db/database.js';
 
-export async function lb(interaction, serverPrefix, db, databaseStatistics, client) {
-    // get every user ID in the server
+type LeaderboardMap = Record<string, number>; // userId -> elo
 
-    const serverUsers = await getServerUsers(interaction.channel.guildId);
-    const users = [];
+export async function lb(
+    interaction: Discord.Interaction,
+    serverPrefix: string,
+    db: any,
+    databaseStatistics: any,
+    client: Discord.Client
+): Promise<void> {
+    if (!interaction.isChatInputCommand()) return;
 
-    console.log(`${interaction.user.username} used ;leaderboard in ${interaction.guild.name}.`);
+    const timestamp1 = new Date().getTime();
 
-    // THIS STEP TAKES FAR TOO MUCH TIME
-    const t2 = Date.now();
-    for (let i = 0; i < serverUsers.length; i++) {
-        // get a specific user (to check if they have 10+ cards)
-        const user = serverUsers[i];
-        // await updateUserElo(interaction.channel.guildId, userIds[i]);
+    const serverId = interaction.guildId!;
+    const serversRef = getServersRef();
 
-        // if the user has 10+ cards
-        if (user.elo != undefined) {
-            // get their discord info
-            const userDiscordInfo = await client.users.fetch(user.discord.id);
-            const userDiscordInfoJSON = userDiscordInfo.toJSON();
+    // fetch leaderboard directly
+    const serverDoc = await serversRef.doc(serverId).get();
+    const data = serverDoc.data() as { leaderboard?: LeaderboardMap } | undefined;
 
-            const userRef = getServerUserRef(interaction.channel.guildId, user.discord.id);
+    const leaderboard: LeaderboardMap = data?.leaderboard || {};
 
-            // set discord info in the database
-            userRef.set({ discord: userDiscordInfoJSON }, { merge: true });
-            // finally, push all the qualified users to an array
-            users.push(user);
-        }
-    }
-    console.log(Date.now() - t2);
-    // sort qualified users by elo
-    const sortedUsers = users.sort((a, b) => {
-        return a.elo - b.elo;
-    });
+    // convert map -> array
+    const usersArray = Object.entries(leaderboard).map(([userId, elo]) => ({
+        userId,
+        elo,
+    }));
 
-    // create the embed message
-    const embed = new Discord.EmbedBuilder();
+    // sort (highest elo first)
+    const sortedUsers = usersArray
+        .filter((user): user is { userId: string; elo: number } => user.elo != null)
+        .sort((a, b) => b.elo - a.elo);
 
-    // populate the embed message
-    embed.setTitle(`${interaction.guild.name} Leaderboard`);
-    embed.setColor('#D9A6BD');
-    embed.setAuthor({
-        name: `${interaction.user.username}`,
-        iconURL: interaction.user.avatarURL(),
-        url: interaction.user.avatarURL(),
-    });
-    embed.setThumbnail(interaction.guild.iconURL());
+    // take top 10
+    const topUsers = sortedUsers.slice(0, 10);
+
+    // fetch only top users (much faster)
+    const usersWithNames = await Promise.all(
+        topUsers.map(async (player) => {
+            try {
+                const discordUser = await client.users.fetch(player.userId);
+                return {
+                    ...player,
+                    username: discordUser.username,
+                };
+            } catch {
+                return {
+                    ...player,
+                    username: 'Unknown',
+                };
+            }
+        })
+    );
+
+    // build embed
+    const embed = new Discord.EmbedBuilder()
+        .setTitle(`${interaction.guild?.name} Leaderboard`)
+        .setColor('#D9A6BD')
+        .setAuthor({
+            name: interaction.user.username,
+            iconURL: interaction.user.displayAvatarURL(),
+        })
+        .setThumbnail(interaction.guild?.iconURL() || null)
+        .setFooter({
+            text: `own 10+ cards to show up here`,
+            iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png`,
+        })
+        .setTimestamp();
+
     let embedDescription = `\`\`\`#    | User\n`;
     embedDescription += `----------------\n`;
-    sortedUsers.slice(0, 10).forEach((player) => {
-        embedDescription += `${player.elo.toString().padEnd(4)} | ${player.discord.username} \n`;
+
+    usersWithNames.forEach((player, index) => {
+        embedDescription += `${(index + 1).toString().padEnd(4)} | ${player.username} (${player.elo})\n`;
     });
 
     embedDescription += `\`\`\``;
-    embed.setDescription(`${embedDescription}`);
-    embed.setFooter({
-        text: `own 10+ cards to show up here`,
-        iconURL: `http://cdn.onlinewebfonts.com/svg/img_204525.png`,
-    });
-    embed.setTimestamp(Date.now());
 
-    // send the message
-    interaction.reply({ embeds: [embed] });
-    //interaction.reply("leaderboard command is under maintenance sorry gyze");
+    embed.setDescription(embedDescription);
+
+    const timestamp2 = new Date().getTime();
+    console.log(
+        `${interaction.user.username} used ;leaderboard in ${interaction.guild?.name}. (${timestamp2 - timestamp1} ms)`
+    );
+
+    await interaction.reply({ embeds: [embed] });
 }
