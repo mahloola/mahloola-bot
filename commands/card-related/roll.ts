@@ -19,7 +19,6 @@ export async function roll(
     interaction: Discord.CommandInteraction<Discord.CacheType>,
     db: FirebaseFirestore.Firestore
 ) {
-    const isAdmin = interaction.user?.id == adminDiscordId;
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
@@ -34,7 +33,7 @@ export async function roll(
     // the others take an increasing amount of time the more you roll
     const rollSuccess = await attemptRoll(interaction?.guild?.id, interaction.user.id, discordUserInDatabase);
     const timestamp5 = new Date().getTime();
-    if (!rollSuccess && !isAdmin) {
+    if (!rollSuccess) {
         const resetTime = user.rollResetTime;
         await interaction.reply(
             `${interaction.member} You've run out of rolls. Your roll restock time is <t:${resetTime
@@ -124,7 +123,7 @@ export async function roll(
                     const neverUsed = claimingUserDoc == null;
                     const claimResetTime = claimingUserDoc?.claimResetTime ?? 0;
 
-                    if (!isAdmin && (currentTime > claimResetTime || neverUsed)) {
+                    if (currentTime > claimResetTime || neverUsed) {
                         const ownedFlag = checkOwnedFlag(claimingUserDoc, player);
 
                         if (ownedFlag) {

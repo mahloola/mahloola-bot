@@ -1,10 +1,11 @@
 import Discord, { GatewayIntentBits } from 'discord.js';
 import admin from 'firebase-admin';
+
 import { isPremium } from '../commands/util/isPremium.js';
 import auth from '../config/auth.js';
 import { DatabaseStatistics, Leaderboard, Player, PlayerApiv2, Server, ServerUser } from '../types.js';
 import simplifiedPlayers from './simplifiedPlayersLowercase.json' assert { type: 'json' };
-const { firestoreKey, workflow } = auth;
+const { firestoreKey, workflow, adminDiscordId } = auth;
 const client = new Discord.Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
@@ -332,6 +333,7 @@ export async function setRollResetTime(serverId, userId) {
 }
 
 export async function setClaimResetTime(serverId, userId, time) {
+    if (userId === adminDiscordId) return;
     const userRef = getServerUserRef(serverId, userId);
     await userRef.set({ claimResetTime: time }, { merge: true });
 }
@@ -346,7 +348,7 @@ export async function attemptRoll(serverId, userId, discordUser): Promise<boolea
         let dataToSet: ServerUser = null;
         let rollSuccess;
 
-        if (!user || user.rollResetTime === undefined || user.discord?.id == '198773384794996739') {
+        if (!user || user.rollResetTime === undefined || user.discord?.id == adminDiscordId) {
             // user doesn't exist yet
             rollSuccess = true;
             dataToSet = {
