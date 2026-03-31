@@ -11,7 +11,7 @@ export async function perks(interaction) {
         url: interaction.user.avatarURL(),
     });
     const description = `
-**For $3 a month**:
+**For $2 a month**:
 • 12 rolls instead of 10 per hour
 • Add 3 custom users to the database per week
 • Pin up to 15 players instead of 10

@@ -22,7 +22,7 @@ export async function help(interaction) {
 \`profile:\` Display your all-time mahloola BOT stats (across all servers).
 \`message *message*:\` Send a message to mahloola about the bot.\n
 **Premium**
-\`donate:\` Support mahloola BOT through Paypal. Premium is $2.99 USD monthly.
+\`donate:\` Support mahloola BOT through Paypal. Premium is $1.99 USD monthly.
 \`perks:\` Read a list of perks that are available through donations.
 \`premium:\` Check your current premium status.
 \`add:\` Add a new player to the database (out of top 10k/inactive).\n
