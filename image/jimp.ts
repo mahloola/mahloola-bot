@@ -3,7 +3,7 @@ import Jimp from 'jimp';
 import text2png from 'text2png';
 import auth from '../config/auth.js';
 import { PlayerApiv2 } from '../types.js';
-const { imageDirectory } = auth;
+const { imageDirectory, baseImageDirectory } = auth;
 
 export async function createPlayerCard(player: PlayerApiv2, claimCount: number) {
     let userTitle = false; // enable this flag if the user has a title
@@ -19,7 +19,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
     const writePromises = [];
     writePromises.push(
         fs.promises.writeFile(
-            `${imageDirectory}/cache/text2png-${player.username}.png`,
+            `${baseImageDirectory}/text2png-${player.username}.png`,
             text2png(`${player.username}`, {
                 font: '36px Akshar',
                 localFontName: 'Akshar',
@@ -33,7 +33,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
     );
     writePromises.push(
         fs.promises.writeFile(
-            `${imageDirectory}/cache/text2png-${player.username}-statistics-left.png`,
+            `${imageDirectory}/text2png-${player.username}-statistics-left.png`,
             text2png(`Global\nCountry\npp\nFollowers\nClaims`, {
                 font: '24px Akshar',
                 localFontName: 'Akshar',
@@ -47,7 +47,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
     );
     writePromises.push(
         fs.promises.writeFile(
-            `${imageDirectory}/cache/text2png-${player.username}-statistics-right.png`,
+            `${imageDirectory}/text2png-${player.username}-statistics-right.png`,
             text2png(
                 `${player.global_rank ? player.global_rank : '-'}\n${
                     player.country_rank ? player.country_rank : '-'
@@ -68,7 +68,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
         userTitle = true;
         writePromises.push(
             fs.promises.writeFile(
-                `${imageDirectory}/cache/text2png-${player.username}-title.png`,
+                `${imageDirectory}/text2png-${player.username}-title.png`,
                 text2png(`${player.title}`, {
                     font: '24px Akshar',
                     localFontName: 'Akshar',
@@ -92,26 +92,26 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
         ? rank < 50
             ? 'image/osuCard-master.png'
             : rank < 300
-            ? 'image/osuCard-legendary.png'
-            : rank < 1000
-            ? 'image/osuCard-rare.png'
-            : rank < 5000
-            ? 'image/osuCard-uncommon.png'
-            : 'image/osuCard-common.png'
+              ? 'image/osuCard-legendary.png'
+              : rank < 1000
+                ? 'image/osuCard-rare.png'
+                : rank < 5000
+                  ? 'image/osuCard-uncommon.png'
+                  : 'image/osuCard-common.png'
         : followers > 5000
-        ? 'image/osuCard-master.png'
-        : followers > 2500
-        ? 'image/osuCard-legendary.png'
-        : followers > 1250
-        ? 'image/osuCard-rare.png'
-        : followers > 500
-        ? 'image/osuCard-uncommon.png'
-        : 'image/osuCard-common.png';
+          ? 'image/osuCard-master.png'
+          : followers > 2500
+            ? 'image/osuCard-legendary.png'
+            : followers > 1250
+              ? 'image/osuCard-rare.png'
+              : followers > 500
+                ? 'image/osuCard-uncommon.png'
+                : 'image/osuCard-common.png';
     readPromises.push(Jimp.read(baseImageFile));
 
-    readPromises.push(Jimp.read(`${imageDirectory}/cache/text2png-${player.username}.png`));
-    readPromises.push(Jimp.read(`${imageDirectory}/cache/text2png-${player.username}-statistics-left.png`));
-    readPromises.push(Jimp.read(`${imageDirectory}/cache/text2png-${player.username}-statistics-right.png`));
+    readPromises.push(Jimp.read(`${imageDirectory}/text2png-${player.username}.png`));
+    readPromises.push(Jimp.read(`${imageDirectory}/text2png-${player.username}-statistics-left.png`));
+    readPromises.push(Jimp.read(`${imageDirectory}/text2png-${player.username}-statistics-right.png`));
     readPromises.push(Jimp.read(`https://a.ppy.sh/${player.id}`));
     readPromises.push(
         Jimp.read(
@@ -135,7 +135,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
         circle,
     ] = await Promise.all(readPromises);
     const textImageTitle = userTitle
-        ? await Jimp.read(`${imageDirectory}/cache/text2png-${player.username}-title.png`)
+        ? await Jimp.read(`${imageDirectory}/text2png-${player.username}-title.png`)
         : null;
 
     // overlay text images onto the card
@@ -277,7 +277,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
 
     // write image
     try {
-        await osuCard.writeAsync(`${imageDirectory}/cache/osuCard-${player.username}.png`);
+        await osuCard.writeAsync(`${imageDirectory}/osuCard-${player.username}.png`);
     } catch (err) {
         console.trace();
         console.error(err);
