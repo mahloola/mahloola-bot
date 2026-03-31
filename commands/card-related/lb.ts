@@ -33,7 +33,7 @@ export async function lb(
     // sort (highest elo first)
     const sortedUsers = usersArray
         .filter((user): user is { userId: string; elo: number } => user.elo != null)
-        .sort((a, b) => b.elo - a.elo);
+        .sort((a, b) => a.elo - b.elo);
 
     // take top 10
     const topUsers = sortedUsers.slice(0, 10);
