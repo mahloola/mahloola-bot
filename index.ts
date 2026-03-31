@@ -42,7 +42,6 @@ client.on('ready', async function () {
         if (!interaction.isCommand()) return;
 
         const { commandName } = interaction;
-        console.log(commandName);
         try {
             // await commandName(interaction, serverPrefix, db, databaseStatistics, client);
             if (commandName === 'roll') {

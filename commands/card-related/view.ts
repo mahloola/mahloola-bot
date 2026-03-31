@@ -1,5 +1,5 @@
 import { AttachmentBuilder } from 'discord.js';
-import auth from '../../config/auth.js';
+import auth from '../../auth.json' assert { type: 'json' };
 import { getPlayerByUsername, setPlayer } from '../../db/database.js';
 import { createPlayerCard } from '../../image/jimp.js';
 import { getUser, requestClientCredentialsToken } from '../../scraper/api.js';
@@ -24,8 +24,9 @@ export async function view(interaction, serverPrefix, name) {
 
     try {
         // send image if it exists
-        const file = new AttachmentBuilder(`${imageDirectory}/cache/osuCard-${player.apiv2.username}.png`);
-        await interaction.reply({ files: [file] });
+        await interaction.reply({
+            files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
+        });
 
         // update the player and the image
         const apiToken = await requestClientCredentialsToken();
