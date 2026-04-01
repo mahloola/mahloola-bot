@@ -83,15 +83,6 @@ export async function roll(
                     return;
                 }
 
-                // Prevent reroll if card has been claimed
-                if (isClaimed) {
-                    await reactInteraction.reply({
-                        content: 'Cannot reroll a claimed card.',
-                        ephemeral: true,
-                    });
-                    return;
-                }
-
                 // Attempt a new roll using the same roll logic
                 const rerollSuccess = await attemptRoll(
                     interaction?.guild?.id,
