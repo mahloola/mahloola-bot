@@ -74,14 +74,6 @@ export async function roll(
         let isClaimed = false; // Track if card has been claimed
 
         collector.on('collect', async (reactInteraction) => {
-            if (isClaimed) {
-                await reactInteraction.reply({
-                    content: 'This card has already been claimed.',
-                    ephemeral: true,
-                });
-                return;
-            }
-
             if (reactInteraction.customId === 'reroll') {
                 if (reactInteraction.user.id !== interaction.user?.id) {
                     await reactInteraction.reply({
