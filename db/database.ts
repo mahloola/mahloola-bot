@@ -212,7 +212,7 @@ export async function getPlayerByRank(rank): Promise<Player> {
 
 // DB UTILITY FUNCTIONS
 export function getServersRef() {
-    const serversRef = workflow === 'development' ? db.collection('testing-servers') : db.collection('servers');
+    const serversRef = workflow === 'development' ? db.collection('testing-servers') : db.collection('servers-2026');
     return serversRef;
 }
 export async function getServerDoc(serverId): Promise<Server> {

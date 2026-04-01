@@ -23,37 +23,27 @@ export async function roll(
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
-    const timestamp2 = new Date().getTime();
     const discordUserInDatabase = await getDiscordUser(interaction.user.id);
-    const timestamp3 = new Date().getTime();
     const discordUser = interaction.user.toJSON();
     await updateDiscordUser(discordUserInDatabase, discordUser, interaction);
-    const timestamp4 = new Date().getTime();
 
-    // THIS ONE TAKES FOREVER
-    // the others take an increasing amount of time the more you roll
+    // Handle initial roll attempt
+    let currentUser = user;
     const rollSuccess = await attemptRoll(interaction?.guild?.id, interaction.user.id, discordUserInDatabase);
-    const timestamp5 = new Date().getTime();
+
     if (!rollSuccess) {
-        const resetTime = user.rollResetTime;
-        await interaction.reply(
+        const resetTime = currentUser?.rollResetTime;
+        await interaction.editReply(
             `${interaction.member} You've run out of rolls. Your roll restock time is <t:${resetTime
                 .toString()
                 .slice(0, -3)}:T>.`
         );
         return;
     }
+
+    // Get fresh user data after roll attempt
+    currentUser = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
     let player = await getRandomPlayer(db);
-    const timestamp6 = new Date().getTime();
-
-    const confirm = new ButtonBuilder().setCustomId('claim').setLabel('Claim').setStyle(ButtonStyle.Success);
-    // console.log('2 - 1:', timestamp2 - currentTime);
-    // console.log('3 - 2:', timestamp3 - timestamp2);
-    // console.log('4 - 3:', timestamp4 - timestamp3);
-    // console.log('5 - 4:', timestamp5 - timestamp4);
-    // console.log('6 - 5:', timestamp6 - timestamp5);
-
-    const timestamp7 = new Date().getTime();
 
     const getRollText = (rolls?: number) => {
         if (rolls === undefined) return '*No roll data*';
@@ -61,14 +51,12 @@ export async function roll(
     };
 
     const outboundMessage = (await interaction.editReply({
-        content: getRollText(user?.rolls),
+        content: getRollText(currentUser?.rolls),
         files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
         components: [row],
     })) as Discord.Message;
 
-    const timestamp8 = new Date().getTime();
-
-    const rollTimeTaken = timestamp8 - currentTime;
+    const rollTimeTaken = Date.now() - currentTime;
     console.log(
         `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
             interaction.user.username
@@ -83,7 +71,17 @@ export async function roll(
             time: 60_000,
         });
 
+        let isClaimed = false; // Track if card has been claimed
+
         collector.on('collect', async (reactInteraction) => {
+            if (isClaimed) {
+                await reactInteraction.reply({
+                    content: 'This card has already been claimed.',
+                    ephemeral: true,
+                });
+                return;
+            }
+
             if (reactInteraction.customId === 'reroll') {
                 if (reactInteraction.user.id !== interaction.user?.id) {
                     await reactInteraction.reply({
@@ -92,76 +90,139 @@ export async function roll(
                     });
                     return;
                 }
-                const remainingRolls = user?.rolls;
 
-                player = await getRandomPlayer(db);
-
-                if (user?.rolls !== undefined) {
-                    user.rolls -= 1;
+                // Prevent reroll if card has been claimed
+                if (isClaimed) {
+                    await reactInteraction.reply({
+                        content: 'Cannot reroll a claimed card.',
+                        ephemeral: true,
+                    });
+                    return;
                 }
 
-                // update message with new image
+                // Attempt a new roll using the same roll logic
+                const rerollSuccess = await attemptRoll(
+                    interaction?.guild?.id,
+                    interaction.user.id,
+                    discordUserInDatabase
+                );
+
+                if (!rerollSuccess) {
+                    // User has no rolls left
+                    const freshUser = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
+                    const resetTime = freshUser?.rollResetTime;
+                    await reactInteraction.reply({
+                        content: `You've run out of rolls. Your roll restock time is <t:${resetTime
+                            .toString()
+                            .slice(0, -3)}:T>.`,
+                        ephemeral: true,
+                    });
+                    return;
+                }
+
+                // Get fresh user data and new random player
+                const updatedUser = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
+                const newPlayer = await getRandomPlayer(db);
+
+                // Update the message with new card and updated roll count
                 await reactInteraction.update({
-                    content: getRollText(user?.rolls),
-                    files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
+                    content: getRollText(updatedUser?.rolls),
+                    files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${newPlayer.apiv2.username}.png`)],
                     components: [row],
                 });
+
+                // Update local references
+                player = newPlayer;
+                currentUser = updatedUser;
 
                 return;
             }
 
-            // 👇 existing claim logic
+            // Claim logic
             if (reactInteraction.customId === 'claim') {
+                // Prevent duplicate claims
+                if (isClaimed) {
+                    await reactInteraction.reply({
+                        content: 'This card has already been claimed.',
+                        ephemeral: true,
+                    });
+                    return;
+                }
+
                 await reactInteraction.deferReply();
 
-                if (reactInteraction.user.id !== outboundMessage?.member?.id) {
-                    const claimingUserDoc = await getServerUserDoc(
-                        outboundMessage?.guild?.id,
-                        reactInteraction.user.id
-                    );
+                // Get the latest user data for the claiming user
+                const claimingUserDoc = await getServerUserDoc(outboundMessage?.guild?.id, reactInteraction.user.id);
 
-                    const neverUsed = claimingUserDoc == null;
-                    const claimResetTime = claimingUserDoc?.claimResetTime ?? 0;
+                const neverUsed = claimingUserDoc == null;
+                const claimResetTime = claimingUserDoc?.claimResetTime ?? 0;
 
-                    if (currentTime > claimResetTime || neverUsed || reactInteraction.user.id === adminDiscordId) {
-                        const ownedFlag = checkOwnedFlag(claimingUserDoc, player);
+                if (currentTime > claimResetTime || neverUsed || reactInteraction.user.id === adminDiscordId) {
+                    const ownedFlag = checkOwnedFlag(claimingUserDoc, player);
 
-                        if (ownedFlag) {
-                            outboundMessage.channel.send(
-                                `${reactInteraction.user} You already own **${player.apiv2.username}**.`
-                            );
-                        } else {
-                            const claimingUser = reactInteraction.user;
-                            let discordUser = await getDiscordUser(claimingUser.id);
-
-                            if (discordUser === null) {
-                                await setDiscordUser(reactInteraction.user.toJSON());
-                                discordUser = await getDiscordUser(claimingUser.id);
-                            }
-
-                            logClaim(timestamp, reactInteraction, claimingUser, player);
-                            updateUserElo(reactInteraction?.guild?.id, reactInteraction.user.id);
-
-                            await claimCard(
-                                reactInteraction,
-                                claimingUser,
-                                player,
-                                discordUser,
-                                claimingUserDoc,
-                                currentTime
-                            );
-                        }
-                    } else {
+                    if (ownedFlag) {
                         await reactInteraction.editReply(
-                            `${reactInteraction.user} You may claim again <t:${claimResetTime.toString().slice(0, -3)}:R>.`
+                            `${reactInteraction.user} You already own **${player.apiv2.username}**.`
                         );
+                    } else {
+                        const claimingUser = reactInteraction.user;
+                        let discordUserForClaim = await getDiscordUser(claimingUser.id);
+
+                        if (discordUserForClaim === null) {
+                            await setDiscordUser(reactInteraction.user.toJSON());
+                            discordUserForClaim = await getDiscordUser(claimingUser.id);
+                        }
+
+                        logClaim(timestamp, reactInteraction, claimingUser, player);
+                        updateUserElo(reactInteraction?.guild?.id, reactInteraction.user.id);
+
+                        await claimCard(
+                            reactInteraction,
+                            claimingUser,
+                            player,
+                            discordUserForClaim,
+                            claimingUserDoc,
+                            currentTime
+                        );
+
+                        isClaimed = true; // Mark as claimed to prevent further interactions
+
+                        // Optionally disable buttons after claiming
+                        const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                            claimButton.setDisabled(true),
+                            rerollButton.setDisabled(true)
+                        );
+                        await outboundMessage.edit({ components: [disabledRow] }).catch(console.error);
                     }
+                } else {
+                    await reactInteraction.editReply(
+                        `${reactInteraction.user} You may claim again <t:${claimResetTime.toString().slice(0, -3)}:R>.`
+                    );
                 }
             }
         });
+
+        collector.on('end', async () => {
+            // Disable buttons when collector times out
+            if (!isClaimed) {
+                const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    claimButton.setDisabled(true),
+                    rerollButton.setDisabled(true)
+                );
+                await outboundMessage.edit({ components: [disabledRow] }).catch(console.error);
+            }
+        });
     } catch (error) {
-        outboundMessage.reactions
-            .removeAll()
-            .catch((error) => console.error('Failed to clear reactions: DiscordAPIError: Missing Permissions'));
+        console.error('Error in roll function:', error);
+        try {
+            await outboundMessage
+                .edit({
+                    content: 'An error occurred. Please try again.',
+                    components: [],
+                })
+                .catch(console.error);
+        } catch (editError) {
+            console.error('Failed to edit error message:', editError);
+        }
     }
 }
