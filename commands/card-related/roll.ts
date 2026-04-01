@@ -187,12 +187,12 @@ export async function roll(
 
                         isClaimed = true; // Mark as claimed to prevent further interactions
 
-                        // Optionally disable buttons after claiming
-                        const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-                            claimButton.setDisabled(true),
-                            rerollButton.setDisabled(true)
-                        );
-                        await outboundMessage.edit({ components: [disabledRow] }).catch(console.error);
+                        // // Optionally disable buttons after claiming
+                        // const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                        //     claimButton.setDisabled(true),
+                        //     rerollButton.setDisabled(true)
+                        // );
+                        // await outboundMessage.edit({ components: [disabledRow] }).catch(console.error);
                     }
                 } else {
                     await reactInteraction.editReply(
