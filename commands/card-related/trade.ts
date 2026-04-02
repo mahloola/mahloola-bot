@@ -104,7 +104,7 @@ export async function trade(interaction, otherUser: User, cards, otherCards) {
 
     const collectorFilter = (i) => i.user.id === otherUser.id;
     try {
-        const confirmation = await confirmationMessage.awaitMessageComponent({ filter: collectorFilter, time: 60000 });
+        const confirmation = await confirmationMessage.awaitMessageComponent({ filter: collectorFilter, time: 120000 });
 
         if (confirmation.customId === 'accept') {
             // what user 1 is giving to user 2

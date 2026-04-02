@@ -130,6 +130,7 @@ export async function roll(
                 // Update local references
                 player = newPlayer;
                 currentUser = updatedUser;
+                isClaimed = false; // ✅ allow claiming new card
 
                 return;
             }

@@ -55,19 +55,23 @@ export async function setPlayer(player: PlayerApiv2) {
 export async function setDiscordUser(discordUser: DiscordUser) {
     if (discordUser) {
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
-        const docRef = usersRef.doc(discordUser.id.toString());
-        await docRef.set(
-            {
-                discord: discordUser,
-                dateUpdated: new Date(),
-            },
-            { merge: true }
-        );
 
-        const userDoc = await docRef.get();
-        return userDoc.exists ? (userDoc.data() as GlobalUser) : null;
+        const docRef = usersRef.doc(discordUser.id.toString());
+
+        const updatedData = {
+            discord: discordUser,
+            dateUpdated: new Date(),
+        };
+
+        await docRef.set(updatedData, { merge: true });
+
+        return {
+            discord: discordUser,
+            dateUpdated: updatedData.dateUpdated,
+        } as GlobalUser;
     } else {
-        console.error(`Failed to set user ${discordUser.id}`);
+        console.error(`Failed to set user ${discordUser?.id}`);
+        return null;
     }
 }
 export async function setPremium(user, months) {
@@ -122,6 +126,11 @@ export async function setUserRollCounter(discord: DiscordUser | undefined, count
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
         const userRef = usersRef.doc(discord.id);
         await userRef.set({ discord: discord, rollCounter: count }, { merge: true });
+
+        return {
+            discord: discord,
+            rollCounter: count,
+        } as GlobalUser;
     } else {
         console.error(`Failed to set user roll counter.`);
     }
