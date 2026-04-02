@@ -47,7 +47,7 @@ export interface DiscordUser {
     discriminator?: string;
     displayAvatarURL?: string;
     flags?: number;
-    id?: string;
+    id: string;
     system?: boolean;
     tag?: string;
     username?: string;

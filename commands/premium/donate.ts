@@ -1,16 +1,17 @@
 import Discord from 'discord.js';
 import { setDiscordUser } from '../../db/database.js';
+import { mapToDiscordUser } from '../util/mapToDiscordUser.js';
 
 export async function donate(interaction: Discord.CommandInteraction<Discord.CacheType>) {
-    await setDiscordUser(interaction.user.toJSON());
+    await setDiscordUser(mapToDiscordUser(interaction.user));
     const embed = new Discord.EmbedBuilder();
     embed.setThumbnail(
         `https://cdn.discordapp.com/attachments/656735056701685760/980370406957531156/d26384fbd9990c9eb5841d500c60cf9d.png`
     );
     embed.setAuthor({
         name: `${interaction.user.username}`,
-        iconURL: interaction.user.avatarURL(),
-        url: interaction.user.avatarURL(),
+        iconURL: interaction.user.avatarURL() ?? '',
+        url: interaction.user.avatarURL() ?? '',
     });
     embed.setDescription(
         `${interaction.user}, here's your donation link:\nhttps://www.paypal.com/donate/?hosted_button_id=98KA8SY4NNL8U`

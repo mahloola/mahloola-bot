@@ -1,11 +1,12 @@
 import Discord, { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import auth from '../../auth.json' assert { type: 'json' };
 import { attemptRoll, getDiscordUser, getServerUserDoc, setDiscordUser, updateUserElo } from '../../db/database.js';
-import { NonDmChannel } from '../../types';
+import { DiscordUser, NonDmChannel } from '../../types';
 import checkOwnedFlag from '../util/checkOwnedFlag.js';
 import claimCard from '../util/claimCard.js';
 import getPlayerWithValidImage from '../util/getPlayerWithValidImage.js';
 import logClaim from '../util/logFunctions/logClaim.js';
+import { mapToDiscordUser } from '../util/mapToDiscordUser.js';
 import updateDiscordUser from '../util/updateDiscordUser.js';
 import updateRollStatistics from '../util/updateRollStatistics.js';
 const { adminDiscordId, imageDirectory } = auth;
@@ -24,7 +25,9 @@ export async function roll(
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
     const discordUserInDatabase = await getDiscordUser(interaction.user.id);
-    const discordUser = interaction.user.toJSON();
+    const discordUser = interaction.user.toJSON() as DiscordUser;
+
+    // if the user hasn't rolled before, add their discord account info to the database
     await updateDiscordUser(discordUserInDatabase, discordUser, interaction);
 
     // Handle initial roll attempt
@@ -157,7 +160,7 @@ export async function roll(
                         let discordUserForClaim = await getDiscordUser(claimingUser.id);
 
                         if (discordUserForClaim === null) {
-                            await setDiscordUser(reactInteraction.user.toJSON());
+                            await setDiscordUser(mapToDiscordUser(reactInteraction.user));
                             discordUserForClaim = await getDiscordUser(claimingUser.id);
                         }
 
