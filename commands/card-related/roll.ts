@@ -4,7 +4,7 @@ import { attemptRoll, getDiscordUser, getServerUserDoc, setDiscordUser, updateUs
 import { NonDmChannel } from '../../types';
 import checkOwnedFlag from '../util/checkOwnedFlag.js';
 import claimCard from '../util/claimCard.js';
-import getRandomPlayer from '../util/getRandomPlayer.js';
+import getPlayerWithValidImage from '../util/getPlayerWithValidImage.js';
 import logClaim from '../util/logFunctions/logClaim.js';
 import updateDiscordUser from '../util/updateDiscordUser.js';
 import updateRollStatistics from '../util/updateRollStatistics.js';
@@ -34,7 +34,7 @@ export async function roll(
     if (!rollSuccess) {
         const resetTime = currentUser?.rollResetTime;
         await interaction.editReply(
-            `${interaction.member} You've run out of rolls. Your roll restock time is <t:${resetTime
+            `${interaction.member} You've run out of rolls. Your roll restock time is <t:${(resetTime ?? 0)
                 .toString()
                 .slice(0, -3)}:T>.`
         );
@@ -43,7 +43,8 @@ export async function roll(
 
     // Get fresh user data after roll attempt
     currentUser = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
-    let player = await getRandomPlayer(db);
+    // eslint-disable-next-line prefer-const
+    let { player, imagePath } = await getPlayerWithValidImage(db, imageDirectory);
 
     const getRollText = (rolls?: number) => {
         if (rolls === undefined) return '*No roll data*';
@@ -52,7 +53,7 @@ export async function roll(
 
     const outboundMessage = (await interaction.editReply({
         content: getRollText(currentUser?.rolls),
-        files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${player.apiv2.username}.png`)],
+        files: [new AttachmentBuilder(imagePath)],
         components: [row],
     })) as Discord.Message;
 
@@ -89,13 +90,14 @@ export async function roll(
                     interaction.user.id,
                     discordUserInDatabase
                 );
+                updateRollStatistics(discordUserInDatabase, player);
 
                 if (!rerollSuccess) {
                     // User has no rolls left
                     const freshUser = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
                     const resetTime = freshUser?.rollResetTime;
                     await reactInteraction.reply({
-                        content: `You've run out of rolls. Your roll restock time is <t:${resetTime
+                        content: `You've run out of rolls. Your roll restock time is <t:${(resetTime ?? 0)
                             .toString()
                             .slice(0, -3)}:T>.`,
                         ephemeral: true,
@@ -105,12 +107,15 @@ export async function roll(
 
                 // Get fresh user data and new random player
                 const updatedUser = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
-                const newPlayer = await getRandomPlayer(db);
+                const { player: newPlayer, imagePath: newImagePath } = await getPlayerWithValidImage(
+                    db,
+                    imageDirectory
+                );
 
                 // Update the message with new card and updated roll count
                 await reactInteraction.update({
                     content: getRollText(updatedUser?.rolls),
-                    files: [new AttachmentBuilder(`${imageDirectory}/osuCard-${newPlayer.apiv2.username}.png`)],
+                    files: [new AttachmentBuilder(newImagePath)],
                     components: [row],
                 });
 

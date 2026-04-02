@@ -19,7 +19,7 @@ export async function createPlayerCard(player: PlayerApiv2, claimCount: number) 
     const writePromises = [];
     writePromises.push(
         fs.promises.writeFile(
-            `${baseImageDirectory}/text2png-${player.username}.png`,
+            `${imageDirectory}/text2png-${player.username}.png`,
             text2png(`${player.username}`, {
                 font: '36px Akshar',
                 localFontName: 'Akshar',

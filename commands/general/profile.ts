@@ -3,9 +3,12 @@ import { getDiscordUser } from '../../db/database.js';
 
 export async function profile(interaction) {
     const user = await getDiscordUser(interaction.user.id);
+    const rolls = user?.rollCounter ?? 0;
+    const claims = user?.claimCounter ?? 0;
+
     const description = `
-**Rolls**: ${user?.rollCounter.toLocaleString() ?? 0}
-**Claims**: ${user?.claimCounter.toLocaleString() ?? 0}
+**Rolls**: ${rolls.toLocaleString()}
+**Claims**: ${claims.toLocaleString()}
 `;
     const embed = new Discord.EmbedBuilder();
 

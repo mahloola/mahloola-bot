@@ -34,6 +34,7 @@ export async function view(interaction, serverPrefix, name) {
         const trimmedPlayer = trimPlayerDocument(osuPlayer);
         await setPlayer(trimmedPlayer);
         await createPlayerCard(trimmedPlayer, player.claimCounter ?? 0);
+        console.log(`Viewed ${osuPlayer.username}, updating player and recreating image...`);
     } catch (error) {
         console.error(`Failed to send image for ${player.apiv2.username}.`);
     }

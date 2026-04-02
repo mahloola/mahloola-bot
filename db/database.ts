@@ -3,7 +3,7 @@ import admin from 'firebase-admin';
 
 import { isPremium } from '../commands/util/isPremium.js';
 import auth from '../config/auth.js';
-import { DatabaseStatistics, Leaderboard, Player, PlayerApiv2, Server, ServerUser } from '../types.js';
+import { DatabaseStatistics, GlobalUser, Leaderboard, Player, PlayerApiv2, Server, ServerUser } from '../types.js';
 import simplifiedPlayers from './simplifiedPlayersLowercase.json' assert { type: 'json' };
 const { firestoreKey, workflow, adminDiscordId } = auth;
 const client = new Discord.Client({
@@ -257,7 +257,7 @@ export async function getServerUsers(serverId) {
 export async function getDiscordUser(discordId) {
     const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
     const userDoc = await usersRef.doc(discordId).get();
-    return userDoc.exists ? userDoc.data() : null;
+    return userDoc.exists ? (userDoc.data() as GlobalUser) : null;
 }
 export async function getDiscordUserRef(discordId) {
     const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
