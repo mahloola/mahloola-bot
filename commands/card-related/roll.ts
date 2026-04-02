@@ -24,11 +24,11 @@ export async function roll(
     const timestamp = new Date();
     const currentTime = timestamp.getTime();
     const user = await getServerUserDoc(interaction?.guild?.id, interaction.user.id);
-    const discordUserInDatabase = await getDiscordUser(interaction.user.id);
+    let discordUserInDatabase = await getDiscordUser(interaction.user.id);
     const discordUser = interaction.user.toJSON() as DiscordUser;
 
     // if the user hasn't rolled before, add their discord account info to the database
-    await updateDiscordUser(discordUserInDatabase, discordUser, interaction);
+    discordUserInDatabase = (await updateDiscordUser(discordUserInDatabase, discordUser, interaction)) ?? null;
 
     // Handle initial roll attempt
     let currentUser = user;
@@ -94,6 +94,11 @@ export async function roll(
                     discordUserInDatabase
                 );
                 updateRollStatistics(discordUserInDatabase, player);
+                console.log(
+                    `${timestamp.toLocaleTimeString().slice(0, 5)} | ${(interaction.channel as NonDmChannel).guild.name}: ${
+                        interaction.user.username
+                    } rolled ${player.apiv2.username} (${rollTimeTaken}ms).`
+                );
 
                 if (!rerollSuccess) {
                     // User has no rolls left

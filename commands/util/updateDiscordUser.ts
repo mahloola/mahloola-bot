@@ -13,7 +13,8 @@ const updateDiscordUser = async (
         discordUserInDatabase?.discord?.username != discordUser?.username ||
         discordUserInDatabase?.discord?.avatarURL != discordUser?.avatar
     ) {
-        await setDiscordUser(mapToDiscordUser(interaction?.user)); // update their discord profile
+        const updatedDiscordUser = await setDiscordUser(mapToDiscordUser(interaction?.user)); // update their discord profile
+        return updatedDiscordUser;
         // DANGER: MAKE SURE TO TEST THIS TO NOT OVERWRITE THEIR STATS
     }
 };

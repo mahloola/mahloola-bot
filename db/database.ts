@@ -63,6 +63,9 @@ export async function setDiscordUser(discordUser: DiscordUser) {
             },
             { merge: true }
         );
+
+        const userDoc = await docRef.get();
+        return userDoc.exists ? (userDoc.data() as GlobalUser) : null;
     } else {
         console.error(`Failed to set user ${discordUser.id}`);
     }
