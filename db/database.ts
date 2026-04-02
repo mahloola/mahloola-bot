@@ -3,7 +3,16 @@ import admin from 'firebase-admin';
 
 import { isPremium } from '../commands/util/isPremium.js';
 import auth from '../config/auth.js';
-import { DatabaseStatistics, GlobalUser, Leaderboard, Player, PlayerApiv2, Server, ServerUser } from '../types.js';
+import {
+    DatabaseStatistics,
+    DiscordUser,
+    GlobalUser,
+    Leaderboard,
+    Player,
+    PlayerApiv2,
+    Server,
+    ServerUser,
+} from '../types.js';
 import simplifiedPlayers from './simplifiedPlayersLowercase.json' assert { type: 'json' };
 const { firestoreKey, workflow, adminDiscordId } = auth;
 const client = new Discord.Client({
@@ -43,7 +52,7 @@ export async function setPlayer(player: PlayerApiv2) {
     }
 }
 // set discord user in the database
-export async function setDiscordUser(discordUser) {
+export async function setDiscordUser(discordUser: DiscordUser) {
     if (discordUser) {
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
         const docRef = usersRef.doc(discordUser.id.toString());
@@ -105,7 +114,7 @@ export async function populateUsers() {
         }
     }
 }
-export async function setUserRollCounter(discord, count) {
+export async function setUserRollCounter(discord: DiscordUser | undefined, count: number) {
     if (discord) {
         const usersRef = workflow === 'development' ? db.collection('testing-users') : db.collection('users');
         const userRef = usersRef.doc(discord.id);
