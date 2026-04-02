@@ -16,6 +16,8 @@ const updateDiscordUser = async (
         const updatedDiscordUser = await setDiscordUser(mapToDiscordUser(interaction?.user)); // update their discord profile
         return updatedDiscordUser;
         // DANGER: MAKE SURE TO TEST THIS TO NOT OVERWRITE THEIR STATS
+    } else {
+        return null;
     }
 };
 

@@ -7,7 +7,7 @@ import {
 import { GlobalUser, Player } from '../../types.js';
 
 // discordUser is implicitly type GlobalUser
-const updateRollStatistics = async (discordUser: GlobalUser, player: Player) => {
+const updateRollStatistics = async (discordUser: GlobalUser | null, player: Player) => {
     // update statistics
     const statistics = await getDatabaseStatistics();
     statistics.rolls = statistics.rolls ? statistics.rolls + 1 : 1;

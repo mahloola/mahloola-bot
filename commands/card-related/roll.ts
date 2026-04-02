@@ -28,7 +28,7 @@ export async function roll(
     const discordUser = interaction.user.toJSON() as DiscordUser;
 
     // if the user hasn't rolled before, add their discord account info to the database
-    discordUserInDatabase = (await updateDiscordUser(discordUserInDatabase, discordUser, interaction)) ?? null;
+    discordUserInDatabase = await updateDiscordUser(discordUserInDatabase, discordUser, interaction);
 
     // Handle initial roll attempt
     let currentUser = user;
