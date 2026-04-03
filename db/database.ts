@@ -368,25 +368,25 @@ export async function attemptRoll(serverId, userId, discordUser): Promise<boolea
         let dataToSet: ServerUser = null;
         let rollSuccess;
 
-        if (!user || user.rollResetTime === undefined || user.discord?.id == adminDiscordId) {
+        if (!userDoc.exists || user.discord?.id == adminDiscordId) {
             // user doesn't exist yet
             rollSuccess = true;
             dataToSet = {
                 rollResetTime: Date.now() + 1 * millisecondsPerHour,
                 rolls: isPremium(discordUser) ? 12 - 1 : 10 - 1,
             };
-        } else if (Date.now() > user.rollResetTime) {
+        } else if (user.rollResetTime === undefined || Date.now() > user.rollResetTime) {
             // user is past their cooldown
             rollSuccess = true;
             dataToSet = {
                 rollResetTime: Date.now() + 1 * millisecondsPerHour,
                 rolls: isPremium(discordUser) ? 12 - 1 : 10 - 1,
             };
-        } else if (user.rolls > 0) {
+        } else if (user.rolls === undefined || user.rolls > 0) {
             // user has rolled recently but still has enough rolls
             rollSuccess = true;
             dataToSet = {
-                rolls: user.rolls - 1,
+                rolls: user.rolls ? user.rolls - 1 : 9, // assume non premium for simplicity
             };
         } else {
             // roll failed: user does not have enough rolls
